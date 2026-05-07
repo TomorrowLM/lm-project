@@ -1,0 +1,3 @@
+[submodule "document-private"]
+	path = document-private
+	url = https://github.com/TomorrowLM/document-private.git
