@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>CAD Viewer</title>
+  <style>
+    body { margin: 0; }
+    canvas { display: block; }
+  </style>
+</head>
+<body>
+  <!-- <div id="container"></div> -->
+  <img src="data:image/png;base64,JVBERi0xLjQKJfbk/N8KMSAwIG9iago8PAovVHlwZSAvQ2F0YWxvZwovVmVyc2lvbiAvMS40Ci9QYWdlcyAyIDAgUgo+PgplbmRvYmoKMiAwIG9iago8PAovVHlwZSAvUGFnZXMKL0tpZHMgWzMgMCBSXQovQ291bnQgMQo+PgplbmRvYmoKMyAwIG9iago8PAovVHlwZSAvUGFnZQovTWVkaWFCb3ggWzAuMCAwLjAgNjEyLjAgNzkyLjBdCi9QYXJlbnQgMiAwIFIKPj4KZW5kb2JqCnhyZWYKMCA0CjAwMDAwMDAwMDAgNjU1MzUgZg0KMDAwMDAwMDAxNSAwMDAwMCBuDQowMDAwMDAwMDc4IDAwMDAwIG4NCjAwMDAwMDAxMzUgMDAwMDAgbg0KdHJhaWxlcgo8PAovUm9vdCAxIDAgUgovSUQgWzw3NzgyRDg3ODU5MEY3Q0FEMjg5QzlCRUFCOTk3NTE5MT4gPDc3ODJEODc4NTkwRjdDQUQyODlDOUJFQUI5OTc1MTkxPl0KL1NpemUgNAo+PgpzdGFydHhyZWYKMjE0CiUlRU9GCg=="></img>
+  <input type="file" id="cadFileInput" />
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.152.2/"
+      }
+    }
+  </script>
+  <script type="module">
+    import * as THREE from 'three';
+    import { DXFLoader } from 'https://cdn.jsdelivr.net/npm/three-dxf-loader@5.2.0/dist/three-dxf-loader.js';
+
+    if (typeof DXFLoader !== 'function') {
+      throw new Error('DXFLoader failed to load from CDN.');
+    }
+
+    const loader = new DXFLoader();
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0xf4f6f8);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.getElementById('container').appendChild(renderer.domElement);
+
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    scene.add(ambientLight);
+
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    directionalLight.position.set(4, 8, 5);
+    scene.add(directionalLight);
+
+    camera.position.z = 5;
+
+    const fileInput = document.getElementById('cadFileInput');
+
+    fileInput.addEventListener('change', function (event) {
+      const file = event.target.files[0];
+      if (!file) {
+        return;
+      }
+
+      const reader = new FileReader();
+
+      reader.onload = function (event) {
+        try {
+          const dxfText = event.target.result;
+          const parsed = loader.parse(dxfText);
+
+          if (!parsed || !parsed.entity) {
+            throw new Error('No drawable entity parsed from file.');
+          }
+
+          scene.clear();
+          scene.add(ambientLight);
+          scene.add(directionalLight);
+          scene.add(parsed.entity);
+        } catch (error) {
+          console.error('Failed to parse CAD file:', error);
+          alert('CAD 文件解析失败，请确认是有效的 DXF 文件。');
+        }
+      };
+
+      reader.readAsText(file);
+    });
+
+    function animate() {
+      requestAnimationFrame(animate);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', function () {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+  </script>
+</body>
+</html>

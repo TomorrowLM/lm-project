@@ -1,0 +1,11 @@
+# Typora 上传配置文件
+# 格式: 文档文件名=COS目录名
+
+# 示例配置
+my_document.md=project_a
+notes.md=personal_notes
+work_log.md=work_documents
+README.md=docs
+
+# 默认配置（如果没有匹配的文件名）
+default=typora_images

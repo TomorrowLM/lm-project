@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@x-viewer/core CDN Demo</title>
+	<style>
+		:root {
+			--bg: #0f172a;
+			--panel: #111827;
+			--line: #1f2937;
+			--text: #e5e7eb;
+			--muted: #94a3b8;
+			--accent: #22d3ee;
+		}
+
+		* { box-sizing: border-box; }
+
+		html, body {
+			width: 100%;
+			height: 100%;
+			margin: 0;
+			background: radial-gradient(circle at 20% 10%, #1e293b 0%, var(--bg) 55%);
+			color: var(--text);
+			font-family: "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+		}
+
+		.app {
+			width: 100%;
+			height: 100%;
+			display: grid;
+			grid-template-rows: 60px 1fr;
+		}
+
+		.toolbar {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 10px 16px;
+			border-bottom: 1px solid var(--line);
+			background: color-mix(in srgb, var(--panel) 88%, black);
+		}
+
+		.badge {
+			font-size: 12px;
+			color: var(--muted);
+			padding: 4px 10px;
+			border: 1px solid var(--line);
+			border-radius: 999px;
+		}
+
+		.file {
+			color: var(--text);
+			background: #0b1220;
+			border: 1px solid var(--line);
+			border-radius: 8px;
+			padding: 6px 10px;
+		}
+
+		.status {
+			margin-left: auto;
+			color: var(--accent);
+			font-size: 13px;
+			white-space: nowrap;
+			max-width: 45vw;
+			overflow: hidden;
+			text-overflow: ellipsis;
+		}
+
+		#myCanvas {
+			width: 100%;
+			height: 100%;
+			min-height: 320px;
+		}
+	</style>
+</head>
+<body>
+	<div class="app">
+		<div class="toolbar">
+			<span class="badge">CDN: @x-viewer/core</span>
+			<input class="file" id="cadFileInput" type="file" accept=".dwg,.dxf" />
+			<span id="status" class="status">请选择 DWG 或 DXF 文件</span>
+		</div>
+		<div id="myCanvas"></div>
+	</div>
+
+	<script type="module">
+		import { Viewer2d } from "https://cdn.jsdelivr.net/npm/@x-viewer/core@0.21.6/dist/index.esm.js";
+
+		const statusEl = document.getElementById("status");
+		const fileInput = document.getElementById("cadFileInput");
+
+		const viewer = new Viewer2d({
+			containerId: "myCanvas",
+			enableSpinner: true,
+			enableLayoutBar: true,
+		});
+
+		function setStatus(text, isError = false) {
+			statusEl.textContent = text;
+			statusEl.style.color = isError ? "#f87171" : "#22d3ee";
+		}
+
+		fileInput.addEventListener("change", async (event) => {
+			const file = event.target.files && event.target.files[0];
+			if (!file) {
+				return;
+			}
+
+			const lowerName = file.name.toLowerCase();
+			if (!lowerName.endsWith(".dwg") && !lowerName.endsWith(".dxf")) {
+				setStatus("仅支持 .dwg / .dxf", true);
+				return;
+			}
+
+			const src = URL.createObjectURL(file);
+			const modelId = "local_" + Date.now();
+
+			setStatus("正在加载: " + file.name);
+
+			try {
+				await viewer.loadModel(
+					{
+						modelId,
+						name: file.name,
+						src,
+					},
+					(progressEvent) => {
+						if (!progressEvent || !progressEvent.total) {
+							return;
+						}
+						const percent = Math.round((progressEvent.loaded / progressEvent.total) * 100);
+						setStatus("加载中 " + percent + "%: " + file.name);
+					}
+				);
+
+				viewer.goToHomeView();
+				setStatus("加载完成: " + file.name);
+			} catch (error) {
+				console.error("Load model failed:", error);
+				setStatus("加载失败: " + (error && error.message ? error.message : "未知错误"), true);
+			} finally {
+				URL.revokeObjectURL(src);
+			}
+		});
+	</script>
+</body>
+</html>

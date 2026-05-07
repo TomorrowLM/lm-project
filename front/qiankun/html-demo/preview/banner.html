@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>首页 Banner 轮播</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #f5f5f5; }
+
+    .banner {
+      position: relative;
+      width: min(1200px, calc(100vw - 32px));
+      height: 420px;
+      margin: 40px auto;
+      overflow: hidden;
+      border-radius: 16px;
+      background: #000;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+    }
+
+    .slides {
+      display: flex;
+      height: 100%;
+      transition: transform 0.5s ease;
+    }
+
+    .slide {
+      width: 100%;
+      flex-shrink: 0;
+      position: relative;
+    }
+
+    .slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.12));
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding: 0 64px;
+    }
+
+    .overlay h1 {
+      font-size: 44px;
+      margin-bottom: 12px;
+      letter-spacing: 1px;
+    }
+
+    .overlay p {
+      font-size: 18px;
+      line-height: 1.7;
+      max-width: 560px;
+      opacity: 0.96;
+    }
+
+    .btn {
+      margin-top: 24px;
+      display: inline-block;
+      width: fit-content;
+      padding: 12px 24px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #ff6a00, #ff8a3d);
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      box-shadow: 0 10px 24px rgba(255, 106, 0, 0.25);
+    }
+
+    .nav-btn {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.75);
+      cursor: pointer;
+      font-size: 20px;
+      z-index: 2;
+      display: grid;
+      place-items: center;
+    }
+
+    .prev { left: 16px; }
+    .next { right: 16px; }
+
+    .dots {
+      position: absolute;
+      left: 50%;
+      bottom: 18px;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 10px;
+      z-index: 2;
+    }
+
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255, 255, 255, 0.5);
+      cursor: pointer;
+    }
+
+    .dot.active { background: #fff; }
+
+    @media (max-width: 768px) {
+      .banner { height: 260px; margin: 16px auto; border-radius: 12px; }
+      .overlay { padding: 0 20px; }
+      .overlay h1 { font-size: 28px; }
+      .overlay p { font-size: 14px; max-width: 90%; }
+      .btn { padding: 10px 18px; }
+      .nav-btn { width: 36px; height: 36px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="banner">
+    <div class="slides" id="slides">
+      <div class="slide">
+        <img src="https://picsum.photos/id/1015/1200/420" alt="Banner 1">
+        <div class="overlay">
+          <h1>欢迎来到我们的首页</h1>
+          <p>这里是首页主视觉区域，可用于展示品牌、活动或重点产品信息。</p>
+          <a href="#" class="btn">立即查看</a>
+        </div>
+      </div>
+      <div class="slide">
+        <img src="https://picsum.photos/id/1025/1200/420" alt="Banner 2">
+        <div class="overlay">
+          <h1>新品推荐</h1>
+          <p>通过轮播展示多张宣传图，让页面更有视觉冲击力。</p>
+          <a href="#" class="btn">了解更多</a>
+        </div>
+      </div>
+      <div class="slide">
+        <img src="https://picsum.photos/id/1035/1200/420" alt="Banner 3">
+        <div class="overlay">
+          <h1>限时优惠活动</h1>
+          <p>适合电商、官网、活动页等场景，吸引用户点击转化。</p>
+          <a href="#" class="btn">去抢购</a>
+        </div>
+      </div>
+    </div>
+
+    <button class="nav-btn prev" onclick="prevSlide()">‹</button>
+    <button class="nav-btn next" onclick="nextSlide()">›</button>
+
+    <div class="dots">
+      <button class="dot active" onclick="goToSlide(0)"></button>
+      <button class="dot" onclick="goToSlide(1)"></button>
+      <button class="dot" onclick="goToSlide(2)"></button>
+    </div>
+  </div>
+
+  <script>
+    let currentIndex = 0;
+    const slides = document.getElementById('slides');
+    const dots = document.querySelectorAll('.dot');
+    const total = 3;
+
+    function updateBanner() {
+      slides.style.transform = `translateX(-${currentIndex * 100}%)`;
+      dots.forEach((dot, i) => dot.classList.toggle('active', i === currentIndex));
+    }
+
+    function nextSlide() {
+      currentIndex = (currentIndex + 1) % total;
+      updateBanner();
+    }
+
+    function prevSlide() {
+      currentIndex = (currentIndex - 1 + total) % total;
+      updateBanner();
+    }
+
+    function goToSlide(index) {
+      currentIndex = index;
+      updateBanner();
+    }
+
+    setInterval(nextSlide, 4000);
+  </script>
+</body>
+</html>
