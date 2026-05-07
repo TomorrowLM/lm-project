@@ -211,7 +211,6 @@ def get_md_file_name(directory_name=None, config=None, image_path=None):
         name_without_ext = os.path.splitext(file_name)[0]
         print(f"Debug: Using filename as directory: {name_without_ext}", file=sys.stderr)
         return name_without_ext
-    
     # 6. 尝试从配置文件获取
     if config and md_file_path:
         doc_name = os.path.basename(md_file_path)

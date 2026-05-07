@@ -1,0 +1,154 @@
+<div id="app">
+  <h3></h3>
+</div>
+
+<script>
+  // 响应式的数据分为两类：
+  // 对象，循环遍历对象的所有属性，为每个属性设置 getter、setter，以达到拦截访问和设置的目的，如果属性值依旧为对象，则递归为属性值上的每个 key 设置 getter、setter
+  // 访问数据时（obj.key)进行依赖收集，在 dep 中存储相关的 watcher
+  // 设置数据时由 dep 通知相关的 watcher 去更新
+  // 数组，增强数组的那 7 个可以更改自身的原型方法，然后拦截对这些方法的操作
+  // 添加新数据时进行响应式处理，然后由 dep 通知 watcher 去更新
+  // 删除数据时，也要由 dep 通知 watcher 去更新
+
+  /**
+   * 一个 dep 对应一个 obj.key
+   * 在读取响应式数据时，负责收集依赖，每个 dep（或者说 obj.key）依赖的 watcher 有哪些
+   * 在响应式数据更新时，负责通知 dep 中那些 watcher 去执行 update 方法
+   */
+  const Dep = function () {
+    this.target = null; // 收集目标
+    this.subs = []; // dep收集器存储需要通知的Watcher
+    this.addSub = function (watcher) {
+      // 在 dep 中添加 watcher
+      this.subs.push(watcher);
+    };
+    // 向 watcher 中添加 dep
+    this.depend = function () {
+      // 当有目标时，绑定Dep与Wathcer的关系
+      if (Dep.target) {
+        console.log("Dep.target", Dep.target);
+        Dep.target.addDep(this);
+      }
+    };
+    this.notify = function () {
+      // 通知收集器 dep 中的所有 watcher，执行 watcher.update() 方法
+      for (let i = 0; i < this.subs.length; i += 1) {
+        this.subs[i].update();
+      }
+    };
+  };
+  /**
+   * 拦截 obj[key] 的读取和设置操作：
+   *   1、在第一次读取时收集依赖，比如执行 render 函数生成虚拟 DOM 时会有读取操作
+   *   2、在更新时设置新值并通知依赖更新
+   */
+  const defineReactive = function (obj, key) {
+    // 实例化 dep，一个 key 一个 dep
+    const dep = new Dep();
+    console.log("dep", dep, obj, key);
+    // 获取当前值
+    let val = obj[key];
+    Object.defineProperty(obj, key, {
+      // 设置当前描述属性为可被循环
+      enumerable: true,
+      // 设置当前描述属性可被修改
+      configurable: true,
+      get() {
+        console.log("in get");
+        // 调用依赖收集器中的addSub，用于收集当前属性与Watcher中的依赖关系
+        dep.depend();
+        return val;
+      },
+      set(newVal) {
+        console.log("in set");
+        if (newVal === val) {
+          return;
+        }
+        val = newVal;
+        // 当值发生变更时，通知依赖收集器，更新每个需要更新的Watcher，
+        // 这里每个需要更新通过什么断定？dep.subs
+        dep.notify();
+      },
+    });
+  };
+
+  const Observer = function (data) {
+    // 循环修改为每个属性添加get set
+    for (let key in data) {
+      defineReactive(data, key);
+    }
+  };
+
+  /**
+   * 一个组件一个 watcher（渲染 watcher）或者一个表达式一个 watcher（用户watcher）
+   * 当数据更新时 watcher 会被触发，访问 this.computedProperty 时也会触发 watcher
+   */
+  const Watcher = function (vm, fn) {
+    // console.log(vm, fn);
+    this.vm = vm;
+    // 将当前Dep.target指向自己
+    Dep.target = this;
+    // 在 dep 中添加 watcher
+    this.addDep = function (dep) {
+      console.log("addDep-this", this); //Watcher实例
+      dep.addSub(this);
+    };
+
+    // 更新方法，用于触发vm.$render
+    this.update = function () {
+      console.log(this, this, "update-this");
+      console.log("in watcher update");
+      fn.call(this.vm);
+    };
+    // 这里会首次调用vm._render，从而触发text的get
+    // 从而将当前的Wathcer与Dep关联起来
+    fn.call(this.vm);
+    // 这里清空了Dep.target，为了防止notify触发时，不停的绑定Watcher与Dep，
+    // 造成代码死循环
+    Dep.target = null;
+  };
+
+  const Vue = function (options) {
+    // 将data赋值给this.$data，源码这部分用的Proxy所以我们用最简单的方式临时实现
+    if (options && typeof options.data === "function") {
+      this.$data = options.data.apply(this);
+    }
+    // 监听this.$data
+    new Observer(this.$data);
+  };
+
+  // 挂载函数
+  Vue.prototype.$mount = function () {
+    const self = this;
+    new Watcher(self, self.$render);
+    // new Watcher(self, self.$render);
+  };
+
+  // 渲染函数
+  Vue.prototype.$render = function () {
+    //渲染视图
+    //vue2渲染函数返回的是虚拟dom,这里暂时返回真实的dom
+    console.log(this);
+    const h3 = document.getElementsByTagName("h3")[0];
+    h3.innerText = this.$data.text + `${this.$data.text1}`;
+    return h3;
+  };
+
+  const myApp = new Vue({
+    data() {
+      return {
+        text: "hello world",
+        text1: "123",
+      };
+    },
+    mounted() {
+      setTimeout(() => {
+        this.$data.text = "这是新的标题";
+      }, 1000);
+    },
+  });
+
+  myApp.$mount("app");
+  // myApp.$data.text = "123"; // in watcher update /n in get
+</script>
