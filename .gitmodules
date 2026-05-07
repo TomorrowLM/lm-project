@@ -1,3 +1,6 @@
 [submodule "document-private"]
 	path = document-private
 	url = https://github.com/TomorrowLM/document-private.git
+[submodule "front/qiankun/ai/skills"]
+	path = front/qiankun/ai/skills
+	url = https://github.com/TomorrowLM/lm-skill.git
