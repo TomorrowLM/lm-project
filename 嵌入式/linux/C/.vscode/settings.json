@@ -1,0 +1,15 @@
+{
+  "C_Cpp.errorSquiggles": "disabled",
+  "files.associations": {
+    "index.h": "c",
+    "stdio.h": "c",
+    "stdlib.h": "c",
+    "array": "c",
+    "bitset": "c",
+    "initializer_list": "c",
+    "regex": "c",
+    "utility": "c",
+    "valarray": "c",
+    "windows.h": "c"
+  }
+}
