@@ -1,0 +1,102 @@
+{
+  "type": "create_ui",
+  "description": "防灾减灾明细详情",
+  "page": {
+    "type": "page",
+    "name": "防灾减灾明细详情",
+    "description": "防灾减灾明细详情页面",
+    "uiPath": "ai\\doc\\demand\\防灾减灾\\明细详情\\ui\\page.png",
+    "targetPath": "doc/test/ui.tsx",
+    "requests": [
+      {
+        "source": "https://apit-dsb.dingtax.cn/dsb/yqarw/api/doc.html#/%E4%BB%BB%E5%8A%A1%E7%AE%A1%E7%90%86/%E4%B8%80%E8%B5%B7%E5%AE%89-AI/createYlfaByAiUsingPOST",
+        "targetPath": "doc/test/api.ts",
+        "apiName": "createYlfaByAiUsingPOST"
+      }
+    ],
+    "depends": {
+      "components": {
+        "an-ui": [
+          {
+            "name": "FormPro",
+            "description": "表单组件",
+            "props": [],
+            "requirements": []
+          }
+        ],
+        "antd-ui": []
+      },
+      "utils": [],
+      "model": [],
+      "images": [
+        {
+          "name": "待办",
+          "description": "待办图标",
+          "uiPath": "ai\\doc\\demand\\防灾减灾\\明细详情\\ui\\todo.png",
+          "targetPath": "doc/test/components"
+        },
+        {
+          "name": "我的",
+          "description": "我的图标",
+          "uiPath": "ai\\doc\\demand\\防灾减灾\\明细详情\\ui\\my.png",
+          "targetPath": "doc/test/components"
+        }
+      ]
+    },
+    "requirements": [
+      {
+        "type": "layout",
+        "requirements": [
+          "待办，我的置于底部，分割线线分割"
+        ]
+      },
+      {
+        "type": "button",
+        "sub": "新增",
+        "requirements": [
+          "点击新增弹出页面"
+        ]
+      }
+    ],
+    "children": [
+      {
+        "type": "modal",
+        "name": "防灾减灾明细详情表单弹框页面",
+        "description": "明细详情表单弹框页面",
+        "isComponent": true,
+        "uiPath": "ai\\doc\\demand\\防灾减灾\\明细详情\\ui\\form.png",
+        "targetPath": "doc/test/components/form.tsx",
+        "depends": {
+          "components": {
+            "an-ui": [
+              {
+                "name": "FormPro",
+                "description": "表单组件",
+                "props": [],
+                "requirements": []
+              }
+            ],
+            "antd-ui": [
+              {
+                "name": "modal",
+                "description": "弹框组件",
+                "props": [],
+                "requirements": []
+              }
+            ]
+          },
+          "utils": [],
+          "model": []
+        },
+        "requirements": [
+          {
+            "type": "form",
+            "requirements": [
+              "弹框内部通过表单完成明细详情录入"
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
