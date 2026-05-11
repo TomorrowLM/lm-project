@@ -1,0 +1,20 @@
+{
+  "servers": {
+    "lm-mcp-server": {
+      "command": "npm",
+      "args": [
+        "run",
+        "start:watch"
+      ],
+      "cwd": "d:/work/demo/front/qiankun/ai/mcp"
+    },
+    "gitnexus": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "gitnexus",
+        "mcp"
+      ]
+    }
+  }
+}
