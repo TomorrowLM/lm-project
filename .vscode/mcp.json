@@ -15,6 +15,12 @@
         "gitnexus",
         "mcp"
       ]
+    },
+    "fetch": {
+      "command": "uvx",
+      "args": [
+        "mcp-server-fetch"
+      ]
     }
   }
 }
