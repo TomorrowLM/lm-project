@@ -1,5 +1,5 @@
 {
-  "servers": {
+  "mcpServers": {
     "lm-mcp-server": {
       "command": "npm",
       "args": [
@@ -20,6 +20,14 @@
       "command": "uvx",
       "args": [
         "mcp-server-fetch"
+      ]
+    },
+    "chrome-devtools": {
+      "command": "npx",
+      "args": [
+        "--registry",
+        "https://registry.npmjs.org",
+        "chrome-devtools-mcp@0.21.0"
       ]
     }
   }
