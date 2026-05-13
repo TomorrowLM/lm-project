@@ -1,4 +1,4 @@
-name: my-workflow
+name: workflow
 version: 1
 description: Default OpenSpec workflow - proposal → specs → design → api → ui → tasks
 artifacts:
