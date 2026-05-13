@@ -1,8 +1,9 @@
 # Agent Migration Tool — 设计规格
 
 > 日期: 2026-05-13
-> 状态: 已批准
-> 方案: 模板引擎驱动 (Plan A)
+> 状态: **已实现** ✅
+> 方案: Adapter 驱动 (Rule/Skill) + 模板驱动 (MCP)
+> 最后更新: 2026-05-13
 
 ## 1. 目标
 
@@ -148,12 +149,14 @@ metadata:
 | **copilot** | `.github/copilot-instructions.md` | 纯 Markdown | 合并所有规则 |
 | **cline** | `.clinerules/project.md` | 纯 Markdown | 合并所有规则 |
 | **agents** | `AGENTS.md` | 纯 Markdown | 合并所有规则 |
+| **codebuddy** | `.codebuddy/rules/<name>.md` | Markdown | 每条规则独立文件 |
 
 ### Adapter 逻辑
 
 - **cursor**: `trigger: always_on` → MDC 的 `always_on: true` + `description` 字段
-- **windsurf/agents/copilot/cline**: 原样输出 body
+- **windsurf/codebuddy/agents/copilot/cline**: 原样输出 body
 - **claude/copilot/cline/agents**: 多条规则用 `\n\n---\n\n` 分隔合并
+- **codebuddy**: 独立模式，每条规则输出到 `.codebuddy/rules/<name>.md`（与 cursor/windsurf 同策略）
 
 ## 8. Skill 迁移策略
 
@@ -164,6 +167,7 @@ metadata:
 | **cursor** | `.cursor/skills/<name>/SKILL.mdc` | MDC | 转 MDC frontmatter |
 | **claude** | `.claude/skills/<name>/SKILL.md` | 原样 | 保持 SKILL.md |
 | **agents** | `.agents/skills/<name>/SKILL.md` | 原样 | 保持 SKILL.md |
+| **codebuddy** | `.codebuddy/skills/<name>/SKILL.md` | 原样 | 保持 SKILL.md |
 
 ### Adapter 逻辑
 
@@ -217,10 +221,9 @@ metadata:
 
 | 包名 | 用途 | 必须 |
 |------|------|------|
-| 无 (纯 Node.js) | YAML frontmatter 用正则解析 | — |
-| `mustache` (可选) | MCP 模板渲染 | 可用手写替代 |
+| **无 (纯 Node.js)** | YAML frontmatter 用正则解析，Mustache 子集手写渲染器 | — |
 
-**原则**: 零外部依赖优先。frontmatter 解析用正则即可；mustache 可选。
+**原则**: 零外部依赖。frontmatter 解析用正则；MCP 模板渲染使用手写的 Mustache 子集（支持 `{{var}}`、`{{{json}}}`、`{{#section}}{{/section}}`、`{{@key}}`）。
 
 ## 12. 错误处理
 
@@ -229,3 +232,30 @@ metadata:
 - 目标目录无写权限 → 报错退出
 - 模板文件缺失 → 警告并跳过该平台的 mcp 迁移
 - `--dry-run` 不做任何文件操作
+
+## 13. 实现状态
+
+### 已完成模块 (2026-05-13)
+
+| 模块 | 文件 | 状态 |
+|------|------|------|
+| CLI 主入口 | `index.js` | ✅ |
+| IDE 检测器 | `ide-detector.js` | ✅ (7 平台) |
+| Parser | `parser.js` | ✅ (rules + skills + commands) |
+| Rule adapters | `rule/adapters.js` + `rule/index.js` | ✅ (7 平台) |
+| Skill adapters | `skill/adapters.js` + `skill/index.js` | ✅ (4 平台) |
+| MCP 迁移 + 模板渲染 | `mcp/index.js` + `mcp/template/*.json` | ✅ (4 平台) |
+
+### 支持目标平台总览
+
+| 平台 | Rule | Skill | MCP | 输出位置 |
+|------|:----:|:-----:|:---:|---------|
+| cursor | ✅ | ✅ | ✅ | `.cursor/` |
+| windsurf | ✅ | — | ✅ | `.windsurf/` |
+| claude | ✅ | ✅ | ✅ | `.claude/`, `CLAUDE.md` |
+| copilot | ✅ | — | — | `.github/` |
+| cline | ✅ | — | — | `.clinerules/` |
+| agents | ✅ | ✅ — | `AGENTS.md`, `.agents/` |
+| **codebuddy** | **✅** | **✅** | ✅ | **`.codebuddy/rules/`, `.codebuddy/skills/`** |
+
+> 注: `codebuddy` 为独立模式（与 cursor/windsurf 同策略），每条规则/Skill 输出独立文件到 `.codebuddy/` 目录下。
