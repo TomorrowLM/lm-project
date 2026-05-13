@@ -159,7 +159,7 @@ function extractBody(content) {
   const endMatch = afterStart.match(/\r?\n---\r?\n/);
 
   if (endMatch) {
-    return afterStart.substring(endMatch[0].length).trimStart();
+    return afterStart.substring(endMatch.index + endMatch[0].length).trimStart();
   }
   return trimmed;
 }

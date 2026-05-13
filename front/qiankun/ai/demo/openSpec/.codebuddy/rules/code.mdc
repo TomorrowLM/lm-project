@@ -1,4 +1,9 @@
-er: always_on
+---
+description: 项目宪法 — OpenSpec Phone 官网
+alwaysApply: true
+enabled: true
+updatedAt: 2026-05-13T06:31:58.721Z
+provider: qoder-migration
 ---
 
 # 项目宪法 — OpenSpec Phone 官网

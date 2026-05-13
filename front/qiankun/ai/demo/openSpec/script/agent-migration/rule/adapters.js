@@ -120,14 +120,60 @@ function agents(rules) {
 }
 
 /**
- * CodeBuddy — 合并所有规则到 .codebuddy/rules/ 目录
- * 输出: .codebuddy/rules/<name>.md (每条规则独立) + .codebuddy/rules/_merged.md
+ * CodeBuddy — 根据 trigger 决定后缀和 frontmatter 格式
+ *   trigger=always_on → .mdc + MDC frontmatter (description, alwaysApply, enabled, updatedAt, provider)
+ *   其他             → .md  + 原样 frontmatter
  */
 function codebuddy(rule) {
+  const fm = rule.frontmatter || {};
+  const isAlwaysOn = fm.trigger === 'always_on';
+  const ext = isAlwaysOn ? 'mdc' : 'md';
+
+  let content;
+  if (isAlwaysOn) {
+    const desc = extractDescription(rule.body);
+    content = [
+      '---',
+      `description: ${desc}`,
+      'alwaysApply: true',
+      'enabled: true',
+      `updatedAt: ${new Date().toISOString()}`,
+      'provider: qoder-migration',
+      '---',
+      '',
+      rule.body || '',
+    ].join('\n');
+  } else {
+    content = rebuildWithFrontmatter(fm, rule.body);
+  }
+
   return {
-    outputPath: `.codebuddy/rules/${rule.name}.md`,
-    content: rule.body || '',
+    outputPath: `.codebuddy/rules/${rule.name}.${ext}`,
+    content,
   };
+}
+
+/**
+ * 将 frontmatter 对象 + body 重新组装为带 --- 包裹的 Markdown
+ */
+function rebuildWithFrontmatter(frontmatter, body) {
+  if (!frontmatter || Object.keys(frontmatter).length === 0) {
+    return body || '';
+  }
+  const yaml = Object.entries(frontmatter)
+    .filter(([, v]) => v !== undefined && v !== null)
+    .map(([k, v]) => typeof v === 'object' ? `${k}:` : `${k}: ${yamlVal(v)}`)
+    .join('\n');
+  return `---\n${yaml}\n---\n\n${body || ''}`;
+}
+
+function yamlVal(v) {
+  if (typeof v === 'boolean' || typeof v === 'number') return String(v);
+  if (typeof v === 'string') {
+    if (/[:"'\n{}[\]#$%&*?|<>=!@`]/.test(v)) return `"${v.replace(/"/g, '\\"')}"`;
+    return v;
+  }
+  return String(v);
 }
 
 const adapters = { cursor, windsurf, claude, copilot, cline, agents, codebuddy };

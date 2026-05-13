@@ -8,15 +8,6 @@ metadata:
   version: 1.0
 ---
 
-penspec-inject-rules
-description: Inject project constitution and coding rules into OpenSpec workflow. Use before openspec-propose or openspec-apply to ensure compliance. Use when the user wants to apply project standards to OpenSpec artifacts, enforce conventions, or validate alignment with project constitution.
-license: MIT
-compatibility: Requires openspec CLI and .qoder/rules/1.md
-metadata:
-  author: openspec
-  version: "1.0"
----
-
 Inject project constitution rules into the current OpenSpec workflow. This skill ensures that any OpenSpec artifact (proposal, design, specs, tasks) complies with the project's coding standards and design principles.
 
 ---
