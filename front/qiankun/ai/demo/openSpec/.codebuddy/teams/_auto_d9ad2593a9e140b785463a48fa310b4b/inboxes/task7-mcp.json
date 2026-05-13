@@ -1,0 +1,20 @@
+[
+  {
+    "id": "msg-1778643482414-ctnzn2",
+    "from": "team-lead",
+    "to": "task7-mcp",
+    "type": "message",
+    "content": "请尽快完成 mcp/index.js 的编写！模板文件已就位，只需实现渲染器 + 迁移入口函数。",
+    "timestamp": "2026-05-13T03:38:02.414Z",
+    "read": true
+  },
+  {
+    "id": "shutdown-1778643827663",
+    "from": "team-lead",
+    "to": "task7-mcp",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1778643827663\",\"reason\":\"任务已全部完成，感谢工作。请关闭。\",\"from\":\"team-lead\",\"timestamp\":\"2026-05-13T03:43:47.663Z\"}",
+    "timestamp": "2026-05-13T03:43:47.663Z",
+    "read": true
+  }
+]

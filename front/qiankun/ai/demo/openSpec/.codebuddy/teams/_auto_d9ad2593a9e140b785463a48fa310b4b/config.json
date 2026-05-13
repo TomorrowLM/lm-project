@@ -1,0 +1,18 @@
+{
+  "name": "_auto_d9ad2593a9e140b785463a48fa310b4b",
+  "leadAgentId": "d9ad2593a9e140b785463a48fa310b4b",
+  "workspacePath": "d:\\work\\demo\\front\\qiankun\\ai\\demo\\openSpec",
+  "createdAt": "2026-05-13T03:32:49.632Z",
+  "options": {
+    "workspacePath": "d:\\work\\demo\\front\\qiankun\\ai\\demo\\openSpec",
+    "isAutoTeam": true
+  },
+  "members": [
+    {
+      "memberId": "team-lead@_auto_d9ad2593a9e140b785463a48fa310b4b",
+      "name": "team-lead",
+      "role": "Team Lead - coordinates the team and interacts with the user"
+    }
+  ],
+  "isAutoTeam": true
+}

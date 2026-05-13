@@ -1,0 +1,11 @@
+[
+  {
+    "id": "shutdown-1778643827320",
+    "from": "team-lead",
+    "to": "task3-4-rule",
+    "type": "shutdown_request",
+    "content": "{\"type\":\"shutdown_request\",\"request_id\":\"shutdown-1778643827320\",\"reason\":\"任务已全部完成，感谢工作。请关闭。\",\"from\":\"team-lead\",\"timestamp\":\"2026-05-13T03:43:47.320Z\"}",
+    "timestamp": "2026-05-13T03:43:47.320Z",
+    "read": true
+  }
+]

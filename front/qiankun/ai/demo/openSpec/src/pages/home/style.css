@@ -1,0 +1,245 @@
+/* ========================================
+   CSS Reset
+   ======================================== */
+
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* ========================================
+   System Font Stack
+   ======================================== */
+
+html {
+  font-size: 16px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #111111;
+  background-color: #ffffff;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* ========================================
+   Hero Section
+   ======================================== */
+
+.hero {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.hero__title {
+  font-size: 64px;
+  font-weight: bold;
+  color: #111111;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.hero__subtitle {
+  font-size: 20px;
+  font-weight: normal;
+  color: #666666;
+  margin-top: 16px;
+  line-height: 1.5;
+}
+
+.hero__banner {
+  max-width: 600px;
+  width: 100%;
+  height: auto;
+  margin-top: 32px;
+  background-color: #f5f5f5;
+  aspect-ratio: 16 / 10;
+  transition: opacity 0.3s ease;
+}
+
+/* ========================================
+   Data Display
+   ======================================== */
+
+.hero__data {
+  font-size: 18px;
+  font-weight: 400;
+  text-align: center;
+  margin-top: 16px;
+  margin-bottom: 0;
+  line-height: 1.5;
+  transition: opacity 0.3s ease;
+  min-height: 27px; /* 防止状态切换时布局跳动 */
+}
+
+.hero__data--loading {
+  color: #999999;
+}
+
+.hero__data--success {
+  color: #666666;
+}
+
+.hero__data--error {
+  color: #d32f2f;
+  font-size: 14px;
+}
+
+/* ========================================
+   CTA Buttons
+   ======================================== */
+
+.cta-group {
+  display: flex;
+  gap: 16px;
+  margin-top: 32px;
+}
+
+.cta {
+  display: inline-block;
+  padding: 14px 32px;
+  font-size: 16px;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.cta:hover {
+  opacity: 0.85;
+}
+
+.cta--primary {
+  background-color: #111111;
+  color: #ffffff;
+  border: 1px solid #111111;
+}
+
+.cta--secondary {
+  background-color: transparent;
+  color: #111111;
+  border: 1px solid #111111;
+}
+
+/* ========================================
+   Footer
+   ======================================== */
+
+.footer {
+  border-top: 1px solid #e0e0e0;
+  padding: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 14px;
+  color: #666666;
+}
+
+.footer__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__nav a,
+.footer__social a,
+.footer__legal a {
+  transition: color 0.2s ease;
+}
+
+.footer__nav a:hover,
+.footer__social a:hover,
+.footer__legal a:hover {
+  color: #111111;
+}
+
+.footer__social {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__legal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footer__dot {
+  color: #cccccc;
+}
+
+/* ========================================
+   Responsive: Mobile (<768px)
+   ======================================== */
+
+@media (max-width: 767px) {
+  .hero {
+    padding: 32px 20px;
+  }
+
+  .hero__title {
+    font-size: 40px;
+  }
+
+  .hero__subtitle {
+    font-size: 16px;
+  }
+
+  .hero__data {
+    font-size: 16px;
+    margin-top: 12px;
+  }
+
+  .hero__data--error {
+    font-size: 14px;
+  }
+
+  .hero__banner {
+    margin-top: 24px;
+  }
+
+  .cta-group {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+    margin-top: 24px;
+  }
+
+  .cta {
+    width: 100%;
+  }
+
+  .footer {
+    flex-direction: column;
+    text-align: center;
+    gap: 8px;
+  }
+
+  .footer__nav,
+  .footer__social,
+  .footer__legal {
+    justify-content: center;
+  }
+
+  .footer__dot {
+    display: none;
+  }
+}
