@@ -1,1 +1,0 @@
-{"mcpServers": {"{{#servers}}": {"{{@key}}": {"type": "stdio", "command": "{{command}}", "args": {{{args}}}, "environment": {{{#env}}{{{env}}}{{/env}}}}} {{/servers}}}}
