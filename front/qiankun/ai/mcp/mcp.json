@@ -1,7 +1,7 @@
 {
   "mcpServers": {
     "lm-mcp-server": {
-      "command": "node",
+      "command": "D:\\software\\front\\node\\node.exe",
       "args": [
         "dist/index.js"
       ],
