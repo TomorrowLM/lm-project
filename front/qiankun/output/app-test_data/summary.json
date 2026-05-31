@@ -1,0 +1,53 @@
+{
+  "name": "app-test",
+  "total_pages": 11,
+  "base_url": "https://app-test.17an.com/an-ui/",
+  "llms_txt_detected": false,
+  "llms_txt_variant": null,
+  "pages": [
+    {
+      "title": "公共组件库",
+      "url": "https://app-test.17an.com/an-ui/"
+    },
+    {
+      "title": "详情组件 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/"
+    },
+    {
+      "title": "高级表格 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/TablePro/_demo/"
+    },
+    {
+      "title": "高级表单 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/FormPro/_demo/"
+    },
+    {
+      "title": "抽屉表单 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/DrawerForm/_demo/"
+    },
+    {
+      "title": "抽屉 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/DrawerPro/_demo/"
+    },
+    {
+      "title": "可编辑表格 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/EditableTable/_demo/"
+    },
+    {
+      "title": "文件列表预览 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/FileListView/_demo/"
+    },
+    {
+      "title": "搜索表单 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/FilterForm/_demo/"
+    },
+    {
+      "title": "搜索列表 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/FilterList/_demo/"
+    },
+    {
+      "title": "弹窗表单 | 公共组件库",
+      "url": "https://app-test.17an.com/an-ui/ModalForm/_demo/"
+    }
+  ]
+}

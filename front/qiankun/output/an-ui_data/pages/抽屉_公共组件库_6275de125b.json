@@ -1,0 +1,57 @@
+{
+  "url": "https://app-test.17an.com/an-ui/DrawerPro/_demo/",
+  "title": "抽屉 | 公共组件库",
+  "content": "antd的抽屉并不提供底部按钮功能，而DrawerPro在此基础上增加了底部按钮，用法和antd的Modal底部按钮用法一致 提供了 trigger 来减少 state 的使用（减少因state触发的渲染范围）\n\n完全继承AntdDrawer的api，在此基础上进行了以下扩展",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "抽屉 ​",
+      "id": "抽屉"
+    },
+    {
+      "level": "h2",
+      "text": "代码演示 ​",
+      "id": "demo"
+    },
+    {
+      "level": "h3",
+      "text": "基础用法 ​",
+      "id": "基础用法"
+    },
+    {
+      "level": "h3",
+      "text": "自定义底部按钮 ​",
+      "id": "自定义底部按钮"
+    },
+    {
+      "level": "h2",
+      "text": "API ​",
+      "id": "api"
+    },
+    {
+      "level": "h3",
+      "text": "DrawerPro ​",
+      "id": "drawerpro"
+    },
+    {
+      "level": "h3",
+      "text": "DrawerPro.ref ​",
+      "id": "drawerpro-ref"
+    }
+  ],
+  "code_samples": [],
+  "patterns": [],
+  "links": [
+    "https://app-test.17an.com/an-ui/DrawerPro/_demo/",
+    "https://app-test.17an.com/an-ui/",
+    "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerForm/_demo/",
+    "https://app-test.17an.com/an-ui/EditableTable/_demo/",
+    "https://app-test.17an.com/an-ui/FileListView/_demo/",
+    "https://app-test.17an.com/an-ui/FilterForm/_demo/",
+    "https://app-test.17an.com/an-ui/FilterList/_demo/",
+    "https://app-test.17an.com/an-ui/FormPro/_demo/",
+    "https://app-test.17an.com/an-ui/ModalForm/_demo/",
+    "https://app-test.17an.com/an-ui/TablePro/_demo/"
+  ]
+}

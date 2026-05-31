@@ -1,0 +1,62 @@
+{
+  "url": "https://app-test.17an.com/an-ui/FilterList/_demo/",
+  "title": "搜索列表 | 公共组件库",
+  "content": "适用于需要搜索和列表展示的场景，将搜索表单和表格进行整合，简化开发流程。\n\n批量操作按钮配置，继承自antd ButtonProps，支持以下属性：",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "搜索列表 ​",
+      "id": "搜索列表"
+    },
+    {
+      "level": "h2",
+      "text": "代码演示 ​",
+      "id": "demo"
+    },
+    {
+      "level": "h3",
+      "text": "基础用法 ​",
+      "id": "基础用法"
+    },
+    {
+      "level": "h3",
+      "text": "批量操作 ​",
+      "id": "批量操作"
+    },
+    {
+      "level": "h2",
+      "text": "API ​",
+      "id": "api"
+    },
+    {
+      "level": "h3",
+      "text": "FilterList ​",
+      "id": "filterlist"
+    },
+    {
+      "level": "h3",
+      "text": "BatchButtonProps ​",
+      "id": "batchbuttonprops"
+    },
+    {
+      "level": "h3",
+      "text": "FilterList.ref ​",
+      "id": "filterlist-ref"
+    }
+  ],
+  "code_samples": [],
+  "patterns": [],
+  "links": [
+    "https://app-test.17an.com/an-ui/FilterList/_demo/",
+    "https://app-test.17an.com/an-ui/",
+    "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerForm/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerPro/_demo/",
+    "https://app-test.17an.com/an-ui/EditableTable/_demo/",
+    "https://app-test.17an.com/an-ui/FileListView/_demo/",
+    "https://app-test.17an.com/an-ui/FilterForm/_demo/",
+    "https://app-test.17an.com/an-ui/FormPro/_demo/",
+    "https://app-test.17an.com/an-ui/ModalForm/_demo/",
+    "https://app-test.17an.com/an-ui/TablePro/_demo/"
+  ]
+}

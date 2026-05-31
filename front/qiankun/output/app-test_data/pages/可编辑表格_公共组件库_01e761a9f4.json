@@ -1,0 +1,67 @@
+{
+  "url": "https://app-test.17an.com/an-ui/EditableTable/_demo/",
+  "title": "可编辑表格 | 公共组件库",
+  "content": "可编辑的表格，用于在表格中直接进行数据编辑。在AntdTable和FormPro中的基础上进行封装\n\n可编辑表格的columns属性可同时配置FormItem和AntdTable的属性\n\ndataIndex作为表单项的name使用，且必须唯一；若不传type时，则渲染为普通表格列\n\n继承自AntdTable的columns属性和FormPro的FormFieldConfig属性",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "可编辑表格 ​",
+      "id": "可编辑表格"
+    },
+    {
+      "level": "h2",
+      "text": "代码演示 ​",
+      "id": "demo"
+    },
+    {
+      "level": "h3",
+      "text": "基础用法 ​",
+      "id": "基础用法"
+    },
+    {
+      "level": "h3",
+      "text": "单行编辑 ​",
+      "id": "单行编辑"
+    },
+    {
+      "level": "h2",
+      "text": "API ​",
+      "id": "api"
+    },
+    {
+      "level": "h3",
+      "text": "EditableTableProps ​",
+      "id": "editabletableprops"
+    },
+    {
+      "level": "h3",
+      "text": "EditableTableColumnType ​",
+      "id": "editabletablecolumntype"
+    },
+    {
+      "level": "h3",
+      "text": "EditableTableRef ​",
+      "id": "editabletableref"
+    }
+  ],
+  "code_samples": [
+    {
+      "code": "// columns[] \n[\n   {\n      // 这里是FormFieldConfig和AntdTable.column可接受的props\n      title: \"名称\",\n      type: \"input\",\n      dataIndex: \"name\",\n      required: true,\n      templateOptions:{\n        ...// 这里是表单组件可接受的props，比如InputProps，并在此基础上进行了扩展\n      }\n  },\n]",
+      "language": "json"
+    }
+  ],
+  "patterns": [],
+  "links": [
+    "https://app-test.17an.com/an-ui/EditableTable/_demo/",
+    "https://app-test.17an.com/an-ui/",
+    "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerForm/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerPro/_demo/",
+    "https://app-test.17an.com/an-ui/FileListView/_demo/",
+    "https://app-test.17an.com/an-ui/FilterForm/_demo/",
+    "https://app-test.17an.com/an-ui/FilterList/_demo/",
+    "https://app-test.17an.com/an-ui/FormPro/_demo/",
+    "https://app-test.17an.com/an-ui/ModalForm/_demo/",
+    "https://app-test.17an.com/an-ui/TablePro/_demo/"
+  ]
+}

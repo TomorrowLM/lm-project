@@ -1,0 +1,47 @@
+{
+  "url": "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/",
+  "title": "详情组件 | 公共组件库",
+  "content": "适用于展示只读的信息。基于antd的 Descriptions组件进行二次封装。\n\n完全继承Descriptions的api，在此基础上进行了以下扩展",
+  "headings": [
+    {
+      "level": "h1",
+      "text": "详情组件 ​",
+      "id": "详情组件"
+    },
+    {
+      "level": "h2",
+      "text": "代码演示 ​",
+      "id": "代码演示"
+    },
+    {
+      "level": "h2",
+      "text": "API ​",
+      "id": "api"
+    },
+    {
+      "level": "h3",
+      "text": "DescriptionsProProps ​",
+      "id": "descriptionsproprops"
+    },
+    {
+      "level": "h3",
+      "text": "DescriptionsProItem ​",
+      "id": "descriptionsproitem"
+    }
+  ],
+  "code_samples": [],
+  "patterns": [],
+  "links": [
+    "https://app-test.17an.com/an-ui/DescriptionsPro/_demo/",
+    "https://app-test.17an.com/an-ui/",
+    "https://app-test.17an.com/an-ui/DrawerForm/_demo/",
+    "https://app-test.17an.com/an-ui/DrawerPro/_demo/",
+    "https://app-test.17an.com/an-ui/EditableTable/_demo/",
+    "https://app-test.17an.com/an-ui/FileListView/_demo/",
+    "https://app-test.17an.com/an-ui/FilterForm/_demo/",
+    "https://app-test.17an.com/an-ui/FilterList/_demo/",
+    "https://app-test.17an.com/an-ui/FormPro/_demo/",
+    "https://app-test.17an.com/an-ui/ModalForm/_demo/",
+    "https://app-test.17an.com/an-ui/TablePro/_demo/"
+  ]
+}
