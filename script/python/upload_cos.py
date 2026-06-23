@@ -56,6 +56,10 @@ def parse_arguments():
         # 尝试找到第二个非图片参数作为目录名
         for arg in cleaned_args[1:]:
             if arg and arg != image_path:
+                # 跳过图片路径（Typora 可能误传多个图片参数）
+                if arg.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.awebp')):
+                    print(f"Debug: Skipping second image argument: {arg}", file=sys.stderr)
+                    continue
                 # 检查是否为Markdown文件
                 if arg.lower().endswith(('.md', '.markdown')):
                     directory_name = arg
@@ -228,12 +232,14 @@ def get_md_file_name(directory_name=None, config=None, image_path=None):
     print(f"Debug: No directory specified, using 'typora_images'", file=sys.stderr)
     return "typora_images"
 
-def upload_to_cos(image_path, md_file_name=None):
+def upload_to_cos(image_path, md_file_name=None, config=None):
     """上传图片到腾讯云COS"""
-    secret_id = os.getenv('COS_SECRET_ID')
-    secret_key = os.getenv('COS_SECRET_KEY')
+    if config is None:
+        config = {}
+    secret_id = os.getenv('COS_SECRET_ID') or config.get('COS_SECRET_ID')
+    secret_key = os.getenv('COS_SECRET_KEY') or config.get('COS_SECRET_KEY')
     if not secret_id or not secret_key:
-        print("Error: COS_SECRET_ID and COS_SECRET_KEY environment variables must be set", file=sys.stderr)
+        print("Error: COS_SECRET_ID and COS_SECRET_KEY must be set via env vars or config file", file=sys.stderr)
         return 1
     region = 'ap-shanghai'
     bucket = 'image-1304658407'
@@ -311,4 +317,4 @@ if __name__ == '__main__':
     
     md_file_name = get_md_file_name(directory_name, config, image_path)
     
-    sys.exit(upload_to_cos(image_path, md_file_name))
+    sys.exit(upload_to_cos(image_path, md_file_name, config))
