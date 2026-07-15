@@ -247,10 +247,7 @@ def upload_to_cos(image_path, md_file_name=None, config=None):
     if not md_file_name:
         md_file_name = "default"
     
-    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-    random_str = hashlib.md5(str(time.time()).encode()).hexdigest()[:6]
-    ext = os.path.splitext(image_path)[1].lower() or '.png'
-    filename = f"{timestamp}_{random_str}{ext}"
+    filename = os.path.basename(image_path)
     key = f"{md_file_name}/{filename}"
     
     config = CosConfig(Region=region, SecretId=secret_id, SecretKey=secret_key)
