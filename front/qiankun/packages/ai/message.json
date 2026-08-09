@@ -1,0 +1,20 @@
+[
+  {
+    "type": "message",
+    "payload": {
+      "requestId": 493643998,
+      "messageId": "735303776457592832",
+      "chatTime": 1785835970415,
+      "message": [
+        {
+          "type": "llm",
+          "llm": {
+            "content": "{\"success\":true,\"code\":200,\"msg\":\"\",\"data\":{\"type\":30,\"text\":\"\",\"thinkStatus\":20,\"thinkContent\":\"\\n好的，用户问的是“天气”，我需要按照规则来处理。首先，检查禁用规则，不能出现特定关键词，也不能用非中文回答。用户可能想知道当前的天气情况，但问题太简短了，没有具体地点和时间。根据回答准则，如果是操作知识要按\"}}",
+            "answerSource": "LLM"
+          }
+        }
+      ],
+      "optimizedQuestion": "天气"
+    }
+  }
+]
