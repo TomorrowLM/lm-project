@@ -11,15 +11,23 @@
     "preview": "vite preview --host 0.0.0.0 --port 8005"
   },
   "dependencies": {
+    "@microsoft/fetch-event-source": "^2.0.1",
     "@vitejs/plugin-react": "latest",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.1.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "vite": "latest",
     "vite-plugin-qiankun": "latest",
     "typescript": "^5.4.5",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "zustand": "^5.0.0"
   },
   "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
     "@types/react": "^18.3.24",
-    "@types/react-dom": "^18.3.7"
+    "@types/react-dom": "^18.3.7",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17"
   }
 }

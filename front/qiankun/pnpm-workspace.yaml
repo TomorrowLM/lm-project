@@ -9,12 +9,26 @@ packages:
   - 'ai/mcp/front-mcp'
   # 匹配 html-demo 目录下的所有文件和子目录
   # - 'html-demo/*'
-#   # 排除 lm-lint/src 目录，不进行包管理
-#   - '!**/npm/lm-lint/src'
-# # 覆盖默认配置规则
-# overrides:
-#   # 针对 lm-lint/src 目录的特殊处理，禁用链接功能
-#   '**/npm/lm-lint/src':
-#     link: false
-#   # 针对 .gitignore 文件的特殊处理
-#   '**/.gitignore':
+  #   # 排除 lm-lint/src 目录，不进行包管理
+  #   - '!**/npm/lm-lint/src'
+  # # 覆盖默认配置规则
+  # overrides:
+  #   # 针对 lm-lint/src 目录的特殊处理，禁用链接功能
+  #   '**/npm/lm-lint/src':
+  #     link: false
+  #   # 针对 .gitignore 文件的特殊处理
+  #   '**/.gitignore':
+allowBuilds:
+  '@angular/cli': set this to true or false
+  '@parcel/watcher': set this to true or false
+  '@vue-office/docx': set this to true or false
+  '@vue-office/excel': set this to true or false
+  '@vue-office/pdf': set this to true or false
+  core-js: set this to true or false
+  esbuild: set this to true or false
+  fsevents: set this to true or false
+  less: set this to true or false
+  nice-napi: set this to true or false
+  node-sass: set this to true or false
+  vue-demi: set this to true or false
+  vue-ls: set this to true or false
