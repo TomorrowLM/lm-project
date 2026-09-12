@@ -1,8 +1,13 @@
-﻿双击 Wallpaper-GUI.cmd。
+首次使用请在本目录执行：
 
-首次打开时窗口会在后台获取 5 张 Bing 和 5 张 Windows 聚焦图片；之后优先离线加载缓存，点击“获取更多”才会联网下载新图片。
-缓存位于 Cache 文件夹：Bing 按官方壁纸日期归档，Windows 聚焦按图片内容哈希去重。清理缓存不会删除已保存到图片目录的壁纸。
-选择图片后，Bing 图片会保存到 C:\Users\12032\Pictures\必应壁纸，Windows 聚焦图片会保存到 C:\Users\12032\Pictures\Windows 聚焦壁纸，然后同步到全部虚拟桌面。
-“同步当前桌面壁纸”会读取当前 Windows 桌面正在使用的壁纸文件，并同步到全部虚拟桌面。
+python -m pip install -r requirements.txt
 
-窗口最多同时保留 30 个缩略图卡片，以降低内存占用；完整图片仍保存在缓存中。
+之后双击 Wallpaper-GUI.cmd 启动新版工具。新版使用 Python + PySide6，不会启动 PowerShell。
+
+线上图库可在 Bing 每日壁纸和 Windows 聚焦之间切换；两类图片不会混合展示。点击“获取更多”只会后台下载当前选中的来源，每成功缓存一张便立即显示。Bing 按官方日期缓存，Windows 聚焦按内容哈希去重。
+
+本地图库点击“选择文件夹”后会递归读取其中的 jpg、jpeg、png、webp 与 bmp 图片；选择过的文件夹和当前选择会保存到 Cache/settings.json，重启后可直接切换访问。点击卡片或“放大预览”可查看大图。
+
+点击“应用壁纸”会把图片保存到 Pictures/Online Wallpapers 后设置壁纸。“同步当前桌面壁纸”会读取当前系统壁纸：Windows 通过 pyvda 同步所有虚拟桌面；macOS 设置当前桌面/显示器壁纸，但系统不保证同步所有 Spaces。
+
+界面最多显示 30 张缩略图卡片；“清理缓存”只清理线上缓存，不会删除本地文件夹设置、原始本地图片或 Pictures/Online Wallpapers 中已保存的壁纸。

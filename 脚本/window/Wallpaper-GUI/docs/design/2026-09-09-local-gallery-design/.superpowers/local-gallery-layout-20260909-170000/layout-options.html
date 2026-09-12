@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>壁纸画廊布局方案</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0d131b; --panel:#151f2b; --line:#2b3a4d; --muted:#9caebe; --blue:#3b9af1; }
+    * { box-sizing:border-box; } body { margin:0; background:var(--bg); color:#f4f8fc; font:14px/1.5 "Microsoft YaHei",sans-serif; }
+    main { max-width:1300px; margin:auto; padding:34px; } h1 { margin:0 0 6px; font-size:26px; } .lead { margin:0 0 26px; color:var(--muted); }
+    .options { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; } .option { cursor:pointer; border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--panel); transition:.18s; }
+    .option:hover,.option.selected { border-color:var(--blue); box-shadow:0 0 0 3px #2389dc30; transform:translateY(-2px); } .option h2 { font-size:16px; margin:0; } .option p { color:var(--muted); margin:5px 0 0; }
+    .mock { padding:12px; height:300px; background:linear-gradient(145deg,#121d29,#0e151f); } .bar { height:25px; border-radius:6px; background:#202e3f; display:flex; gap:5px; align-items:center; padding:6px; } .dot { width:7px; height:7px; border-radius:50%; background:#6384a2; }
+    .tabs { display:flex; gap:5px; margin:12px 0; } .tab,.button { padding:5px 8px; border-radius:6px; background:#202e3f; color:#9fb0c3; font-size:10px; } .tab.active,.button.primary { color:white; background:#2679c8; }
+    .folder { height:31px; border:1px solid #34485e; border-radius:7px; padding:7px; color:#a9b8c6; font-size:10px; margin-bottom:10px; } .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:7px; } .tile { height:72px; border-radius:7px; background:linear-gradient(135deg,#4e7595,#d0a66f 46%,#273e55 47%); position:relative; overflow:hidden; } .tile:nth-child(2n) { background:linear-gradient(135deg,#8db3d4,#264d70 45%,#0e2438 46%); } .tile:after { content:""; position:absolute; inset:45% 0 0; background:#0a1524aa; } .tile span { position:absolute; z-index:1; bottom:4px; left:5px; font-size:8px; color:white; }
+    .two { display:grid; grid-template-columns:68px 1fr; gap:8px; } .rail { border:1px solid #304258; border-radius:7px; padding:8px 5px; color:#9aafc4; font-size:9px; } .rail div { padding:6px 4px; margin-bottom:5px; } .rail .chosen { color:#fff; background:#236fac; border-radius:4px; }
+    .preview { display:grid; grid-template-columns:1fr .7fr; gap:9px; } .large { height:148px; border-radius:7px; background:linear-gradient(135deg,#7398bf,#c5b27f 45%,#2b4055 46%); position:relative; } .large:after { content:"点击放大预览"; position:absolute; inset:auto 9px 8px; font-size:10px; } .detail { padding:11px; border:1px solid #304258; border-radius:7px; color:#adbac7; font-size:10px; } .detail strong { color:white; display:block; margin-bottom:12px; font-size:12px; }
+    .caption { padding:14px 16px 17px; }.badge { float:right; color:#79b8ff; font-size:11px; }.answer { margin-top:24px; padding:15px; border-radius:12px; color:#b7c7d6; background:#162331; border:1px solid var(--line); } code { color:#89c9ff; }
+    @media(max-width:900px){.options{grid-template-columns:1fr}.mock{height:260px}}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>本地图库：选择一个主界面布局</h1>
+    <p class="lead">三个方案都包含：线上/本地切换、已记录目录的切换、递归读取图片、点击图片放大预览。</p>
+    <section class="options">
+      <article class="option" data-choice="a" onclick="choose(this)"><div class="mock"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="tabs"><span class="tab">线上图库</span><span class="tab active">本地图库</span><span class="button">选择文件夹</span></div><div class="folder">📁 D:\Pictures\Wallpapers <span class="button" style="float:right;padding:1px 4px">切换</span></div><div class="grid"><div class="tile"><span>雪山.jpg</span></div><div class="tile"><span>海岸.png</span></div><div class="tile"><span>森林.webp</span></div><div class="tile"><span>沙漠.jpg</span></div><div class="tile"><span>城市.png</span></div><div class="tile"><span>极光.jpg</span></div></div></div><div class="caption"><span class="badge">推荐</span><h2>A. 顶部模式切换</h2><p>最接近现有界面；目录选择器固定在内容顶部，学习成本最低。</p></div></article>
+      <article class="option" data-choice="b" onclick="choose(this)"><div class="mock"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="two"><aside class="rail"><div>☁ 线上</div><div class="chosen">▣ 本地</div><div>────────</div><div>📁 风景</div><div>📁 收藏</div><div>＋ 添加目录</div></aside><div><div class="tabs"><span class="tab active">本地 · 风景</span><span class="button">切换目录</span></div><div class="grid"><div class="tile"><span>雪山.jpg</span></div><div class="tile"><span>海岸.png</span></div><div class="tile"><span>森林.webp</span></div><div class="tile"><span>沙漠.jpg</span></div><div class="tile"><span>城市.png</span></div><div class="tile"><span>极光.jpg</span></div></div></div></div></div><div class="caption"><h2>B. 左侧目录栏</h2><p>适合管理多个常用文件夹；目录列表始终可见，但画廊横向空间较少。</p></div></article>
+      <article class="option" data-choice="c" onclick="choose(this)"><div class="mock"><div class="bar"><i class="dot"></i><i class="dot"></i><i class="dot"></i></div><div class="tabs"><span class="tab">线上</span><span class="tab active">本地：风景⌄</span><span class="button">＋ 文件夹</span></div><div class="preview"><div class="large"></div><div class="detail"><strong>雪山晨光</strong>JPG · 3840 × 2160<br><br>双击或点击卡片可进入全屏预览。<br><br><span class="button primary">应用壁纸</span></div></div><div class="grid" style="margin-top:8px"><div class="tile"></div><div class="tile"></div><div class="tile"></div></div></div><div class="caption"><h2>C. 焦点预览</h2><p>选中图片立即展示大图和详情；预览更醒目，但批量浏览效率略低。</p></div></article>
+    </section>
+    <div class="answer">点击任一方案即可记录选择。也可以在终端回复 A / B / C；我推荐 <code>A</code>，它能最自然地融入当前画廊，并将放大预览放在卡片点击后的独立窗口中。</div>
+  </main>
+  <script>function choose(el){document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');localStorage.setItem('wallpaper-layout',el.dataset.choice);document.querySelector('.answer').innerHTML='已选择 <code>'+el.dataset.choice.toUpperCase()+'</code>。请在终端确认，我会按这个布局实现。';}</script>
+</body>
+</html>
