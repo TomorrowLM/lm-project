@@ -15,13 +15,15 @@ function point(value) {
 }
 
 function rangeLabel(selection) {
+  if (!selection || !selection.range) return "";
   const from = point(selection.range && selection.range.from);
   const to = point(selection.range && selection.range.to);
   return `L${from.line + 1}:C${from.ch + 1}-L${to.line + 1}:C${to.ch + 1}`;
 }
 
 function marker(selection) {
-  return `[[${selection.linktext}]] (${rangeLabel(selection)})`;
+  const range = rangeLabel(selection);
+  return range ? `[[${selection.linktext}]] (${range})` : `[[${selection.linktext}]]`;
 }
 
 function selectionKey(selection) {
@@ -34,10 +36,9 @@ function createSelection(input) {
   const value = {
     path,
     linktext: String(input && input.linktext || withoutMarkdownExtension(path)),
-    range: {
-      from: point(input && input.from),
-      to: point(input && input.to),
-    },
+    range: input && (input.from || input.to)
+      ? { from: point(input && input.from), to: point(input && input.to) }
+      : null,
     text,
   };
   value.marker = marker(value);
@@ -80,11 +81,12 @@ class SelectionBuffer {
   }
 
   codexDraft() {
-    return this.items.map((item) => `${item.marker}\n\n`).join("");
+    return this.items.map((item) => `${item.marker}${item.range ? "" : `\n${item.text.trim()}`}\n\n`).join("");
   }
 
   dshDraft(absolutePathFor) {
     return this.items.map((item) => {
+      if (!item.range) return `${item.text.trim()}\n`;
       const location = typeof absolutePathFor === "function" ? absolutePathFor(item.path) : item.path;
       return `${dshLine(item, location)}\n${item.text.trim()}\n`;
     }).join("\n");
@@ -159,26 +161,51 @@ class SelectionContextBridge extends (typeof require === "function" ? require("o
     return new this.obsidian.Notice(message, 6000);
   }
 
+  addBridgeMenuItems(menu, selectionFactory) {
+    const add = (title, icon, target) => {
+      menu.addItem((item) => item
+        .setTitle(title)
+        .setIcon(icon)
+        .onClick(() => {
+          const selection = selectionFactory();
+          if (selection) void this.addSelectionAndSend(selection, target);
+          else this.notice("请先选择笔记中的文字。");
+        }));
+    };
+    add("选区桥接：添加到 Codex 聊天", "bot-message-square", "codex");
+    add("选区桥接：添加到 DSH 聊天", "send", "dsh");
+    add("选区桥接：添加到 Codex + DSH", "split", "both");
+    menu.addItem((item) => item
+      .setTitle(`选区桥接：清空缓存（${this.buffer.size()}）`)
+      .setIcon("trash-2")
+      .onClick(() => {
+        this.buffer.clear();
+        this.notice("已清空选区缓存。");
+      }));
+  }
+
   registerEditorMenu() {
     this.registerEvent(this.app.workspace.on("editor-menu", (menu, editor, view) => {
       if (!view || !view.file || !editor || !String(editor.getSelection && editor.getSelection() || "").trim()) return;
-      const add = (title, icon, target) => {
-        menu.addItem((item) => item
-          .setTitle(title)
-          .setIcon(icon)
-          .onClick(() => void this.collectAndSend(editor, view, target)));
-      };
-      add("选区桥接：添加到 Codex 聊天", "bot-message-square", "codex");
-      add("选区桥接：添加到 DSH 聊天", "send", "dsh");
-      add("选区桥接：添加到 Codex + DSH", "split", "both");
-      menu.addItem((item) => item
-        .setTitle(`选区桥接：清空缓存（${this.buffer.size()}）`)
-        .setIcon("trash-2")
-        .onClick(() => {
-          this.buffer.clear();
-          this.notice("已清空选区缓存。");
-        }));
+      this.addBridgeMenuItems(menu, () => this.collect(editor, view));
     }));
+    this.registerPreviewMenu();
+  }
+
+  registerPreviewMenu() {
+    this.registerDomEvent(document, "contextmenu", (event) => {
+      const viewType = this.obsidian.MarkdownView;
+      const view = viewType && this.app.workspace.getActiveViewOfType(viewType);
+      if (!view || !view.file || typeof view.getMode !== "function" || view.getMode() !== "preview") return;
+      if (!view.containerEl || !view.containerEl.contains(event.target)) return;
+      const text = String(window.getSelection && window.getSelection().toString() || "").trim();
+      if (!text) return;
+      event.preventDefault();
+      const selection = this.collectPreview(view, text);
+      const menu = new this.obsidian.Menu();
+      this.addBridgeMenuItems(menu, () => selection);
+      menu.showAtMouseEvent(event);
+    });
   }
 
   collect(editor, view) {
@@ -189,18 +216,26 @@ class SelectionContextBridge extends (typeof require === "function" ? require("o
     return createSelection({ path: view.file.path, from, to, text });
   }
 
-  async collectAndSend(editor, view, target) {
-    const selection = this.collect(editor, view);
-    if (!selection) {
-      this.notice("请先选择笔记中的文字。");
-      return;
-    }
+  collectPreview(view, text) {
+    return createSelection({ path: view.file.path, text });
+  }
+
+  async addSelectionAndSend(selection, target) {
     const added = this.buffer.add(selection);
     if (!added) {
       this.notice("该选区已在缓存中。");
       return;
     }
     await this.sendToTargets(target);
+  }
+
+  async collectAndSend(editor, view, target) {
+    const selection = this.collect(editor, view);
+    if (!selection) {
+      this.notice("请先选择笔记中的文字。");
+      return;
+    }
+    await this.addSelectionAndSend(selection, target);
   }
 
   async sendToTargets(target) {
@@ -244,7 +279,7 @@ class SelectionContextBridge extends (typeof require === "function" ? require("o
     const existing = new Set(snapshots.map((item) => marker(item)));
     for (const item of items) {
       if (existing.has(item.marker)) continue;
-      if (typeof controller.rememberSelectionContextSnapshot === "function") {
+      if (item.range && typeof controller.rememberSelectionContextSnapshot === "function") {
         controller.rememberSelectionContextSnapshot({
           path: item.path,
           linktext: item.linktext,
@@ -255,8 +290,9 @@ class SelectionContextBridge extends (typeof require === "function" ? require("o
       existing.add(item.marker);
     }
     const draft = String(controller.draft || "");
-    const markers = items.map((item) => item.marker).filter((item) => !draft.includes(item));
-    const next = markers.length === 0 ? draft : `${draft.trimEnd()}${draft.trim() ? "\n\n" : ""}${markers.join("\n\n")}\n\n`;
+    const entries = items.map((item) => item.range ? item.marker : `${item.marker}\n${item.text.trim()}`);
+    const pendingEntries = entries.filter((item) => !draft.includes(item));
+    const next = pendingEntries.length === 0 ? draft : `${draft.trimEnd()}${draft.trim() ? "\n\n" : ""}${pendingEntries.join("\n\n")}\n\n`;
     controller.setDraft(next, { focus: true, preserveContext: true });
   }
 
