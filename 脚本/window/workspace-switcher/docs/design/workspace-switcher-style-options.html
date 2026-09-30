@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WorkspaceSwitcher UI 风格方案</title>
+  <style>
+    :root { font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif; color: #152238; background: #edf2f8; }
+    * { box-sizing: border-box; }
+    body { margin: 0; padding: 32px; }
+    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: -0.04em; }
+    .intro { max-width: 920px; margin: 0 auto 24px; color: #607089; }
+    .intro p { margin: 4px 0; }
+    .options { max-width: 1200px; margin: auto; display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 24px; }
+    .featured { grid-column: 1 / -1; }
+    .option { min-width: 0; }
+    .option h2 { margin: 0 0 8px; font-size: 17px; }
+    .option small { display: block; min-height: 38px; color: #64748b; line-height: 1.45; }
+    .preview { position: relative; height: 500px; padding: 17px; overflow: hidden; border-radius: 20px; background: var(--page); color: var(--text); }
+    .panel { width: 100%; height: 100%; overflow: hidden; padding: 17px; border-radius: var(--panel-radius); background: var(--panel); box-shadow: var(--panel-shadow); border: var(--panel-border); }
+    .top { height: 29px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+    .top strong { font-size: 16.8px; letter-spacing: .02em; }
+    .hide { padding: 5px 14px; border-radius: 11px; color: var(--muted); border: 1px solid var(--line); font-size: 15.6px; }
+    .hero, .mini, .add { border: var(--card-border); background: var(--card); border-radius: var(--card-radius); }
+    .hero { padding: 17px 19px; min-height: 126px; }
+    .hero.active { background: var(--active-bg); border-color: var(--active-line); }
+    .title { display: flex; align-items: baseline; gap: 14px; font-size: 26.4px; font-weight: 700; }
+    .number { color: var(--accent); font-size: 19.2px; font-weight: 800; }
+    .apps { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 17px; font-size: 18.72px; }
+    .app { appearance: none; display: inline-flex; align-items: center; min-width: 0; max-width: 100%; padding: 7px 12px; border: 1px solid var(--line); border-radius: 10px; background: rgba(255,255,255,.72); color: var(--text); font: inherit; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app::before { content: "•"; flex: 0 0 auto; color: var(--accent); margin-right: 7px; }
+    .app.active { background: var(--active-bg); border-color: var(--active-line); color: var(--accent); box-shadow: 0 3px 8px rgba(40,104,219,.16); font-weight: 700; }
+    .add { height: 86px; margin: 12px 0; display: grid; place-content: center; text-align: center; border-style: dashed; color: var(--muted); }
+    .add b { display: block; font-size: 30px; color: var(--accent); line-height: 1; }
+    .add span { display: block; margin-top: 7px; font-size: 18.72px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .mini { min-height: 100px; padding: 14px 17px; }
+    .mini .title { font-size: 23px; gap: 13px; }
+    .mini .number { font-size: 18.72px; }
+    .mini .apps { margin-top: 12px; display: flex; line-height: 1.5; }
+    .mini .app { max-width: 100%; padding: 6px 10px; }
+
+    /* 1. Windows Fluent */
+    .fluent { --page:#eef3f9; --panel:#f8fbff; --panel-border:1px solid #dbe4ef; --panel-radius:16px; --panel-shadow:0 12px 24px rgba(56,78,110,.10); --card:#fff; --card-border:1px solid #d9e2ed; --card-radius:12px; --active-bg:#edf4ff; --active-line:#4b83f1; --accent:#2868db; --text:#132238; --muted:#66758d; --line:#d8e1eb; }
+    /* 2. macOS calm */
+    .macos { --page:#eef0f3; --panel:rgba(255,255,255,.94); --panel-border:1px solid rgba(255,255,255,.8); --panel-radius:24px; --panel-shadow:0 18px 38px rgba(39,45,58,.16); --card:#fff; --card-border:1px solid #e8e9ec; --card-radius:18px; --active-bg:#f0f5ff; --active-line:#92b5f4; --accent:#356ed7; --text:#20242a; --muted:#7b8491; --line:#e3e5e9; }
+    /* 3. Raycast dark */
+    .raycast { --page:#0e1420; --panel:#151d2b; --panel-border:1px solid #28364b; --panel-radius:14px; --panel-shadow:0 18px 42px rgba(0,0,0,.34); --card:#1a2535; --card-border:1px solid #2c3b53; --card-radius:10px; --active-bg:#172e55; --active-line:#438cff; --accent:#65a2ff; --text:#eff6ff; --muted:#8fa2bb; --line:#33445d; }
+    /* 4. Material tonal */
+    .material { --page:#edf1f7; --panel:#e6ebf3; --panel-border:0; --panel-radius:22px; --panel-shadow:none; --card:#f8f9fd; --card-border:0; --card-radius:18px; --active-bg:#d8e5ff; --active-line:#7fa4ed; --accent:#315fae; --text:#18263b; --muted:#60718d; --line:#c9d5e6; }
+    /* 5. Monochrome */
+    .mono { --page:#f4f5f7; --panel:#fff; --panel-border:1px solid #e0e2e6; --panel-radius:10px; --panel-shadow:none; --card:#fff; --card-border:1px solid #e0e2e6; --card-radius:8px; --active-bg:#f7faff; --active-line:#255ee8; --accent:#255ee8; --text:#15181d; --muted:#68707c; --line:#d9dce2; }
+    @media (max-width: 700px) { body { padding: 18px; } .options { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="intro">
+    <h1>WorkspaceSwitcher UI 风格方案</h1>
+    <p>当前拟定稿使用方案 1 的 Windows Fluent 色彩：白色卡片、浅蓝当前态和清晰边界。</p>
+    <p>应用改为按钮样式；当前选中的应用用浅蓝底、蓝色边框和强调色文字标注。</p>
+  </div>
+
+  <main class="options">
+    <section class="option featured">
+      <h2>当前拟定稿 · 方案 1 Windows Fluent + 应用按钮</h2>
+      <small>方案 1 的颜色保持不变，仅把应用展示改为按钮，并突出当前选中的应用。</small>
+      <div class="preview fluent"><div class="panel">
+        <div class="top"><strong>工作区</strong><span class="hide">隐藏</span></div>
+        <div class="hero active"><div class="title"><span class="number">01</span>当前工作区</div><div class="apps"><span class="app active">ChatGPT</span><span class="app">VS Code — fugle</span></div></div>
+        <div class="add"><b>＋</b><span>新增工作区</span></div>
+        <div class="grid"><div class="mini"><div class="title"><span class="number">02</span>工作区 2</div><div class="apps"><span class="app">Windows Terminal</span></div></div><div class="mini"><div class="title"><span class="number">03</span>工作区 3</div><div class="apps"><span class="app">Chrome</span></div></div><div class="mini"><div class="title"><span class="number">04</span>工作区 4</div><div class="apps"><span class="app">VS Code</span></div></div><div class="mini"><div class="title"><span class="number">05</span>工作区 5</div><div class="apps"><span class="app">文件资源管理器</span></div></div></div>
+      </div></div>
+    </section>
+
+    <section class="option">
+      <h2>方案 2 · macOS Calm 柔和风</h2>
+      <small>更大的圆角、更柔和的阴影，整体轻盈，但仍保持实色文字区域。</small>
+      <div class="preview macos"><div class="panel">
+        <div class="top"><strong>工作区</strong><span class="hide">隐藏</span></div>
+        <div class="hero active"><div class="title"><span class="number">01</span>当前工作区</div><div class="apps"><span class="app">ChatGPT</span><span class="app">VS Code — fugle</span></div></div>
+        <div class="add"><b>＋</b><span>新增工作区</span></div>
+        <div class="grid"><div class="mini"><div class="title"><span class="number">02</span>工作区 2</div><div class="apps"><span class="app">Windows Terminal</span></div></div><div class="mini"><div class="title"><span class="number">03</span>工作区 3</div><div class="apps"><span class="app">Chrome</span></div></div><div class="mini"><div class="title"><span class="number">04</span>工作区 4</div><div class="apps"><span class="app">VS Code</span></div></div><div class="mini"><div class="title"><span class="number">05</span>工作区 5</div><div class="apps"><span class="app">文件资源管理器</span></div></div></div>
+      </div></div>
+    </section>
+
+    <section class="option">
+      <h2>方案 3 · Raycast 深色效率风</h2>
+      <small>深色面板、蓝色聚焦状态，适合快捷键和高频窗口切换。</small>
+      <div class="preview raycast"><div class="panel">
+        <div class="top"><strong>工作区</strong><span class="hide">隐藏</span></div>
+        <div class="hero active"><div class="title"><span class="number">01</span>当前工作区</div><div class="apps"><span class="app">ChatGPT</span><span class="app">VS Code — fugle</span></div></div>
+        <div class="add"><b>＋</b><span>新增工作区</span></div>
+        <div class="grid"><div class="mini"><div class="title"><span class="number">02</span>工作区 2</div><div class="apps"><span class="app">Windows Terminal</span></div></div><div class="mini"><div class="title"><span class="number">03</span>工作区 3</div><div class="apps"><span class="app">Chrome</span></div></div><div class="mini"><div class="title"><span class="number">04</span>工作区 4</div><div class="apps"><span class="app">VS Code</span></div></div><div class="mini"><div class="title"><span class="number">05</span>工作区 5</div><div class="apps"><span class="app">文件资源管理器</span></div></div></div>
+      </div></div>
+    </section>
+
+    <section class="option">
+      <h2>方案 4 · Material 柔和色块风</h2>
+      <small>减少边框，使用不同层级的表面颜色区分工作区状态。</small>
+      <div class="preview material"><div class="panel">
+        <div class="top"><strong>工作区</strong><span class="hide">隐藏</span></div>
+        <div class="hero active"><div class="title"><span class="number">01</span>当前工作区</div><div class="apps"><span class="app">ChatGPT</span><span class="app">VS Code — fugle</span></div></div>
+        <div class="add"><b>＋</b><span>新增工作区</span></div>
+        <div class="grid"><div class="mini"><div class="title"><span class="number">02</span>工作区 2</div><div class="apps"><span class="app">Windows Terminal</span></div></div><div class="mini"><div class="title"><span class="number">03</span>工作区 3</div><div class="apps"><span class="app">Chrome</span></div></div><div class="mini"><div class="title"><span class="number">04</span>工作区 4</div><div class="apps"><span class="app">VS Code</span></div></div><div class="mini"><div class="title"><span class="number">05</span>工作区 5</div><div class="apps"><span class="app">文件资源管理器</span></div></div></div>
+      </div></div>
+    </section>
+
+    <section class="option">
+      <h2>方案 5 · 极简黑白单蓝风</h2>
+      <small>没有渐变、没有透明、没有阴影，只用蓝色表达当前工作区。</small>
+      <div class="preview mono"><div class="panel">
+        <div class="top"><strong>工作区</strong><span class="hide">隐藏</span></div>
+        <div class="hero active"><div class="title"><span class="number">01</span>当前工作区</div><div class="apps"><span class="app">ChatGPT</span><span class="app">VS Code — fugle</span></div></div>
+        <div class="add"><b>＋</b><span>新增工作区</span></div>
+        <div class="grid"><div class="mini"><div class="title"><span class="number">02</span>工作区 2</div><div class="apps"><span class="app">Windows Terminal</span></div></div><div class="mini"><div class="title"><span class="number">03</span>工作区 3</div><div class="apps"><span class="app">Chrome</span></div></div><div class="mini"><div class="title"><span class="number">04</span>工作区 4</div><div class="apps"><span class="app">VS Code</span></div></div><div class="mini"><div class="title"><span class="number">05</span>工作区 5</div><div class="apps"><span class="app">文件资源管理器</span></div></div></div>
+      </div></div>
+    </section>
+  </main>
+</body>
+</html>

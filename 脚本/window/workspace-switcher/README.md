@@ -145,10 +145,9 @@ workspace-switcher/
 ├─ tests/
 │  ├─ WorkspaceSwitcher.App.Tests.cs
 │  └─ WorkspaceSwitcher.Core.Tests.cs
-├─ build/
-│  ├─ WorkspaceSwitcher.exe
-│  ├─ WorkspaceSwitcher.Core.dll
-│  └─ *.Tests.exe
+├─ docs/design/
+├─ tools/
+├─ build.ps1
 └─ README.md
 ```
 
@@ -159,18 +158,25 @@ workspace-switcher/
 ```powershell
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
-& $csc /nologo /target:library /out:build\WorkspaceSwitcher.Core.dll src\WorkspaceSwitcher.Core.cs
-& $csc /nologo /target:winexe /out:build\WorkspaceSwitcher.exe /reference:System.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:System.Management.dll /reference:build\WorkspaceSwitcher.Core.dll src\WorkspaceSwitcher.App.cs
-& $csc /nologo /target:exe /out:build\WorkspaceSwitcher.Core.Tests.exe /reference:System.dll /reference:build\WorkspaceSwitcher.Core.dll tests\WorkspaceSwitcher.Core.Tests.cs
-& $csc /nologo /target:exe /out:build\WorkspaceSwitcher.App.Tests.exe /reference:System.dll /reference:System.Drawing.dll /reference:System.Windows.Forms.dll /reference:build\WorkspaceSwitcher.Core.dll tests\WorkspaceSwitcher.App.Tests.cs
-& .\build\WorkspaceSwitcher.Core.Tests.exe
-& .\build\WorkspaceSwitcher.App.Tests.exe
+& .\build.ps1 -RunTests
 ```
 
 应用运行时状态保存在：
 
 ```text
-%LOCALAPPDATA%\WorkspaceSwitcher\state.xml
+C:\Users\<当前用户>\.lm-exe\workspace-switcher\config\workspace-state.xml
+```
+
+首次启动时，如果发现旧位置 `%LOCALAPPDATA%\WorkspaceSwitcher\state.xml`，应用会自动迁移一份到新位置。构建、运行和诊断信息统一放在：
+```text
+C:\Users\<当前用户>\.lm-exe\workspace-switcher\
+├─ app\
+├─ build\
+├─ config\
+├─ cache\
+├─ logs\
+├─ diagnostics\
+└─ backups\
 ```
 
 如需清理历史面板位置、尺寸或工作区状态，可以在退出应用后删除该文件；这会清空已保存的窗口归类和排序。

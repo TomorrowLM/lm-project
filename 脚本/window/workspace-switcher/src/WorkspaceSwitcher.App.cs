@@ -603,7 +603,8 @@ namespace WorkspaceSwitcher.App
 
         public WorkspaceForm()
         {
-            statePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "WorkspaceSwitcher", "state.xml");
+            statePath = GetWorkspaceStatePath();
+            MigrateLegacyStateIfNeeded();
             AutoScaleMode = AutoScaleMode.Dpi;
             BackColor = Color.FromArgb(WorkspaceVisualMetrics.PanelBackgroundArgb);
             DoubleBuffered = true;
@@ -3390,6 +3391,46 @@ namespace WorkspaceSwitcher.App
             catch (Exception)
             {
                 workspaceLayout.Restore(null);
+            }
+        }
+
+        private static string GetWorkspaceDataRoot()
+        {
+            return Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+                ".lm-exe",
+                "workspace-switcher");
+        }
+
+        private static string GetWorkspaceStatePath()
+        {
+            return Path.Combine(GetWorkspaceDataRoot(), "config", "workspace-state.xml");
+        }
+
+        private void MigrateLegacyStateIfNeeded()
+        {
+            try
+            {
+                if (File.Exists(statePath))
+                {
+                    return;
+                }
+
+                string legacyPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                    "WorkspaceSwitcher",
+                    "state.xml");
+                if (!File.Exists(legacyPath))
+                {
+                    return;
+                }
+
+                string directory = Path.GetDirectoryName(statePath);
+                Directory.CreateDirectory(directory);
+                File.Copy(legacyPath, statePath, false);
+            }
+            catch (Exception)
+            {
             }
         }
 

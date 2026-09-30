@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkspaceSwitcher 删除工作区原型</title>
+  <style>
+  .delete-prototype { color:#132238; }
+  .delete-prototype * { box-sizing:border-box; }
+  .delete-prototype .panel { width:min(100%,720px); margin:18px auto; padding:20px; border-radius:20px; background:#f8fbff; border:1px solid #dbe4ef; box-shadow:0 14px 30px rgba(56,78,110,.12); }
+  .delete-prototype .panel-top { display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; font-weight:800; font-size:18px; }
+  .delete-prototype .cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .delete-prototype .workspace { position:relative; min-height:108px; padding:15px; border:1px solid #d9e2ed; border-radius:18px; background:#fff; }
+  .delete-prototype .workspace.default { grid-column:1 / -1; }
+  .delete-prototype .workspace.target { border-color:#4b83f1; background:#edf4ff; }
+  .delete-prototype .workspace h4 { margin:0; font-size:18px; }
+  .delete-prototype .workspace h4 span { margin-right:9px; color:#2868db; }
+  .delete-prototype .apps { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .delete-prototype .app { padding:5px 9px; border:1px solid #d8e1eb; border-radius:9px; background:#f8fbff; font-size:13px; }
+  .delete-prototype .delete { position:absolute; top:12px; right:12px; padding:5px 9px; border:1px solid #e27a7a; border-radius:8px; background:#fff7f7; color:#b33636; font-size:12px; font-weight:700; }
+  .delete-prototype .hint { margin:14px 0 0; color:#66758d; font-size:13px; }
+  .delete-prototype .dialog { width:min(100%,520px); margin:20px auto 0; padding:20px; border:1px solid #d9e2ed; border-radius:18px; background:#fff; box-shadow:0 16px 34px rgba(25,49,82,.16); }
+  .delete-prototype .dialog h3 { margin:0; font-size:21px; }
+  .delete-prototype .dialog p { margin:10px 0; color:#52647d; }
+  .delete-prototype .dialog .choice-line { padding:10px 12px; border:1px solid #d8e1eb; border-radius:10px; background:#f8fbff; color:#132238; }
+  .delete-prototype .dialog .actions { display:flex; justify-content:flex-end; gap:10px; margin-top:18px; }
+  .delete-prototype .cancel { padding:8px 14px; border:1px solid #d8e1eb; border-radius:9px; background:#fff; color:#52647d; }
+  .delete-prototype .confirm { padding:8px 14px; border:1px solid #c95353; border-radius:9px; background:#c95353; color:#fff; }
+  </style>
+</head>
+<body>
+
+<h2>工作区删除：入口与确认</h2>
+<p class="subtitle">默认工作区不提供删除。其他工作区在鼠标悬停时，于右上角显示删除按钮；点击后再确认，避免误删。</p>
+
+<div class="delete-prototype">
+  <div class="panel">
+    <div class="panel-top"><span>工作区</span><span style="font-size:13px;color:#66758d">悬停展示删除按钮</span></div>
+    <div class="cards">
+      <div class="workspace default">
+        <h4><span>01</span>工作区 1</h4>
+        <div class="apps"><span class="app">ChatGPT</span><span class="app">VS Code — fugle</span></div>
+      </div>
+      <div class="workspace">
+        <h4><span>02</span>工作区 2</h4>
+        <div class="apps"><span class="app">Windows Terminal</span></div>
+      </div>
+      <div class="workspace target">
+        <button class="delete" type="button">删除</button>
+        <h4><span>03</span>工作区 3</h4>
+        <div class="apps"><span class="app">Chrome</span><span class="app">文件资源管理器</span></div>
+      </div>
+    </div>
+    <p class="hint">空工作区可直接删除；含应用的工作区会显示确认框。</p>
+  </div>
+
+  <div class="dialog">
+    <h3>删除“工作区 3”？</h3>
+    <p>其中的 2 个应用不会被关闭。请决定它们删除后去向：</p>
+    <div class="choice-line">当前原型预设：移动到默认工作区（工作区 1）</div>
+    <div class="actions"><button class="cancel" type="button">取消</button><button class="confirm" type="button">删除工作区</button></div>
+  </div>
+</div>
+
+<h3>删除后应用的去向</h3>
+<div class="options">
+  <div class="option" data-choice="move-default" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>移到默认工作区（推荐）</h3><p>应用不关闭、不丢失；下次打开面板即可在工作区 1 找到它们。</p></div>
+  </div>
+  <div class="option" data-choice="move-current" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>移到当前工作区</h3><p>适合当前正在整理窗口，但需要明确“当前工作区”的含义。</p></div>
+  </div>
+  <div class="option" data-choice="unassign" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content"><h3>解除归类，保留在桌面</h3><p>应用不再属于任何工作区，窗口保持打开；更自由，但容易散乱。</p></div>
+  </div>
+</div>
+</body>
+</html>

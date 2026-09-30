@@ -18,7 +18,7 @@ internal static class WorkspaceSwitcherAppTests
 
     public static int Main(string[] args)
     {
-        string applicationPath = args.Length == 1
+        string applicationPath = args.Length >= 1
             ? args[0]
             : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "WorkspaceSwitcher.exe");
 
@@ -170,6 +170,8 @@ internal static class WorkspaceSwitcherAppTests
             string source = File.ReadAllText(Path.Combine(sourceDirectory, "WorkspaceSwitcher.App.cs"));
             source += File.ReadAllText(Path.Combine(sourceDirectory, "WorkspaceSwitcher.Glass.cs"));
             source += File.ReadAllText(Path.Combine(sourceDirectory, "WorkspaceSwitcher.ContextMenu.cs"));
+            Assert(source.Contains(".lm-exe"), "User data is stored below the per-user .lm-exe root");
+            Assert(source.Contains("workspace-state.xml"), "Workspace state uses the persistent workspace-state.xml file");
             Assert(source.Contains("AntiAliasGridFit"), "Panel uses grayscale anti-aliased text for translucent glass");
             Assert(source.Contains("graphics.DrawString"), "Panel draws text with the graphics anti-aliasing mode");
             Assert(source.Contains("StringFormat.GenericTypographic"), "Panel uses typographic text metrics for stable GDI+ drawing");

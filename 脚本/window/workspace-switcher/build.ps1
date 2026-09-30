@@ -1,11 +1,15 @@
 param(
     [switch]$RunTests,
-    [string]$OutputDirectory = 'build'
+    [string]$OutputDirectory = (Join-Path ([Environment]::GetFolderPath([Environment+SpecialFolder]::UserProfile)) '.lm-exe\workspace-switcher\build')
 )
 
 $ErrorActionPreference = 'Stop'
 $project = Split-Path -Parent $MyInvocation.MyCommand.Path
-$build = Join-Path $project $OutputDirectory
+$build = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
+    $OutputDirectory
+} else {
+    Join-Path $project $OutputDirectory
+}
 $csc = 'C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe'
 
 if (-not (Test-Path $csc)) {
