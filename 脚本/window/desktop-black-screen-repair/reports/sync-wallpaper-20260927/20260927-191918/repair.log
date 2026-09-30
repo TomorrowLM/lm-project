@@ -1,0 +1,8 @@
+[2026-09-27 19:19:18] [INFO] 桌面黑屏工具启动，模式：Repair
+[2026-09-27 19:19:19] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\sync-wallpaper-20260927\20260927-191918\diagnostics.json
+[2026-09-27 19:19:20] [INFO] 注册表备份完成：Desktop=0, Run=0
+[2026-09-27 19:19:20] [INFO] 未发现需要隐藏的全屏 ClickToDo 覆盖层
+[2026-09-27 19:19:20] [INFO] 当前壁纸可读，不修改壁纸
+[2026-09-27 19:19:20] [INFO] 已指定 SkipExplorerRestart，不重启 Explorer
+[2026-09-27 19:19:20] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\sync-wallpaper-20260927\20260927-191918\diagnostics.json
+[2026-09-27 19:19:20] [INFO] 修复流程结束；WorkspaceSwitcher 不会被本脚本启动

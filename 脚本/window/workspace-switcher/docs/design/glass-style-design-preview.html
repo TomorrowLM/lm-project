@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WorkspaceSwitcher · 毛玻璃样式预览</title>
+  <style>
+    :root {
+      --ink: #10213a;
+      --muted: #58708e;
+      --blue: #2f69e8;
+      --panel-radius: 24px;
+      --card-radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      min-height: 100vh;
+      margin: 0;
+      color: var(--ink);
+      font-family: "Microsoft YaHei UI", "Segoe UI", sans-serif;
+      overflow: hidden;
+      background:
+        radial-gradient(ellipse at 14% 8%, rgba(255, 183, 115, .94) 0 13%, transparent 37%),
+        radial-gradient(ellipse at 86% 76%, rgba(27, 105, 151, .96) 0 17%, transparent 43%),
+        linear-gradient(145deg, #162d42 0%, #b87548 42%, #182f3e 70%, #071622 100%);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -2;
+      background: url("assets/windows-wallpaper.jpg") center / cover no-repeat;
+      filter: saturate(1.15) contrast(1.05);
+      opacity: .96;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: linear-gradient(135deg, rgba(7, 24, 42, .08), rgba(244, 190, 126, .10) 43%, rgba(4, 30, 48, .12));
+    }
+
+    .desktop {
+      display: flex;
+      gap: 42px;
+      align-items: flex-start;
+      width: min(1180px, calc(100vw - 80px));
+      margin: 40px auto;
+    }
+
+    .workspace-panel {
+      width: 520px;
+      min-height: 820px;
+      padding: 9px 20px 20px;
+      border: 1px solid rgba(255,255,255,.72);
+      border-radius: var(--panel-radius);
+      background: rgba(245, 250, 255, .36);
+      box-shadow:
+        inset 1px 1px 0 rgba(255,255,255,.76),
+        inset -1px -1px 0 rgba(255,255,255,.2),
+        0 20px 60px rgba(9, 26, 46, .28);
+      backdrop-filter: blur(34px) saturate(125%);
+      -webkit-backdrop-filter: blur(34px) saturate(125%);
+    }
+
+    .top-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      height: 42px;
+    }
+
+    button, .tab {
+      border: 1px solid rgba(164, 184, 211, .52);
+      border-radius: 11px;
+      background: rgba(255,255,255,.86);
+      color: var(--ink);
+      font: inherit;
+      cursor: default;
+    }
+
+    .action {
+      height: 39px;
+      padding: 0 15px;
+      color: var(--blue);
+      font-size: 16px;
+    }
+
+    .hide { font-size: 27px; padding: 0 13px; }
+
+    .tabs { display: flex; gap: 8px; margin-bottom: 25px; }
+    .tab { flex: 1; height: 42px; font-size: 15px; text-align: center; padding-top: 9px; }
+    .tab.active { color: var(--blue); border-color: #72a0ff; background: rgba(232,241,255,.84); }
+
+    .workspace-card, .add-card {
+      margin-bottom: 12px;
+      padding: 12px;
+      border-radius: var(--card-radius);
+      background: rgba(255,255,255,.91);
+      border: 1px solid rgba(194, 209, 230, .76);
+      box-shadow: 0 3px 10px rgba(27, 62, 97, .06);
+    }
+
+    .workspace-card.selected {
+      border-color: #72a0ff;
+      background: rgba(232,241,255,.91);
+      box-shadow: 0 0 0 1px rgba(80, 126, 239, .18), 0 8px 20px rgba(55, 108, 219, .12);
+    }
+
+    .workspace-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; font-size: 29px; font-weight: 700; line-height: 1; }
+    .workspace-title .number { color: var(--blue); font-size: 28px; }
+    .apps { display: flex; flex-wrap: wrap; gap: 10px 8px; }
+    .app {
+      display: inline-flex;
+      align-items: center;
+      max-width: 100%;
+      min-height: 43px;
+      padding: 7px 13px;
+      overflow: hidden;
+      border: 1px solid rgba(179, 199, 224, .74);
+      border-radius: 11px;
+      background: rgba(247,250,255,.78);
+      color: var(--ink);
+      font-size: 21px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+    .app::before { content: "•"; margin-right: 10px; color: var(--blue); font-weight: 700; }
+    .app.active { border-color: #6f9cff; color: var(--blue); background: rgba(232,241,255,.88); }
+    .app.muted { color: #5d7697; }
+    .app.muted::before { color: #3ea878; }
+
+    .add-card {
+      display: grid;
+      min-height: 158px;
+      place-content: center;
+      margin: 0 0 12px;
+      border: 1px dashed rgba(255,255,255,.92);
+      background: rgba(255,255,255,.70);
+      text-align: center;
+    }
+    .add-card .plus { color: #58769b; font-size: 29px; line-height: 1; }
+    .add-card strong { margin-top: 8px; font-size: 29px; }
+    .add-card span { margin-top: 8px; color: var(--muted); font-size: 18px; }
+
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+
+    .system-widget {
+      width: 300px;
+      padding: 28px 26px;
+      border: 1px solid rgba(255,255,255,.38);
+      border-radius: 30px;
+      color: rgba(255,255,255,.9);
+      background:
+        linear-gradient(155deg, rgba(255, 214, 152, .20), rgba(104, 48, 24, .44) 48%, rgba(5, 39, 38, .50)),
+        rgba(38, 30, 27, .22);
+      box-shadow: inset 1px 1px 0 rgba(255,255,255,.24), 0 20px 45px rgba(0,0,0,.22);
+      backdrop-filter: blur(32px) saturate(130%);
+      -webkit-backdrop-filter: blur(32px) saturate(130%);
+    }
+    .system-widget h2 { margin: 0 0 16px; font-size: 25px; }
+    .metric { display: grid; grid-template-columns: 1fr 70px; align-items: center; margin: 14px 0 22px; }
+    .metric strong { display: block; font-size: 25px; }
+    .metric span { display: block; margin-top: 10px; font-size: 23px; font-weight: 600; }
+    .ring { display: grid; place-items: center; width: 68px; height: 68px; border: 7px solid rgba(255,255,255,.30); border-top-color: rgba(255,255,255,.9); border-right-color: rgba(255,255,255,.9); border-radius: 50%; font-size: 16px; font-weight: 700; }
+
+    .note { margin-top: 16px; color: rgba(255,255,255,.78); font-size: 14px; }
+  </style>
+</head>
+<body>
+  <main class="desktop">
+    <section class="workspace-panel" aria-label="工作区毛玻璃样式预览">
+      <div class="top-actions"><button class="action">刷新工作区</button><button class="action hide">隐藏</button></div>
+      <nav class="tabs"><div class="tab active">全部</div><div class="tab">显示器 1</div></nav>
+
+      <article class="workspace-card">
+        <div class="workspace-title"><span class="number">01</span><span>工作区 1</span></div>
+        <div class="apps"><div class="app">文件资源管理器 — 主文件夹 - 文件资...</div></div>
+      </article>
+
+      <article class="add-card"><div class="plus">+</div><strong>新增工作区</strong><span>点击创建，或把窗口拖到这里</span></article>
+
+      <div class="grid">
+        <article class="workspace-card selected">
+          <div class="workspace-title"><span class="number">02</span><span>当前工作区</span></div>
+          <div class="apps"><div class="app active">ChatGPT</div></div>
+        </article>
+        <article class="workspace-card">
+          <div class="workspace-title"><span class="number">03</span><span>工作区 4</span></div>
+          <div class="apps"><div class="app">VS Code — ...</div></div>
+        </article>
+      </div>
+      <div class="note">设计预览 · 仅展示样式，不包含真实交互逻辑</div>
+    </section>
+
+    <aside class="system-widget">
+      <h2>RAM</h2>
+      <div class="metric"><div><strong>20.2/31.5GB</strong><span>立即加速 ↗</span></div><div class="ring">64%</div></div>
+      <h2>SSD</h2>
+      <div class="metric"><div><strong>391/923GB</strong><span>立即清理 ↗</span></div><div class="ring">42%</div></div>
+    </aside>
+  </main>
+</body>
+</html>

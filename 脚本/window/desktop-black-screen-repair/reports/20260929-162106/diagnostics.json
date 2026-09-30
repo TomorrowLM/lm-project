@@ -1,0 +1,102 @@
+﻿{
+    "Timestamp":  "2026-09-29T16:21:07.2003668+08:00",
+    "Computer":  "LM",
+    "User":  "12032",
+    "Mode":  "Diagnose",
+    "Explorer":  {
+                     "Name":  "explorer",
+                     "Running":  true,
+                     "Responding":  true,
+                     "Id":  7220,
+                     "Path":  "C:\\Windows\\Explorer.EXE"
+                 },
+    "Dwm":  {
+                "Name":  "dwm",
+                "Running":  true,
+                "Responding":  true,
+                "Id":  38648,
+                "Path":  null
+            },
+    "WorkspaceSwitcher":  {
+                              "Name":  "WorkspaceSwitcher",
+                              "Running":  true,
+                              "Responding":  true,
+                              "Id":  8644,
+                              "Path":  "D:\\software\\windows\\WorkspaceSwitcher\\WorkspaceSwitcher.exe"
+                          },
+    "Wallpaper":  {
+                      "ApiSucceeded":  true,
+                      "ApiPath":  "C:\\Users\\12032\\AppData\\Local\\Packages\\55888ChristopheLavalle.DynamicTheme_jdggxwd41xcr0\\LocalState\\WinSpotlight\\desktop-b027_ds_seattleskyline_gettyimages-2054239183_3840x2160.0.jpg",
+                      "RegistryPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "SelectedPath":  "C:\\Users\\12032\\AppData\\Local\\Packages\\55888ChristopheLavalle.DynamicTheme_jdggxwd41xcr0\\LocalState\\WinSpotlight\\desktop-b027_ds_seattleskyline_gettyimages-2054239183_3840x2160.0.jpg",
+                      "Exists":  true,
+                      "Readable":  true
+                  },
+    "LargeTopMostWindows":  [
+                                {
+                                    "ProcessId":  37660,
+                                    "ProcessName":  "magictaskbar-ui",
+                                    "Title":  "Magicdock",
+                                    "Bounds":  "0,1035 1560x132",
+                                    "Area":  205920
+                                }
+                            ],
+    "RecentDesktopErrors":  [
+                                {
+                                    "TimeCreated":  "\/Date(1790669657159)\/",
+                                    "ProviderName":  "Windows Error Reporting",
+                                    "Id":  1001,
+                                    "LevelDisplayName":  "信息",
+                                    "Message":  "故障存储段 1462977370119374476，类型 5\r\n事件名称: CLR20r3\r\n响应: 不可用\r\nCab ID: 0\r\n\r\n问题签名:\r\nP1: WorkspaceSwitcher.exe\r\nP2: 0.0.0.0\r\nP3: 6abb7322\r\nP4: System.Windows.Forms\r\nP5: 4.8.9221.0\r\nP6: 68532127\r\nP7: f82\r\nP8: 43\r\nP9: System.ArgumentException\r\nP10: \r\n\r\n附加文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.843b04d0-7165-40b9-828c-f79bee145903.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.24341b9a-ef4a-4b84-84ec-934b1315d7d4.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_cab_8ae606ad-55b8-411f-89f8-637bd62cdb4c\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260925_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4f3a54c0-c567-4f07-aac1-8e912e85b431.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_cab_8ae606ad-55b8-411f-89f8-637bd62cdb4c\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.d7a602c7-8195-4c58-82be-3d0b3ded8090.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.98d702ef-3d12-4785-870b-ff06cc1ce0c3.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.932f771f-8c73-409b-973a-31ae5ff65cad.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cd917e5e-2701-4ba5-8858-11a92ee8d6a4.tmp.xml\r\n\\\\?\\C:\\Users\\12032\\AppData\\Local\\Temp\\WER.49ec0c33-1275-4e1e-9d75-e1992c1dc74d.tmp.appcompat.txt\r\n\r\n可在此处获取这些文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_8ae606ad-55b8-411f-89f8-637bd62cdb4c\r\n\r\n分析符号: \r\n重新检查解决方案: 0\r\n报告 ID: 96270f74-c547-455f-b230-ba47eb90d555\r\n报告状态: 268435456\r\n哈希存储段: a6ea1c0f26bde40d944d8a2abc66868c\r\nCab GUID: 0"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790669655600)\/",
+                                    "ProviderName":  "Windows Error Reporting",
+                                    "Id":  1001,
+                                    "LevelDisplayName":  "信息",
+                                    "Message":  "故障存储段 ，类型 0\r\n事件名称: CLR20r3\r\n响应: 不可用\r\nCab ID: 0\r\n\r\n问题签名:\r\nP1: WorkspaceSwitcher.exe\r\nP2: 0.0.0.0\r\nP3: 6abb7322\r\nP4: System.Windows.Forms\r\nP5: 4.8.9221.0\r\nP6: 68532127\r\nP7: f82\r\nP8: 43\r\nP9: System.ArgumentException\r\nP10: \r\n\r\n附加文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.843b04d0-7165-40b9-828c-f79bee145903.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.24341b9a-ef4a-4b84-84ec-934b1315d7d4.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_cab_8ae606ad-55b8-411f-89f8-637bd62cdb4c\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260925_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.4f3a54c0-c567-4f07-aac1-8e912e85b431.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_cab_8ae606ad-55b8-411f-89f8-637bd62cdb4c\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.d7a602c7-8195-4c58-82be-3d0b3ded8090.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.98d702ef-3d12-4785-870b-ff06cc1ce0c3.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.932f771f-8c73-409b-973a-31ae5ff65cad.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.cd917e5e-2701-4ba5-8858-11a92ee8d6a4.tmp.xml\r\n\\\\?\\C:\\Users\\12032\\AppData\\Local\\Temp\\WER.49ec0c33-1275-4e1e-9d75-e1992c1dc74d.tmp.appcompat.txt\r\n\r\n可在此处获取这些文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_7d50eaff1f6c7e9bebcfe71aca3e6954f669b17_831fccfe_cab_8ae606ad-55b8-411f-89f8-637bd62cdb4c\r\n\r\n分析符号: \r\n重新检查解决方案: 0\r\n报告 ID: 96270f74-c547-455f-b230-ba47eb90d555\r\n报告状态: 4\r\n哈希存储段: \r\nCab GUID: 0"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790669653670)\/",
+                                    "ProviderName":  "Application Error",
+                                    "Id":  1000,
+                                    "LevelDisplayName":  "错误",
+                                    "Message":  "出错应用程序名称： WorkspaceSwitcher.exe，版本： 0.0.0.0，时间戳： 0x6abb7322\r\n出错模块名称： KERNELBASE.dll， 版本： 10.0.26100.7623，时间戳： 0x45ad608f\r\n异常代码： 0xe0434352\r\n错误偏移： 0x00000000000ca80a\r\n出错进程 ID： 0x4604\r\n出错应用程序开始时间： 0x1DD4FEA82A2B2B1\r\nFaulting 应用程序路径： D:\\software\\windows\\WorkspaceSwitcher\\WorkspaceSwitcher.exe\r\nFaulting 模块路径： C:\\Windows\\System32\\KERNELBASE.dll\r\nReport ID： 96270f74-c547-455f-b230-ba47eb90d555\r\nFaulting 包全名： \r\nFaulting 程序包相对应用程序 ID：  个"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790669653033)\/",
+                                    "ProviderName":  ".NET Runtime",
+                                    "Id":  1026,
+                                    "LevelDisplayName":  "错误",
+                                    "Message":  "应用程序: WorkspaceSwitcher.exe\nFramework 版本: v4.0.30319\n说明: 由于未经处理的异常，进程终止。\n异常信息: System.ArgumentException\n   在 System.Windows.Forms.Control.set_BackColor(System.Drawing.Color)\n   在 System.Windows.Forms.Form.set_BackColor(System.Drawing.Color)\n   在 WorkspaceSwitcher.App.WorkspaceForm..ctor()\n   在 WorkspaceSwitcher.App.Program.Main()\n\n"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790650933410)\/",
+                                    "ProviderName":  "Windows Error Reporting",
+                                    "Id":  1001,
+                                    "LevelDisplayName":  "信息",
+                                    "Message":  "故障存储段 1726840383030295304，类型 5\r\n事件名称: CLR20r3\r\n响应: 不可用\r\nCab ID: 0\r\n\r\n问题签名:\r\nP1: WorkspaceSwitcher.exe\r\nP2: 0.0.0.0\r\nP3: 6abb29fb\r\nP4: System.Windows.Forms\r\nP5: 4.8.9221.0\r\nP6: 68532127\r\nP7: f82\r\nP8: 43\r\nP9: System.ArgumentException\r\nP10: \r\n\r\n附加文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3590c64e-2ba5-47b2-bb84-519cba0b4bc2.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6d18edf4-31f6-4102-953e-19d5d6150824.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_cab_a11e4915-86d1-46b2-8737-a0f7371dc499\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260925_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.d47275cd-8d1a-4097-9a21-8fa55ee69a66.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_cab_a11e4915-86d1-46b2-8737-a0f7371dc499\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8ac481d7-f701-4a5c-858c-b94d15311d58.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.c0b7e0fd-07d6-4733-8669-7b140ed65a09.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3da8f2d2-7b80-4c23-b9d8-36c7f50b55bf.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.48e103db-104d-4bf6-b4bf-6eb041888cfb.tmp.xml\r\n\\\\?\\C:\\Users\\12032\\AppData\\Local\\Temp\\WER.e40621ff-2502-410b-a841-41cfd770b0ad.tmp.appcompat.txt\r\n\r\n可在此处获取这些文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportArchive\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_a11e4915-86d1-46b2-8737-a0f7371dc499\r\n\r\n分析符号: \r\n重新检查解决方案: 0\r\n报告 ID: 16c6040f-c862-431a-85c4-40884d4a9fab\r\n报告状态: 268435456\r\n哈希存储段: 22cde6dd17952d55c7f6f82dde51fb08\r\nCab GUID: 0"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790650930419)\/",
+                                    "ProviderName":  "Windows Error Reporting",
+                                    "Id":  1001,
+                                    "LevelDisplayName":  "信息",
+                                    "Message":  "故障存储段 ，类型 0\r\n事件名称: CLR20r3\r\n响应: 不可用\r\nCab ID: 0\r\n\r\n问题签名:\r\nP1: WorkspaceSwitcher.exe\r\nP2: 0.0.0.0\r\nP3: 6abb29fb\r\nP4: System.Windows.Forms\r\nP5: 4.8.9221.0\r\nP6: 68532127\r\nP7: f82\r\nP8: 43\r\nP9: System.ArgumentException\r\nP10: \r\n\r\n附加文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3590c64e-2ba5-47b2-bb84-519cba0b4bc2.tmp.mdmp\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.6d18edf4-31f6-4102-953e-19d5d6150824.tmp.WERInternalMetadata.xml\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_cab_a11e4915-86d1-46b2-8737-a0f7371dc499\\WPR_initiated_DiagTrackMiniLogger_OneTrace_User_Logger_20260925_1_EC_0_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.d47275cd-8d1a-4097-9a21-8fa55ee69a66.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_cab_a11e4915-86d1-46b2-8737-a0f7371dc499\\WPR_initiated_DiagTrackMiniLogger_WPR System Collector_inject.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.8ac481d7-f701-4a5c-858c-b94d15311d58.tmp.etl\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.c0b7e0fd-07d6-4733-8669-7b140ed65a09.tmp.csv\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.3da8f2d2-7b80-4c23-b9d8-36c7f50b55bf.tmp.txt\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\Temp\\WER.48e103db-104d-4bf6-b4bf-6eb041888cfb.tmp.xml\r\n\\\\?\\C:\\Users\\12032\\AppData\\Local\\Temp\\WER.e40621ff-2502-410b-a841-41cfd770b0ad.tmp.appcompat.txt\r\n\r\n可在此处获取这些文件:\r\n\\\\?\\C:\\ProgramData\\Microsoft\\Windows\\WER\\ReportQueue\\AppCrash_WorkspaceSwitche_acbbdcd9ea665e8ec9e51f0bd7d3ae7291ad3da_fa474645_cab_a11e4915-86d1-46b2-8737-a0f7371dc499\r\n\r\n分析符号: \r\n重新检查解决方案: 0\r\n报告 ID: 16c6040f-c862-431a-85c4-40884d4a9fab\r\n报告状态: 4\r\n哈希存储段: \r\nCab GUID: 0"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790650928520)\/",
+                                    "ProviderName":  "Application Error",
+                                    "Id":  1000,
+                                    "LevelDisplayName":  "错误",
+                                    "Message":  "出错应用程序名称： WorkspaceSwitcher.exe，版本： 0.0.0.0，时间戳： 0x6abb29fb\r\n出错模块名称： KERNELBASE.dll， 版本： 10.0.26100.7623，时间戳： 0x45ad608f\r\n异常代码： 0xe0434352\r\n错误偏移： 0x00000000000ca80a\r\n出错进程 ID： 0x70C4\r\n出错应用程序开始时间： 0x1DD4FBEE967871A\r\nFaulting 应用程序路径： D:\\software\\windows\\WorkspaceSwitcher\\WorkspaceSwitcher.exe\r\nFaulting 模块路径： C:\\Windows\\System32\\KERNELBASE.dll\r\nReport ID： 16c6040f-c862-431a-85c4-40884d4a9fab\r\nFaulting 包全名： \r\nFaulting 程序包相对应用程序 ID：  个"
+                                },
+                                {
+                                    "TimeCreated":  "\/Date(1790650927591)\/",
+                                    "ProviderName":  ".NET Runtime",
+                                    "Id":  1026,
+                                    "LevelDisplayName":  "错误",
+                                    "Message":  "应用程序: WorkspaceSwitcher.exe\nFramework 版本: v4.0.30319\n说明: 由于未经处理的异常，进程终止。\n异常信息: System.ArgumentException\n   在 System.Windows.Forms.Control.set_BackColor(System.Drawing.Color)\n   在 System.Windows.Forms.Form.set_BackColor(System.Drawing.Color)\n   在 WorkspaceSwitcher.App.WorkspaceForm..ctor()\n   在 WorkspaceSwitcher.App.Program.Main()\n\n"
+                                }
+                            ]
+}

@@ -1,0 +1,52 @@
+{
+  "Timestamp": "2026-09-27T16:08:20.1036086+08:00",
+  "Computer": "LM",
+  "User": "12032",
+  "Mode": "Diagnose",
+  "Explorer": {
+    "Name": "explorer",
+    "Running": true,
+    "Responding": true,
+    "Id": 15920,
+    "Path": "C:\\Windows\\Explorer.EXE"
+  },
+  "Dwm": {
+    "Name": "dwm",
+    "Running": true,
+    "Responding": true,
+    "Id": 38648,
+    "Path": null
+  },
+  "WorkspaceSwitcher": {
+    "Name": "WorkspaceSwitcher",
+    "Running": true,
+    "Responding": true,
+    "Id": 27668,
+    "Path": "D:\\LM\\lm-project\\脚本\\window\\workspace-switcher\\build\\WorkspaceSwitcher.exe"
+  },
+  "Wallpaper": {
+    "ApiSucceeded": true,
+    "ApiPath": "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+    "RegistryPath": "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+    "SelectedPath": "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+    "Exists": true,
+    "Readable": true
+  },
+  "LargeTopMostWindows": [
+    {
+      "ProcessId": 32072,
+      "ProcessName": "magictaskbar-ui",
+      "Title": "Magicdock",
+      "Bounds": "0,1820 3120x250",
+      "Area": 780000
+    },
+    {
+      "ProcessId": 32072,
+      "ProcessName": "magictaskbar-ui",
+      "Title": "Magictopbar",
+      "Bounds": "0,0 3120x64",
+      "Area": 199680
+    }
+  ],
+  "RecentDesktopErrors": []
+}

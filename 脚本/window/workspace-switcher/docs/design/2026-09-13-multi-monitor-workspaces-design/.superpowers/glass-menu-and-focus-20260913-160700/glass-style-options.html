@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Workspace Switcher Glass Style Options</title>
+<style>
+  :root { color-scheme: light; font-family: "Microsoft YaHei UI", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 24px; color: #08224a; background: #eef4fb; }
+  h1 { margin: 0 0 8px; font-size: 28px; }
+  .intro { margin: 0 0 22px; color: #55708f; }
+  .options { display: grid; grid-template-columns: repeat(3, minmax(240px, 1fr)); gap: 18px; }
+  .option { overflow: hidden; border: 1px solid #c8d8eb; border-radius: 22px; background: #fff; box-shadow: 0 12px 28px #b9c9dc55; cursor: pointer; }
+  .option.selected { outline: 3px solid #3267db; outline-offset: 3px; }
+  .caption { padding: 15px 17px 13px; }
+  .caption h2 { margin: 0 0 4px; font-size: 19px; }
+  .caption p { margin: 0; color: #5d7797; font-size: 13px; line-height: 1.5; }
+  .mock { min-height: 360px; padding: 22px 18px; position: relative; isolation: isolate; overflow: hidden; }
+  .mock::before { content: ""; position: absolute; inset: -28px; z-index: -2; background: var(--wallpaper); filter: saturate(1.1); }
+  .mock::after { content: ""; position: absolute; inset: 0; z-index: -1; background: #ffffff2b; backdrop-filter: blur(15px); }
+  .workspace-panel { width: min(100%, 320px); padding: 15px; border: 1px solid #ffffffaa; border-radius: 22px; background: var(--panel); box-shadow: 0 16px 32px #071c3a44, inset 0 1px #ffffff99; backdrop-filter: blur(22px) saturate(1.25); }
+  .title { display: flex; align-items: center; gap: 10px; margin-bottom: 11px; font-size: 22px; font-weight: 800; }
+  .number { color: #2863da; font-size: 16px; }
+  .apps { display: flex; flex-wrap: wrap; gap: 8px; }
+  .app { padding: 7px 10px; border: 1px solid #ffffffa6; border-radius: 11px; background: #ffffff70; font-size: 14px; box-shadow: inset 0 1px #ffffffaa; }
+  .app::before { content: ""; display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: #2467e5; }
+  .app.green::before { background: #10a26b; }
+  .menu { position: absolute; left: 42%; top: 157px; min-width: 170px; padding: 7px; border: 1px solid #ffffffc9; border-radius: 15px; background: var(--menu); box-shadow: 0 14px 30px #061a3c52, inset 0 1px #ffffffbd; backdrop-filter: blur(24px) saturate(1.35); }
+  .menu-item { padding: 10px 13px; border-radius: 10px; font-size: 16px; }
+  .menu-item.active { background: #2b66db24; color: #104db7; font-weight: 700; }
+  .scheme-a { --wallpaper: radial-gradient(circle at 22% 20%, #cde8ff 0 16%, transparent 38%), linear-gradient(135deg, #f8fcff, #b6d2ec 48%, #e6f1ff); --panel: #edf6ffb8; --menu: #ffffffd9; }
+  .scheme-b { --wallpaper: radial-gradient(circle at 70% 18%, #f2b56e 0 11%, transparent 33%), radial-gradient(circle at 20% 78%, #1b7f9c, transparent 35%), linear-gradient(135deg, #092e49, #154b61 46%, #0b243e); --panel: #102f42b8; --menu: #123346e8; }
+  .scheme-b .title, .scheme-b .app, .scheme-b .menu-item { color: #f5fbff; }
+  .scheme-b .app { background: #ffffff18; border-color: #ffffff45; }
+  .scheme-b .menu-item.active { background: #76b9ff35; color: #fff; }
+  .scheme-c { --wallpaper: linear-gradient(135deg, #f4eee8, #cedbe8 49%, #c2d9ce); --panel: #f8fbf8b8; --menu: #f8fbf8db; }
+  .scheme-c .workspace-panel { border-color: #d7e5e8; }
+  @media (max-width: 860px) { .options { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+  <h1>工作区玻璃背景与右键菜单</h1>
+  <p class="intro">只比较视觉，不代表最终功能实现。点击一个方案记录选择。</p>
+  <div class="options">
+    <article class="option" data-choice="a" onclick="selectOption(this)">
+      <div class="caption"><h2>A · 浅色 Windows 玻璃</h2><p>适合浅色壁纸；文字对比最稳定，右键菜单保持轻盈。</p></div>
+      <div class="mock scheme-a"><div class="workspace-panel"><div class="title"><span class="number">03</span>当前工作区</div><div class="apps"><span class="app">Chrome</span><span class="app green">微信</span></div></div><div class="menu"><div class="menu-item active">移动到 显示器 2</div><div class="menu-item">移动到 显示器 1</div></div></div>
+    </article>
+    <article class="option" data-choice="b" onclick="selectOption(this)">
+      <div class="caption"><h2>B · 深色壁纸玻璃</h2><p>接近你提供的内存/系统小组件风格；背景图存在感更强。</p></div>
+      <div class="mock scheme-b"><div class="workspace-panel"><div class="title"><span class="number">03</span>当前工作区</div><div class="apps"><span class="app">Chrome</span><span class="app green">微信</span></div></div><div class="menu"><div class="menu-item active">移动到 显示器 2</div><div class="menu-item">移动到 显示器 1</div></div></div>
+    </article>
+    <article class="option" data-choice="c" onclick="selectOption(this)">
+      <div class="caption"><h2>C · 中性自适应玻璃</h2><p>不偏白也不偏黑；根据壁纸做轻微着色，视觉更克制。</p></div>
+      <div class="mock scheme-c"><div class="workspace-panel"><div class="title"><span class="number">03</span>当前工作区</div><div class="apps"><span class="app">Chrome</span><span class="app green">微信</span></div></div><div class="menu"><div class="menu-item active">移动到 显示器 2</div><div class="menu-item">移动到 显示器 1</div></div></div>
+    </article>
+  </div>
+  <script>
+    function selectOption(element) {
+      document.querySelectorAll('.option').forEach(function (item) { item.classList.remove('selected'); });
+      element.classList.add('selected');
+    }
+  </script>
+</body>
+</html>

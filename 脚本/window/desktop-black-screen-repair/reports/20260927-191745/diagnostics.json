@@ -1,0 +1,47 @@
+﻿{
+    "Timestamp":  "2026-09-27T19:17:45.4683357+08:00",
+    "Computer":  "LM",
+    "User":  "12032",
+    "Mode":  "Diagnose",
+    "Explorer":  {
+                     "Name":  "explorer",
+                     "Running":  true,
+                     "Responding":  true,
+                     "Id":  15920,
+                     "Path":  "C:\\Windows\\Explorer.EXE"
+                 },
+    "Dwm":  {
+                "Name":  "dwm",
+                "Running":  true,
+                "Responding":  true,
+                "Id":  38648,
+                "Path":  null
+            },
+    "WorkspaceSwitcher":  {
+                              "Name":  "WorkspaceSwitcher",
+                              "Running":  true,
+                              "Responding":  true,
+                              "Id":  27668,
+                              "Path":  "D:\\LM\\lm-project\\脚本\\window\\workspace-switcher\\build\\WorkspaceSwitcher.exe"
+                          },
+    "Wallpaper":  {
+                      "ApiSucceeded":  true,
+                      "ApiPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "RegistryPath":  "C:\\Users\\12032\\AppData\\Local\\Packages\\55888ChristopheLavalle.DynamicTheme_jdggxwd41xcr0\\LocalState\\WinSpotlight\\desktop-b025_ds_mtassiniboinebc_gettyimages-451648009_3840x2160.0.jpg",
+                      "SelectedPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "Exists":  true,
+                      "Readable":  true
+                  },
+    "LargeTopMostWindows":  [
+                                {
+                                    "ProcessId":  32072,
+                                    "ProcessName":  "magictaskbar-ui",
+                                    "Title":  "Magicdock",
+                                    "Bounds":  "0,910 1560x125",
+                                    "Area":  195000
+                                }
+                            ],
+    "RecentDesktopErrors":  [
+
+                            ]
+}

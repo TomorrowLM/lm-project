@@ -1,0 +1,47 @@
+﻿{
+    "Timestamp":  "2026-09-27T16:02:17.8438494+08:00",
+    "Computer":  "LM",
+    "User":  "12032",
+    "Mode":  "Repair",
+    "Explorer":  {
+                     "Name":  "explorer",
+                     "Running":  true,
+                     "Responding":  true,
+                     "Id":  15920,
+                     "Path":  "C:\\Windows\\Explorer.EXE"
+                 },
+    "Dwm":  {
+                "Name":  "dwm",
+                "Running":  true,
+                "Responding":  true,
+                "Id":  38648,
+                "Path":  null
+            },
+    "WorkspaceSwitcher":  {
+                              "Name":  "WorkspaceSwitcher",
+                              "Running":  false,
+                              "Responding":  false,
+                              "Id":  null,
+                              "Path":  null
+                          },
+    "Wallpaper":  {
+                      "ApiSucceeded":  true,
+                      "ApiPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "RegistryPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "SelectedPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "Exists":  true,
+                      "Readable":  true
+                  },
+    "LargeTopMostWindows":  [
+                                {
+                                    "ProcessId":  32072,
+                                    "ProcessName":  "magictaskbar-ui",
+                                    "Title":  "Magicdock",
+                                    "Bounds":  "0,910 1560x125",
+                                    "Area":  195000
+                                }
+                            ],
+    "RecentDesktopErrors":  [
+
+                            ]
+}

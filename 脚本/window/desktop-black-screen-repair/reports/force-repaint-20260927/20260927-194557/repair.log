@@ -1,0 +1,8 @@
+[2026-09-27 19:45:57] [INFO] 桌面黑屏工具启动，模式：Repair
+[2026-09-27 19:45:58] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\force-repaint-20260927\20260927-194557\diagnostics.json
+[2026-09-27 19:45:59] [INFO] 注册表备份完成：Desktop=0, Run=0
+[2026-09-27 19:45:59] [INFO] 未发现需要隐藏的全屏 ClickToDo 覆盖层
+[2026-09-27 19:46:01] [INFO] 已恢复并验证壁纸：C:\Windows\Web\Wallpaper\Windows\img0.jpg
+[2026-09-27 19:46:01] [INFO] 已指定 SkipExplorerRestart，不重启 Explorer
+[2026-09-27 19:46:01] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\force-repaint-20260927\20260927-194557\diagnostics.json
+[2026-09-27 19:46:01] [INFO] 修复流程结束；WorkspaceSwitcher 不会被本脚本启动

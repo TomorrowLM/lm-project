@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WorkspaceSwitcher 毛玻璃渲染对比</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+      --wall-x: 50%;
+      --wall-y: 50%;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: #f7fbff;
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 12% 16%, rgba(255, 211, 128, .86), transparent 24%),
+        radial-gradient(circle at 78% 18%, rgba(105, 205, 255, .85), transparent 25%),
+        radial-gradient(circle at 68% 78%, rgba(15, 68, 176, .88), transparent 34%),
+        linear-gradient(125deg, #162449 0%, #7c3350 35%, #eda86a 55%, #0d4e9d 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: -12%;
+      z-index: -1;
+      background:
+        linear-gradient(116deg, transparent 0 28%, rgba(255,255,255,.22) 29% 31%, transparent 32% 47%, rgba(4,36,103,.34) 48% 61%, transparent 62%),
+        radial-gradient(ellipse at 25% 84%, rgba(8, 32, 86, .9) 0 17%, transparent 18%),
+        radial-gradient(ellipse at 86% 78%, rgba(251, 202, 119, .56) 0 13%, transparent 14%);
+      background-size: 135% 135%;
+      background-position: var(--wall-x) var(--wall-y);
+      filter: saturate(1.08);
+      transition: background-position 320ms ease;
+    }
+    .shell { max-width: 1440px; margin: 0 auto; padding: 30px; }
+    .topline { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
+    h1 { margin: 0; font-size: clamp(24px, 3vw, 40px); letter-spacing: .02em; }
+    .subtitle { margin: 8px 0 0; color: rgba(244,250,255,.78); font-size: 15px; }
+    .controls { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid rgba(255,255,255,.28); border-radius: 16px; background: rgba(10,20,45,.3); backdrop-filter: blur(14px); }
+    .controls label { white-space: nowrap; font-size: 13px; color: rgba(255,255,255,.82); }
+    input[type=range] { width: 170px; accent-color: #b9dcff; }
+    .compare { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; }
+    .column { min-width: 0; }
+    .column-title { display: flex; justify-content: space-between; align-items: center; margin: 0 4px 9px; color: rgba(255,255,255,.88); font-size: 14px; }
+    .badge { padding: 4px 9px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.25); }
+    .badge.bad { color: #ffd0d0; }
+    .badge.good { color: #d8ffe8; }
+    .panel {
+      position: relative;
+      min-height: 650px;
+      padding: 16px;
+      border-radius: 28px;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .panel::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+    .legacy { background: #050505; border: 1px solid rgba(255,255,255,.7); }
+    .legacy::before { background: #050505; }
+    .acrylic { border: 1px solid rgba(255,255,255,.58); box-shadow: 0 22px 60px rgba(2, 16, 50, .28), inset 0 1px 0 rgba(255,255,255,.55); }
+    .acrylic::before {
+      inset: -35px;
+      background: inherit;
+      background-image: inherit;
+      background-size: 135% 135%;
+      background-position: var(--wall-x) var(--wall-y);
+      filter: blur(24px) saturate(1.35);
+      transform: scale(1.08);
+      opacity: .96;
+    }
+    .acrylic::after { content: ""; position: absolute; inset: 0; z-index: -1; background: rgba(226, 239, 255, .17); pointer-events: none; }
+    .windowbar { display: flex; justify-content: flex-end; gap: 8px; min-height: 34px; }
+    .windowbar button, .filter button { border: 1px solid rgba(80,125,195,.24); border-radius: 11px; background: rgba(255,255,255,.78); color: #2165cc; padding: 7px 17px; font-size: 13px; }
+    .filter { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 2px 0 20px; }
+    .filter button { color: #16223a; background: rgba(255,255,255,.62); }
+    .filter button.active { color: #1d63d4; border-color: #6da2ff; background: rgba(232,241,255,.82); }
+    .stack { display: grid; gap: 14px; }
+    .workspace { border-radius: 19px; padding: 14px; background: rgba(255,255,255,.86); color: #09254b; border: 1px solid rgba(122,158,208,.25); box-shadow: 0 3px 12px rgba(10,35,80,.09); }
+    .acrylic .workspace { background: rgba(255,255,255,.68); backdrop-filter: blur(13px) saturate(125%); }
+    .workspace.current { background: rgba(223,235,255,.86); border-color: #72a1ff; }
+    .workspace h2 { margin: 0 0 10px; font-size: 22px; letter-spacing: .02em; }
+    .workspace h2 span { margin-right: 10px; color: #3275e7; font-size: 18px; }
+    .apps { display: flex; flex-wrap: wrap; gap: 9px; }
+    .app { padding: 7px 11px; border-radius: 11px; border: 1px solid rgba(111,148,204,.24); background: rgba(241,247,255,.72); font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .app::before { content: "•"; color: #397ef1; margin-right: 10px; }
+    .create { min-height: 126px; display: grid; place-items: center; text-align: center; border-style: dashed; color: #6c8cb9; }
+    .create strong { display: block; color: #102a51; font-size: 23px; margin: 7px 0; }
+    .acrylic .create { background: rgba(255,255,255,.48); }
+    .small-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .small-grid .workspace { min-height: 124px; }
+    .note { margin: 14px 3px 0; color: rgba(255,255,255,.7); font-size: 13px; line-height: 1.55; }
+    .key { color: #fff; font-weight: 600; }
+    @media (max-width: 900px) { .topline { align-items: start; flex-direction: column; } .compare { grid-template-columns: 1fr; } .panel { min-height: 560px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="topline">
+      <div>
+        <h1>WorkspaceSwitcher 渲染对比</h1>
+        <p class="subtitle">只用于确认视觉方向，不会修改或启动桌面应用</p>
+      </div>
+      <div class="controls">
+        <label for="position">模拟壁纸位置</label>
+        <input id="position" type="range" min="0" max="100" value="50" />
+      </div>
+    </div>
+
+    <section class="compare">
+      <div class="column">
+        <div class="column-title"><span>当前 WinForms + WCA 结果</span><span class="badge bad">黑色客户区</span></div>
+        <div class="panel legacy">
+          <div class="windowbar"><button>刷新工作区</button><button>隐藏</button></div>
+          <div class="filter"><button class="active">全部</button><button>显示器 1</button></div>
+          <div class="stack">
+            <div class="workspace current"><h2><span>01</span>当前工作区</h2><div class="apps"><div class="app">VS Code — Microsoft</div><div class="app">ChatGPT</div></div></div>
+            <div class="workspace create"><div><div style="font-size:25px">＋</div><strong>新增工作区</strong><div>点击创建，或把窗口拖到这里</div></div></div>
+            <div class="small-grid"><div class="workspace"><h2><span>02</span>工作区 2</h2><div class="apps"><div class="app">Windows Terminal</div></div></div><div class="workspace"><h2><span>03</span>工作区 3</h2><div class="apps"><div class="app">Google Chrome</div></div></div></div>
+          </div>
+          <p class="note">这里的黑色不是壁纸颜色，而是 WinForms 窗口客户区没有得到系统合成背景。</p>
+        </div>
+      </div>
+
+      <div class="column">
+        <div class="column-title"><span>目标 Desktop Acrylic 效果</span><span class="badge good">透明、模糊、随背景变化</span></div>
+        <div class="panel acrylic">
+          <div class="windowbar"><button>刷新工作区</button><button>隐藏</button></div>
+          <div class="filter"><button class="active">全部</button><button>显示器 1</button></div>
+          <div class="stack">
+            <div class="workspace current"><h2><span>01</span>当前工作区</h2><div class="apps"><div class="app">VS Code — Microsoft</div><div class="app">ChatGPT</div></div></div>
+            <div class="workspace create"><div><div style="font-size:25px">＋</div><strong>新增工作区</strong><div>点击创建，或把窗口拖到这里</div></div></div>
+            <div class="small-grid"><div class="workspace"><h2><span>02</span>工作区 2</h2><div class="apps"><div class="app">Windows Terminal</div></div></div><div class="workspace"><h2><span>03</span>工作区 3</h2><div class="apps"><div class="app">Google Chrome</div></div></div></div>
+          </div>
+          <p class="note"><span class="key">目标：</span>面板保留壁纸的明暗、色彩和形状，但经过透明叠加、模糊和饱和度处理；文字与卡片始终清晰。</p>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script>
+    const slider = document.querySelector('#position');
+    slider.addEventListener('input', () => {
+      const value = `${slider.value}% ${100 - Number(slider.value)}%`;
+      document.documentElement.style.setProperty('--wall-x', value);
+      document.documentElement.style.setProperty('--wall-y', value);
+    });
+  </script>
+</body>
+</html>

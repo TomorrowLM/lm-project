@@ -1,0 +1,54 @@
+﻿{
+    "Timestamp":  "2026-09-27T15:26:26.8855351+08:00",
+    "Computer":  "LM",
+    "User":  "12032",
+    "Mode":  "Diagnose",
+    "Explorer":  {
+                     "Name":  "explorer",
+                     "Running":  true,
+                     "Responding":  true,
+                     "Id":  22460,
+                     "Path":  "C:\\Windows\\Explorer.EXE"
+                 },
+    "Dwm":  {
+                "Name":  "dwm",
+                "Running":  true,
+                "Responding":  true,
+                "Id":  38648,
+                "Path":  null
+            },
+    "WorkspaceSwitcher":  {
+                              "Name":  "WorkspaceSwitcher",
+                              "Running":  true,
+                              "Responding":  true,
+                              "Id":  47736,
+                              "Path":  "D:\\LM\\lm-project\\脚本\\window\\workspace-switcher\\build\\WorkspaceSwitcher.exe"
+                          },
+    "Wallpaper":  {
+                      "ApiSucceeded":  true,
+                      "ApiPath":  "C:\\Users\\12032\\AppData\\Local\\Packages\\55888ChristopheLavalle.DynamicTheme_jdggxwd41xcr0\\LocalState\\WinSpotlight\\desktop-b025_ds_mtassiniboinebc_gettyimages-451648009_3840x2160.0.jpg",
+                      "RegistryPath":  "C:\\Windows\\Web\\Wallpaper\\Windows\\img0.jpg",
+                      "SelectedPath":  "C:\\Users\\12032\\AppData\\Local\\Packages\\55888ChristopheLavalle.DynamicTheme_jdggxwd41xcr0\\LocalState\\WinSpotlight\\desktop-b025_ds_mtassiniboinebc_gettyimages-451648009_3840x2160.0.jpg",
+                      "Exists":  true,
+                      "Readable":  true
+                  },
+    "LargeTopMostWindows":  [
+                                {
+                                    "ProcessId":  32072,
+                                    "ProcessName":  "magictaskbar-ui",
+                                    "Title":  "Magicdock",
+                                    "Bounds":  "0,910 1560x125",
+                                    "Area":  195000
+                                },
+                                {
+                                    "ProcessId":  5708,
+                                    "ProcessName":  "ClickToDo",
+                                    "Title":  "单击以执行",
+                                    "Bounds":  "0,0 1560x1040",
+                                    "Area":  1622400
+                                }
+                            ],
+    "RecentDesktopErrors":  [
+
+                            ]
+}

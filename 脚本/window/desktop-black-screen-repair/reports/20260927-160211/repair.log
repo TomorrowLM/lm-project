@@ -1,0 +1,9 @@
+﻿[2026-09-27 16:02:11] [INFO] 桌面黑屏工具启动，模式：Repair
+[2026-09-27 16:02:12] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\20260927-160211\diagnostics.json
+[2026-09-27 16:02:12] [INFO] 注册表备份完成：Desktop=0, Run=0
+[2026-09-27 16:02:12] [INFO] 已停止 WorkspaceSwitcher 进程
+[2026-09-27 16:02:12] [INFO] 未发现需要隐藏的全屏 ClickToDo 覆盖层
+[2026-09-27 16:02:12] [INFO] 当前壁纸可读，不修改壁纸
+[2026-09-27 16:02:12] [INFO] 重启 Explorer 外壳
+[2026-09-27 16:02:18] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\20260927-160211\diagnostics.json
+[2026-09-27 16:02:18] [INFO] 修复流程结束；WorkspaceSwitcher 不会被本脚本启动

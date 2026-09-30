@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>多屏工作区方案</title>
+  <style>
+    :root { --ink:#0f2a4a; --blue:#286be6; --pale:#eef5ff; --line:#d5e2f4; --panel:#f4f8fe; --muted:#63738b; --screen1:#386ee8; --screen2:#17a873; --screen3:#9a60db; }
+    *{box-sizing:border-box} body{margin:0;background:#edf3fb;color:var(--ink);font-family:"Microsoft YaHei UI",Segoe UI,sans-serif;padding:32px;}
+    h1{margin:0 0 6px;font-size:28px}.lead{margin:0 0 28px;color:var(--muted)}
+    .options{display:grid;grid-template-columns:repeat(3,minmax(280px,1fr));gap:18px;max-width:1500px;margin:auto}.option{background:white;border:2px solid var(--line);border-radius:22px;padding:18px;cursor:pointer;box-shadow:0 8px 24px rgba(44,82,138,.07);transition:.16s}.option:hover,.option.selected{border-color:var(--blue);box-shadow:0 12px 30px rgba(40,107,230,.16);transform:translateY(-2px)}.option.selected:after{content:"已选择";float:right;margin-top:-34px;background:var(--blue);color:white;font-size:12px;padding:5px 9px;border-radius:999px}.option h2{font-size:20px;margin:0 0 4px}.option>p{min-height:40px;color:var(--muted);font-size:13px;margin:0 0 14px;line-height:1.55}.mock{background:var(--panel);border:1px solid #e1eaf6;border-radius:16px;padding:12px;min-height:350px}.panel{background:#fbfdff;border:1px solid #cfddf0;border-radius:15px;padding:10px}.bar{display:flex;gap:6px;margin-bottom:10px}.pill{font-size:11px;padding:6px 8px;border-radius:999px;border:1px solid #cfddf0;background:white;color:#456}.pill.active{background:#e2edff;border-color:#7fa8ff;color:#1352bd;font-weight:700}.pill.s2{border-color:#7fd3b2;color:#087a4c}.pill.s3{border-color:#d2a8fa;color:#7435ad}.ws{border:1px solid #d5e2f4;border-radius:11px;background:white;margin:7px 0;padding:9px}.ws.active{border:2px solid #7099f6;background:#eef4ff}.title{font-size:13px;font-weight:800}.apps{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.app{border:1px solid #dbe5f3;border-radius:7px;padding:4px 6px;font-size:11px;background:#fff}.app.focus{border-color:#6f9aff;background:#eaf2ff;color:#1654c6}.dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:4px}.d1{background:var(--screen1)}.d2{background:var(--screen2)}.d3{background:var(--screen3)}.monitor-canvas{display:flex;align-items:center;gap:8px;margin:6px 0 12px}.screen{height:54px;flex:1;border:2px solid #aebfd6;border-radius:6px;background:#f9fcff;position:relative;text-align:center;padding-top:17px;font-weight:700;font-size:11px;color:#61718b}.screen.active{border-color:var(--blue);background:#eaf2ff;color:#1d59c9}.screen small{display:block;font-weight:400;font-size:9px;margin-top:2px}.mini{position:absolute;border-radius:2px;background:#8bb0f8;height:7px}.mini.g{background:#72d6b2}.navlist{display:flex;gap:5px;margin-bottom:9px}.nav{flex:1;text-align:center;font-size:10px;border:1px solid #dbe5f3;border-radius:7px;padding:7px 2px;background:white}.nav.on{background:#eaf2ff;border-color:#80a7fb;color:#1756c6;font-weight:700}.tag{font-size:10px;margin-left:5px;padding:2px 5px;background:#edf4ff;border-radius:99px;color:#1654c6}.tag.green{background:#e7f8f0;color:#078154}.notes{margin:28px auto 0;max-width:1500px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:18px;color:#334d70}.notes h3{margin:0 0 8px;font-size:16px}.notes ul{margin:7px 0 0;padding-left:19px;line-height:1.65;font-size:14px}.recommend{color:#1352bd;font-weight:700}.footer{max-width:1500px;margin:18px auto 0;color:#63738b;font-size:13px}
+    @media(max-width:1000px){.options{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <h1>多屏工作区：标记与快速切换</h1>
+  <p class="lead">点击任一方案选择。示例中蓝色为显示器 1，绿色为显示器 2；只讨论 UI 与交互，不改变已有工作区逻辑。</p>
+  <section class="options">
+    <article class="option" data-choice="a" onclick="selectOption(this)">
+      <h2>A. 显示器总览条 <span class="tag">推荐</span></h2>
+      <p>面板顶部把所有显示器做成可点击总览；卡片与应用用小圆点标记所在屏幕。点击显示器即可把面板移到该屏，同时只突出该屏的应用。</p>
+      <div class="mock">
+        <div class="panel">
+          <div class="monitor-canvas"><div class="screen active">显示器 1<small>主屏 · 3 个窗口</small></div><div class="screen">显示器 2<small>副屏 · 2 个窗口</small></div></div>
+          <div class="ws active"><span class="title">01 工作区 1</span><span class="tag">当前</span><div class="apps"><span class="app focus"><i class="dot d1"></i>Chrome</span><span class="app"><i class="dot d2"></i>终端</span><span class="app"><i class="dot d1"></i>微信</span></div></div>
+          <div class="ws"><span class="title">02 工作区 2</span><div class="apps"><span class="app"><i class="dot d2"></i>VS Code</span><span class="app"><i class="dot d2"></i>资源管理器</span></div></div>
+        </div>
+      </div>
+    </article>
+    <article class="option" data-choice="b" onclick="selectOption(this)">
+      <h2>B. 屏幕切换标签</h2>
+      <p>顶部用“全部 / 显示器 1 / 显示器 2”标签筛选，所有工作区始终存在。选中某屏后，卡片内仅高亮该显示器上的应用。</p>
+      <div class="mock">
+        <div class="panel">
+          <div class="navlist"><div class="nav">全部</div><div class="nav on">显示器 1</div><div class="nav">显示器 2</div></div>
+          <div class="ws active"><span class="title">01 工作区 1</span><div class="apps"><span class="app focus"><i class="dot d1"></i>Chrome</span><span class="app focus"><i class="dot d1"></i>微信</span><span class="app"><i class="dot d2"></i>终端</span></div></div>
+          <div class="ws"><span class="title">02 工作区 2</span><div class="apps"><span class="app"><i class="dot d2"></i>VS Code</span><span class="app"><i class="dot d2"></i>资源管理器</span></div></div>
+        </div>
+      </div>
+    </article>
+    <article class="option" data-choice="c" onclick="selectOption(this)">
+      <h2>C. 卡片屏幕徽章</h2>
+      <p>不增加顶部栏。每张工作区卡片标题右侧汇总显示器徽章，单击徽章将面板切到该屏。最紧凑，但多屏信息不如 A 直观。</p>
+      <div class="mock">
+        <div class="panel">
+          <div class="ws active"><span class="title">01 工作区 1</span><span class="tag">屏幕 1</span><span class="tag green">屏幕 2</span><div class="apps"><span class="app focus">Chrome</span><span class="app">终端</span><span class="app">微信</span></div></div>
+          <div class="ws"><span class="title">02 工作区 2</span><span class="tag green">屏幕 2</span><div class="apps"><span class="app">VS Code</span><span class="app">资源管理器</span></div></div>
+          <div class="ws"><span class="title">03 工作区 3</span><span class="tag">屏幕 1</span><div class="apps"><span class="app">ChatGPT</span></div></div>
+        </div>
+      </div>
+    </article>
+  </section>
+  <section class="notes"><h3>首次点击未切换：目前的查证结果</h3><ul><li>工作区切换目前挂在 <code>MouseClick</code>，而面板同时设置为“不激活窗口”；鼠标按下、抬起和系统前台窗口通知可能出现顺序竞争，导致第一次点击未进入切换调用。</li><li>修复设计会将“工作区卡片切换”改为一次性、按下即记录、抬起确认的明确手势，并在触发期间屏蔽前台事件的重复切换；拖拽、缩放、删除和应用按钮继续有更高的命中优先级。</li></ul></section>
+  <p class="footer">请选择 A、B 或 C；下一步我会确认“切换显示器”是移动工作区面板，还是也要把该屏的应用置前。</p>
+  <script>function selectOption(el){document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');}</script>
+</body>
+</html>

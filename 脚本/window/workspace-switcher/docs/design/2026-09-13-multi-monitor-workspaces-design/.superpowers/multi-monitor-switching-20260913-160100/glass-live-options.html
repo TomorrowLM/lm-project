@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>实时毛玻璃方案对比</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#0a1521;color:#eef6ff;font-family:"Microsoft YaHei UI","Segoe UI",sans-serif;padding:30px}
+h1{font-size:30px;margin:0 0 8px}.sub{color:#a9bfd5;margin:0 0 22px}.grid{display:grid;grid-template-columns:repeat(3,minmax(300px,1fr));gap:18px}.option{border:1px solid #294158;border-radius:18px;background:#102336;padding:16px;cursor:pointer;transition:.2s}.option:hover,.option.selected{border-color:#71a9ff;box-shadow:0 0 0 2px #71a9ff33}.option h2{margin:0 0 5px;font-size:21px}.option p{color:#b6c9db;min-height:44px;margin:0 0 14px;font-size:14px}.stage{height:310px;border-radius:15px;overflow:hidden;position:relative;background:#183c53}.wallpaper{position:absolute;inset:-26px;background:radial-gradient(circle at 22% 30%,#f5c87e 0 8%,transparent 18%),radial-gradient(circle at 75% 25%,#79c7ed 0 12%,transparent 28%),linear-gradient(145deg,#146080 0 31%,#1c6d54 52%,#052c47 100%);filter:blur(18px);transform:scale(1.1)}.wallpaper:after{content:"";position:absolute;inset:0;background:linear-gradient(15deg,transparent 0 42%,#9adaf480 43% 50%,transparent 51%),linear-gradient(165deg,transparent 0 55%,#002a3c99 56% 100%)}.desktop-window{position:absolute;left:12px;right:12px;top:14px;height:98px;border-radius:13px;background:#eff7ffdf;color:#193149;padding:13px 16px;box-shadow:0 12px 32px #001d2d55}.desktop-window b{font-size:17px}.desktop-window span{display:block;margin-top:10px;font-size:12px;color:#59738c}.panel{position:absolute;left:16px;right:16px;top:28px;bottom:14px;border-radius:25px;overflow:hidden;padding:13px;background:var(--panel);border:1px solid #ffffff80;box-shadow:0 18px 45px #00142466}.panel h3{font-size:18px;margin:0 0 12px}.tabs{display:flex;gap:6px;margin-bottom:10px}.tab{flex:1;text-align:center;border-radius:9px;padding:7px 3px;background:#ffffff2f;border:1px solid #ffffff54;font-size:11px}.tab.active{background:#91b8ff55;border-color:#a8c7ff}.workspace{border-radius:14px;padding:10px;margin-bottom:8px;background:var(--card);border:1px solid #ffffff6b}.workspace.active{border-color:#8cb5ff;background:var(--active)}.workspace strong{font-size:15px}.apps{display:flex;gap:6px;margin-top:9px;flex-wrap:wrap}.app{font-size:11px;border-radius:8px;padding:6px 8px;background:#ffffff25;border:1px solid #ffffff50}.dot{color:#63e1ad;margin-right:4px}.native{--panel:#dbeaff99;--card:#ffffffb8;--active:#b7d2ffb0}.capture{--panel:#052e3dcc;--card:#0a4d4a99;--active:#176d75b8}.wallpaperonly{--panel:#cfe6f2c4;--card:#ffffffdd;--active:#c7dcffdd}.native .desktop-window{opacity:.35}.capture .desktop-window{opacity:.78}.wallpaperonly .desktop-window{opacity:.1}.tag{display:inline-block;font-size:11px;padding:3px 8px;border-radius:100px;background:#233a51;color:#aee2ff;margin-top:12px}.note{margin-top:22px;padding:14px 16px;border-radius:13px;background:#10263a;color:#c9d9e8;border:1px solid #294158;line-height:1.6}.note b{color:#fff}.footer{margin-top:20px;color:#8da7be;font-size:13px}@media(max-width:980px){.grid{grid-template-columns:1fr}.stage{height:250px}}
+</style>
+</head>
+<body>
+<h1>工作区实时毛玻璃方案</h1>
+<p class="sub">请重点看：后方内容是否可见、玻璃颜色是否接近蓝绿参考图、背景变化时是否会同步。</p>
+<div class="grid">
+  <div class="option" data-choice="A" onclick="selectOption(this)">
+    <h2>A · 系统 DWM Acrylic</h2><p>交给 Windows 11 合成器处理，性能最好；不同系统版本的视觉结果可能不一致。</p>
+    <div class="stage native"><div class="wallpaper"></div><div class="desktop-window"><b>后方桌面窗口</b><span>系统合成器负责模糊与材质</span></div><div class="panel"><div class="tabs"><div class="tab active">全部</div><div class="tab">显示器 1</div><div class="tab">显示器 2</div></div><div class="workspace active"><strong>01 当前工作区</strong><div class="apps"><div class="app"><i class="dot">●</i>Chrome</div><div class="app"><i class="dot">●</i>微信</div></div></div><div class="workspace"><strong>02 工作区 2</strong><div class="apps"><div class="app"><i class="dot">●</i>VS Code</div></div></div></div></div><span class="tag">原生合成 · 低占用</span>
+  </div>
+  <div class="option" data-choice="B" onclick="selectOption(this)">
+    <h2>B · 实时桌面采样</h2><p>持续抓取面板后方桌面区域，再做模糊、染色和高光边缘，最接近你的参考图。</p>
+    <div class="stage capture"><div class="wallpaper"></div><div class="desktop-window"><b>后方桌面窗口</b><span>窗口内容和壁纸都会进入实时取样</span></div><div class="panel"><div class="tabs"><div class="tab active">全部</div><div class="tab">显示器 1</div><div class="tab">显示器 2</div></div><div class="workspace active"><strong>01 当前工作区</strong><div class="apps"><div class="app"><i class="dot">●</i>Chrome</div><div class="app"><i class="dot">●</i>微信</div></div></div><div class="workspace"><strong>02 工作区 2</strong><div class="apps"><div class="app"><i class="dot">●</i>VS Code</div></div></div></div></div><span class="tag">效果最接近参考 · 需要刷新合成</span>
+  </div>
+  <div class="option" data-choice="C" onclick="selectOption(this)">
+    <h2>C · 动态壁纸材质</h2><p>只读取系统当前壁纸并持续监听变化，不显示面板后方应用内容，稳定但不是真正的桌面毛玻璃。</p>
+    <div class="stage wallpaperonly"><div class="wallpaper"></div><div class="desktop-window"><b>后方桌面窗口</b><span>窗口内容不会穿透</span></div><div class="panel"><div class="tabs"><div class="tab active">全部</div><div class="tab">显示器 1</div><div class="tab">显示器 2</div></div><div class="workspace active"><strong>01 当前工作区</strong><div class="apps"><div class="app"><i class="dot">●</i>Chrome</div><div class="app"><i class="dot">●</i>微信</div></div></div><div class="workspace"><strong>02 工作区 2</strong><div class="apps"><div class="app"><i class="dot">●</i>VS Code</div></div></div></div></div><span class="tag">稳定 · 当前实现 · 非实时桌面</span>
+  </div>
+</div>
+<div class="note"><b>建议：</b>如果你要“和参考图一样”，应选 B。它的区别是背景源改为面板后方的实时桌面画面，而不是读取一张壁纸文件；面板移动、窗口变化、壁纸变化都能反映到玻璃底。</div>
+<div class="footer" id="status">点击方案卡片可标记你的偏好。</div>
+<script>function selectOption(el){document.querySelectorAll('.option').forEach(x=>x.classList.remove('selected'));el.classList.add('selected');document.getElementById('status').textContent='已选择方案 '+el.dataset.choice+'，请回复是否按此方案实现。';}</script>
+</body>
+</html>

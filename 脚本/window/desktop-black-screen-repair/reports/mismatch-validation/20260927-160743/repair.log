@@ -1,0 +1,10 @@
+[2026-09-27 16:07:43] [INFO] 桌面黑屏工具启动，模式：Repair
+[2026-09-27 16:07:45] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\mismatch-validation\20260927-160743\diagnostics.json
+[2026-09-27 16:07:45] [INFO] 注册表备份完成：Desktop=0, Run=0
+[2026-09-27 16:07:45] [INFO] 未发现需要隐藏的全屏 ClickToDo 覆盖层
+[2026-09-27 16:07:45] [WARN] 检测到 API 壁纸路径与注册表路径不一致，将在安全修复中重新同步
+[2026-09-27 16:07:45] [INFO] 当前 API 壁纸可读，选择它同步注册表和桌面设置：C:\Windows\Web\Wallpaper\Windows\img0.jpg
+[2026-09-27 16:07:47] [INFO] 已恢复并验证壁纸：C:\Windows\Web\Wallpaper\Windows\img0.jpg
+[2026-09-27 16:07:47] [INFO] 已指定 SkipExplorerRestart，不重启 Explorer
+[2026-09-27 16:07:47] [INFO] 诊断报告：D:\LM\lm-project\脚本\window\desktop-black-screen-repair\reports\mismatch-validation\20260927-160743\diagnostics.json
+[2026-09-27 16:07:47] [INFO] 修复流程结束；WorkspaceSwitcher 不会被本脚本启动
