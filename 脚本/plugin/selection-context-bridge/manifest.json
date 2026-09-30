@@ -1,0 +1,9 @@
+{
+  "id": "selection-context-bridge",
+  "name": "Selection Context Bridge",
+  "version": "0.1.0",
+  "minAppVersion": "1.7.2",
+  "description": "Collect multiple note selections and send them to Codex Panel, DSH, or both.",
+  "author": "Local",
+  "isDesktopOnly": true
+}
