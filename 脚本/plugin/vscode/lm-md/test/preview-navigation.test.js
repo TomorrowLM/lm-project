@@ -41,6 +41,169 @@ test("automatically routes command-driven Markdown line selections", async () =>
   assert.deepEqual(routed, [{ uri, line: 1131 }]);
 });
 
+test("does not route selections from either side of an active native Markdown diff", async () => {
+  const originalUri = {
+    scheme: "git",
+    path: "/docs/agent.md",
+    toString: () => "git:/docs/agent.md?ref=HEAD",
+  };
+  const modifiedUri = {
+    scheme: "file",
+    path: "/docs/agent.md",
+    fsPath: "D:\\Docs\\agent.md",
+    toString: () => "file:///D:/Docs/agent.md",
+  };
+  class TabInputTextDiff {
+    constructor(original, modified) {
+      this.original = original;
+      this.modified = modified;
+    }
+  }
+  const activeDiffGroup = {
+    isActive: true,
+    viewColumn: 2,
+    activeTab: { input: new TabInputTextDiff(originalUri, modifiedUri) },
+  };
+  const routed = [];
+  const vscode = {
+    TabInputTextDiff,
+    TextEditorSelectionChangeKind: { Command: 3 },
+    window: { tabGroups: { all: [activeDiffGroup], activeTabGroup: activeDiffGroup } },
+  };
+  const controller = navigation.createPreviewNavigationController(
+    vscode,
+    async (...args) => routed.push(args),
+  );
+
+  for (const uri of [originalUri, modifiedUri]) {
+    const editor = markdownEditor(uri, 36);
+    editor.viewColumn = 2;
+    await controller.handleSelectionChange({
+      kind: 3,
+      textEditor: editor,
+      selections: [editor.selection],
+    });
+  }
+
+  assert.deepEqual(routed, []);
+});
+
+test("does not consume a pending citation navigation while a Markdown diff is active", async () => {
+  const uri = {
+    scheme: "file",
+    path: "/docs/agent.md",
+    fsPath: "D:\\Docs\\agent.md",
+    toString: () => "file:///D:/Docs/agent.md",
+  };
+  class TabInputText {
+    constructor(tabUri) { this.uri = tabUri; }
+  }
+  class TabInputTextDiff {
+    constructor(original, modified) {
+      this.original = original;
+      this.modified = modified;
+    }
+  }
+  const existingSourceTab = { input: new TabInputText(uri) };
+  const openedCitationTab = { input: new TabInputText(uri) };
+  const sourceGroup = {
+    isActive: false,
+    viewColumn: 1,
+    activeTab: existingSourceTab,
+    tabs: [existingSourceTab, openedCitationTab],
+  };
+  const diffGroup = {
+    isActive: true,
+    viewColumn: 2,
+    activeTab: {
+      input: new TabInputTextDiff(
+        { toString: () => "git:/docs/agent.md?ref=HEAD" },
+        uri,
+      ),
+    },
+    tabs: [],
+  };
+  const routed = [];
+  const vscode = {
+    TabInputText,
+    TabInputTextDiff,
+    window: {
+      tabGroups: {
+        all: [sourceGroup, diffGroup],
+        activeTabGroup: diffGroup,
+      },
+    },
+  };
+  const controller = navigation.createPreviewNavigationController(
+    vscode,
+    async (...args) => routed.push(args),
+  );
+
+  controller.handleTabsChange({ opened: [openedCitationTab], closed: [] });
+  const diffEditor = markdownEditor(uri, 41);
+  diffEditor.viewColumn = 2;
+
+  assert.equal(await controller.handleActiveTextEditorChange(diffEditor), false);
+  assert.deepEqual(routed, []);
+
+  vscode.window.tabGroups.activeTabGroup = sourceGroup;
+  const citationEditor = markdownEditor(uri, 41);
+  citationEditor.viewColumn = 1;
+  await controller.handleActiveTextEditorChange(citationEditor);
+
+  assert.deepEqual(routed, [[uri, 42, { openedCitationTab }]]);
+});
+
+test("keeps Markdown preview navigation active when a diff tab is in another editor group", async () => {
+  const uri = { toString: () => "file:///docs/agent.md" };
+  class TabInputTextDiff {
+    constructor(original, modified) {
+      this.original = original;
+      this.modified = modified;
+    }
+  }
+  const regularGroup = {
+    isActive: true,
+    viewColumn: 1,
+    activeTab: { input: { uri } },
+  };
+  const diffGroup = {
+    isActive: false,
+    viewColumn: 2,
+    activeTab: {
+      input: new TabInputTextDiff(
+        { toString: () => "git:/docs/other.md?ref=HEAD" },
+        { toString: () => "file:///docs/other.md" },
+      ),
+    },
+  };
+  const routed = [];
+  const vscode = {
+    TabInputTextDiff,
+    TextEditorSelectionChangeKind: { Command: 3 },
+    window: {
+      tabGroups: {
+        all: [regularGroup, diffGroup],
+        activeTabGroup: regularGroup,
+      },
+    },
+  };
+  const controller = navigation.createPreviewNavigationController(
+    vscode,
+    async (...args) => routed.push(args),
+  );
+  const editor = markdownEditor(uri, 20);
+  editor.viewColumn = 1;
+
+  await controller.handleSelectionChange({
+    kind: 3,
+    textEditor: editor,
+    selections: [editor.selection],
+  });
+
+  assert.deepEqual(routed, [[uri, 21]]);
+});
+
 test("does not auto-navigate for ordinary cursor movement or non-Markdown files", async () => {
   const routed = [];
   const uri = { toString: () => "file:///docs/agent.py" };

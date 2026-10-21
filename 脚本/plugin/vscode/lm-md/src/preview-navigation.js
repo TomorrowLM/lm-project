@@ -17,6 +17,22 @@ function getPreviewLineTarget(editor, selections) {
   return { uri: document.uri, line: zeroBasedLine + 1 };
 }
 
+function isActiveTextDiffDocument(vscode, editor) {
+  const TextDiffInput = vscode.TabInputTextDiff;
+  const uri = editor?.document?.uri;
+  const tabGroup = vscode.window?.tabGroups?.activeTabGroup;
+  if (!TextDiffInput || !uri || !tabGroup) return false;
+  if (editor.viewColumn !== undefined && tabGroup.viewColumn !== editor.viewColumn) return false;
+
+  const input = tabGroup.activeTab?.input;
+  if (!(input instanceof TextDiffInput)) return false;
+
+  const documentKey = getDocumentUriKey(uri);
+  return [input.original, input.modified].some(
+    (diffUri) => getDocumentUriKey(diffUri) === documentKey,
+  );
+}
+
 function createPreviewNavigationController(vscode, revealPreviewLine) {
   const suppressedSelections = new Map();
   const openedCitationTabs = new Map();
@@ -63,10 +79,12 @@ function createPreviewNavigationController(vscode, revealPreviewLine) {
     },
 
     async handleActiveTextEditorChange(editor) {
+      if (isActiveTextDiffDocument(vscode, editor)) return false;
       return routeNewCitationEditor(editor);
     },
 
     async handleSelectionChange(event) {
+      if (isActiveTextDiffDocument(vscode, event?.textEditor)) return false;
       const target = getPreviewLineTarget(event.textEditor, event.selections);
       if (!target) return false;
 

@@ -2,7 +2,7 @@
   "name": "lm-md",
   "displayName": "LM Markdown Copilot Preview",
   "description": "Selectable Markdown preview that syncs source ranges to native Copilot Chat.",
-  "version": "0.2.26",
+  "version": "0.2.27",
   "publisher": "local",
   "engines": {
     "vscode": ">=1.95.0"
