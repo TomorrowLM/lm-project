@@ -13,13 +13,15 @@ namespace AudioScene.Core
             string installDirectory,
             string configDirectory,
             string mainConfigPath,
-            string ownedConfigPath)
+            string ownedConfigPath,
+            string backupPath)
         {
             IsInstalled = isInstalled;
             InstallDirectory = installDirectory ?? string.Empty;
             ConfigDirectory = configDirectory ?? string.Empty;
             MainConfigPath = mainConfigPath ?? string.Empty;
             OwnedConfigPath = ownedConfigPath ?? string.Empty;
+            BackupPath = backupPath ?? string.Empty;
         }
 
         public bool IsInstalled { get; private set; }
@@ -27,6 +29,7 @@ namespace AudioScene.Core
         public string ConfigDirectory { get; private set; }
         public string MainConfigPath { get; private set; }
         public string OwnedConfigPath { get; private set; }
+        public string BackupPath { get; private set; }
 
         public string IncludeLine
         {
@@ -42,6 +45,10 @@ namespace AudioScene.Core
                 GetUserConfigDirectory(userConfigDirectory),
                 "apo",
                 "active.txt");
+            string backupPath = Path.Combine(
+                GetUserConfigDirectory(userConfigDirectory),
+                "apo",
+                "config.txt.backup");
 
             foreach (string installDirectory in GetCandidateInstallDirectories(userConfigDirectory))
             {
@@ -54,7 +61,8 @@ namespace AudioScene.Core
                         installDirectory,
                         configDirectory,
                         mainConfigPath,
-                        ownedConfigPath);
+                        ownedConfigPath,
+                        backupPath);
                 }
             }
 
@@ -63,7 +71,8 @@ namespace AudioScene.Core
                 string.Empty,
                 string.Empty,
                 string.Empty,
-                ownedConfigPath);
+                ownedConfigPath,
+                backupPath);
         }
 
         private static string GetUserConfigDirectory(string userConfigDirectory)
@@ -174,9 +183,7 @@ namespace AudioScene.Core
                     return "未检测到 Equalizer APO；高级音效暂不可用。工具仍可管理场景和设备音量。";
                 }
 
-                return "已检测到 Equalizer APO。首次应用高级音效前，请在 " +
-                    installation.MainConfigPath + " 中手动添加：" + Environment.NewLine +
-                    installation.IncludeLine;
+                return "已检测到 Equalizer APO；首次应用时会自动添加 Include，并备份原配置。";
             }
         }
 
@@ -212,8 +219,11 @@ namespace AudioScene.Core
                     File.Move(temporaryPath, installation.OwnedConfigPath);
                 }
 
+                bool includeAdded = EnsureIncludeLine();
                 return AudioSceneApoApplyResult.Written(
-                    "高级音效配置已写入；请确认 APO 主配置包含：" + installation.IncludeLine);
+                    includeAdded
+                        ? "高级音效已应用，并已自动接入 APO。原配置已备份。"
+                        : "高级音效已应用，APO 接入配置已存在。");
             }
             catch (Exception ex)
             {
@@ -223,6 +233,46 @@ namespace AudioScene.Core
                 }
 
                 return AudioSceneApoApplyResult.Skipped("写入高级音效配置失败：" + ex.Message);
+            }
+        }
+
+        private bool EnsureIncludeLine()
+        {
+            string current = File.ReadAllText(installation.MainConfigPath, Encoding.UTF8);
+            if (current.IndexOf(installation.IncludeLine, StringComparison.OrdinalIgnoreCase) >= 0)
+            {
+                return false;
+            }
+
+            if (!File.Exists(installation.BackupPath))
+            {
+                File.Copy(installation.MainConfigPath, installation.BackupPath, false);
+            }
+
+            string newline = current.IndexOf("\r\n", StringComparison.Ordinal) >= 0 ? "\r\n" : "\n";
+            string updated = current;
+            if (updated.Length > 0 && !updated.EndsWith("\r\n", StringComparison.Ordinal) &&
+                !updated.EndsWith("\n", StringComparison.Ordinal))
+            {
+                updated += newline;
+            }
+
+            updated += installation.IncludeLine + newline;
+            string temporaryPath = installation.MainConfigPath + ".lm-audio-scene.tmp";
+            try
+            {
+                File.WriteAllText(temporaryPath, updated, new UTF8Encoding(false));
+                File.Replace(temporaryPath, installation.MainConfigPath, null);
+                return true;
+            }
+            catch
+            {
+                if (File.Exists(temporaryPath))
+                {
+                    File.Delete(temporaryPath);
+                }
+
+                throw;
             }
         }
     }

@@ -224,15 +224,32 @@ internal static class AudioSceneCoreTests
                 profileType.GetProperty("DeviceName").SetValue(profile, "测试扬声器", null);
                 profileType.GetProperty("BassDb").SetValue(profile, 2.0, null);
                 object adapter = Activator.CreateInstance(adapterType, new object[] { root });
+                object installation = adapter.GetType().GetProperty("Installation").GetValue(adapter, null);
                 object applyResult = adapterType.GetMethod("Apply").Invoke(adapter, new object[] { profile });
                 bool applied = (bool)applyResult.GetType().GetProperty("Applied").GetValue(applyResult, null);
-                string ownedPath = (string)adapter.GetType().GetProperty("Installation").GetValue(adapter, null)
-                    .GetType().GetProperty("OwnedConfigPath").GetValue(
-                        adapter.GetType().GetProperty("Installation").GetValue(adapter, null), null);
+                string ownedPath = (string)installation.GetType().GetProperty("OwnedConfigPath").GetValue(installation, null);
+                string mainConfigPath = (string)installation.GetType().GetProperty("MainConfigPath").GetValue(installation, null);
+                string backupPath = (string)installation.GetType().GetProperty("BackupPath").GetValue(installation, null);
+                string includeLine = (string)installation.GetType().GetProperty("IncludeLine").GetValue(installation, null);
                 Assert(applied, "APO adapter writes an owned configuration");
                 Assert(File.Exists(ownedPath), "APO adapter writes under the user configuration directory");
                 Assert(File.ReadAllText(ownedPath).IndexOf("Filter 1: ON LS", StringComparison.Ordinal) >= 0,
                     "owned APO configuration contains the selected effect");
+                string mainConfig = File.ReadAllText(mainConfigPath);
+                Assert(mainConfig.IndexOf(includeLine, StringComparison.OrdinalIgnoreCase) >= 0,
+                    "APO adapter automatically adds its include line");
+                Assert(File.Exists(backupPath), "APO adapter creates a user-owned backup before changing APO config");
+                Assert(File.ReadAllText(backupPath).IndexOf("Preamp: 0 dB", StringComparison.Ordinal) >= 0,
+                    "APO backup preserves the original main config");
+
+                object secondResult = adapterType.GetMethod("Apply").Invoke(adapter, new object[] { profile });
+                bool secondApplied = (bool)secondResult.GetType().GetProperty("Applied").GetValue(secondResult, null);
+                int includeCount = mainConfig.Split(new string[] { includeLine }, StringSplitOptions.None).Length - 1;
+                int updatedIncludeCount = File.ReadAllText(mainConfigPath)
+                    .Split(new string[] { includeLine }, StringSplitOptions.None).Length - 1;
+                Assert(secondApplied, "APO adapter can apply a second scene update");
+                Assert(includeCount == 1 && updatedIncludeCount == 1,
+                    "APO adapter does not duplicate its include line");
             }
             finally
             {

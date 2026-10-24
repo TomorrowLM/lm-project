@@ -26,13 +26,21 @@
 D:\software\windows\equalizerAPO
 ```
 
-点击“应用场景”后，工具只会写入自己的用户配置文件：
+点击“应用场景”后，工具会自动完成两件事：
+
+1. 写入自己的用户配置文件：
 
 ```text
 %USERPROFILE%\.lm-exe\audio-scene\config\apo\active.txt
 ```
 
-首次使用时，需要把工具状态栏显示的 `Include:` 行手动添加到 Equalizer APO 的 `config\config.txt`。工具不会覆盖 APO 安装目录中的文件，不会安装驱动、创建服务、修改注册表或启动后台进程。
+2. 首次应用时，自动把自己的 `Include:` 行追加到 Equalizer APO 的 `config\config.txt`。追加前会把原始主配置备份到：
+
+```text
+%USERPROFILE%\.lm-exe\audio-scene\config\apo\config.txt.backup
+```
+
+后续应用场景不会重复追加。工具不会安装驱动、创建服务、修改注册表或启动后台进程；如果 APO 主配置没有写入权限，只提示警告，不影响设备音量功能。
 
 ## 构建
 
