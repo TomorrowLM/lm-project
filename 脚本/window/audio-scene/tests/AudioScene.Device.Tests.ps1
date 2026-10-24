@@ -25,6 +25,9 @@ if ($devices.Count -lt 1) {
 }
 
 foreach ($device in $devices) {
-    Write-Output ('PASS render device: ' + $device.Name)
+    if ($device.SampleRateHz -le 0) {
+        throw ('Render device has no readable output sample rate: ' + $device.Name)
+    }
+    Write-Output ('PASS render device: ' + $device.Name + ' (' + $device.FormatDescription + ')')
 }
 Write-Output ('PASS AudioScene.Device.Tests: ' + $devices.Count + ' render devices')

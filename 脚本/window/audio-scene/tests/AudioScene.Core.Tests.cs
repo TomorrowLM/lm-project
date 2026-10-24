@@ -35,12 +35,14 @@ internal static class AudioSceneCoreTests
         Type rendererType = assembly.GetType("AudioScene.Core.AudioSceneApoRenderer");
         Type detectorType = assembly.GetType("AudioScene.Core.EqualizerApoDetector");
         Type adapterType = assembly.GetType("AudioScene.Core.EqualizerApoAdapter");
+        Type deviceType = assembly.GetType("AudioScene.Core.AudioDeviceInfo");
         Assert(profileType != null, "audio scene profile type exists");
         Assert(storeType != null, "audio scene store type exists");
         Assert(spatialModeType != null, "audio scene spatial mode exists");
         Assert(rendererType != null, "audio scene APO renderer exists");
         Assert(detectorType != null, "audio scene APO detector exists");
         Assert(adapterType != null, "audio scene APO adapter exists");
+        Assert(deviceType != null, "audio device info type exists");
 
         if (profileType != null)
         {
@@ -189,6 +191,27 @@ internal static class AudioSceneCoreTests
 
             Assert(hasRealEffects, "presets contain real audio effect values");
             Assert(moviePresetsDiffer, "movie presets have different audio effect values");
+            bool hasAiVoicePreset = false;
+            foreach (object preset in presets)
+            {
+                string id = (string)presetType.GetProperty("Id").GetValue(preset, null);
+                hasAiVoicePreset |= id == "voice-ai";
+            }
+            Assert(hasAiVoicePreset, "catalog contains an AI voice preset");
+        }
+
+        if (deviceType != null)
+        {
+            object device = Activator.CreateInstance(
+                deviceType,
+                new object[] { "device-1", "测试扬声器", true, 48000, 2 });
+            Assert((int)deviceType.GetProperty("SampleRateHz").GetValue(device, null) == 48000,
+                "audio device preserves the output sample rate");
+            Assert((int)deviceType.GetProperty("ChannelCount").GetValue(device, null) == 2,
+                "audio device preserves the channel count");
+            Assert(((string)deviceType.GetProperty("FormatDescription").GetValue(device, null))
+                    .IndexOf("48000 Hz", StringComparison.Ordinal) >= 0,
+                "audio device exposes a readable sample rate description");
         }
 
         if (detectorType != null)

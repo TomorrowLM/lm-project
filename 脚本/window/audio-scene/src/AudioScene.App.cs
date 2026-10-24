@@ -51,6 +51,7 @@ namespace AudioScene.App
         private readonly List<AudioDeviceInfo> devices = new List<AudioDeviceInfo>();
         private readonly ListBox sceneList = new ListBox();
         private readonly ComboBox deviceList = new ComboBox();
+        private readonly Label sampleRateLabel = new Label();
         private readonly ComboBox presetList = new ComboBox();
         private readonly TextBox nameBox = new TextBox();
         private readonly TrackBar volumeBar = new TrackBar();
@@ -79,8 +80,8 @@ namespace AudioScene.App
             this.startupError = startupError ?? string.Empty;
             Text = "声音场景";
             Width = 860;
-            Height = 780;
-            MinimumSize = new Size(760, 650);
+            Height = 820;
+            MinimumSize = new Size(760, 680);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Microsoft YaHei UI", 10F);
 
@@ -114,7 +115,7 @@ namespace AudioScene.App
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 10,
+                RowCount = 11,
                 Padding = new Padding(12, 4, 4, 4)
             };
             editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
@@ -135,13 +136,20 @@ namespace AudioScene.App
 
             deviceList.DropDownStyle = ComboBoxStyle.DropDownList;
             deviceList.Dock = DockStyle.Fill;
+            deviceList.SelectedIndexChanged += delegate { UpdateSampleRateLabel(); };
             AddEditorRow(editor, 1, "播放设备", deviceList);
+
+            sampleRateLabel.Text = "选择设备后显示输出格式";
+            sampleRateLabel.ForeColor = Color.DimGray;
+            sampleRateLabel.TextAlign = ContentAlignment.MiddleLeft;
+            sampleRateLabel.Dock = DockStyle.Fill;
+            AddEditorRow(editor, 2, "输出格式", sampleRateLabel);
 
             presetList.DropDownStyle = ComboBoxStyle.DropDownList;
             presetList.DisplayMember = "Name";
             presetList.Dock = DockStyle.Fill;
             presetList.SelectedIndexChanged += delegate { ApplySelectedPresetToEditor(); };
-            AddEditorRow(editor, 2, "声音预设", presetList);
+            AddEditorRow(editor, 3, "声音预设", presetList);
 
             volumeBar.Minimum = 0;
             volumeBar.Maximum = 100;
@@ -158,11 +166,11 @@ namespace AudioScene.App
             volumeValue.Text = "70%";
             volumeValue.TextAlign = ContentAlignment.MiddleRight;
             volumePanel.Controls.Add(volumeValue, 1, 0);
-            AddEditorRow(editor, 3, "设备音量", volumePanel);
+            AddEditorRow(editor, 4, "设备音量", volumePanel);
 
             mutedBox.Text = "应用后静音";
             mutedBox.AutoSize = true;
-            AddEditorRow(editor, 4, "静音", mutedBox);
+            AddEditorRow(editor, 5, "静音", mutedBox);
 
             FlowLayoutPanel effectPanel = new FlowLayoutPanel
             {
@@ -177,7 +185,7 @@ namespace AudioScene.App
             effectPanel.Controls.Add(CreateEffectControl("低音", bassBar, bassValue));
             effectPanel.Controls.Add(CreateEffectControl("高音", trebleBar, trebleValue));
             effectPanel.Controls.Add(CreateEffectControl("人声", voiceClarityBar, voiceClarityValue));
-            AddEditorRow(editor, 5, "基础音效", effectPanel);
+            AddEditorRow(editor, 6, "基础音效", effectPanel);
 
             spatialList.DropDownStyle = ComboBoxStyle.DropDownList;
             spatialList.Dock = DockStyle.Fill;
@@ -187,7 +195,7 @@ namespace AudioScene.App
                 new SpatialModeOption(AudioSceneSpatialMode.StereoWide, "轻度立体声扩展"),
                 new SpatialModeOption(AudioSceneSpatialMode.StereoCinema, "影院立体声扩展")
             };
-            AddEditorRow(editor, 6, "空间音效", spatialList);
+            AddEditorRow(editor, 7, "空间音效", spatialList);
 
             GroupBox equalizerGroup = new GroupBox
             {
@@ -213,13 +221,13 @@ namespace AudioScene.App
                     equalizerValues[index]));
             }
             equalizerGroup.Controls.Add(equalizerPanel);
-            AddEditorRow(editor, 7, "均衡器", equalizerGroup);
+            AddEditorRow(editor, 8, "均衡器", equalizerGroup);
 
             presetDescription.Text = "选择预设后会填入音量和真实音效参数。";
             presetDescription.AutoEllipsis = true;
             presetDescription.Dock = DockStyle.Fill;
             presetDescription.ForeColor = Color.DimGray;
-            AddEditorRow(editor, 8, "预设说明", presetDescription);
+            AddEditorRow(editor, 9, "预设说明", presetDescription);
 
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
             Button newButton = CreateButton("新建场景", delegate { CreateProfile(); });
@@ -238,7 +246,7 @@ namespace AudioScene.App
             actions.Controls.Add(applyButton);
             actions.Controls.Add(deleteButton);
             actions.Controls.Add(refreshButton);
-            editor.Controls.Add(actions, 1, 9);
+            editor.Controls.Add(actions, 1, 10);
             editor.SetColumnSpan(actions, 1);
 
             statusLabel.Dock = DockStyle.Fill;
@@ -369,6 +377,7 @@ namespace AudioScene.App
                 deviceList.DataSource = null;
                 deviceList.DataSource = new List<AudioDeviceInfo>(devices);
                 SelectDevice(selectedId);
+                UpdateSampleRateLabel();
                 SetStatus(devices.Count == 0 ? "没有发现可用的播放设备。" : "设备列表已刷新；尚未修改系统声音。", false);
             }
             catch (Exception ex)
@@ -664,6 +673,14 @@ namespace AudioScene.App
         {
             AudioDeviceInfo device = deviceList.SelectedItem as AudioDeviceInfo;
             return device == null ? string.Empty : device.Id;
+        }
+
+        private void UpdateSampleRateLabel()
+        {
+            AudioDeviceInfo device = deviceList.SelectedItem as AudioDeviceInfo;
+            sampleRateLabel.Text = device == null
+                ? "选择设备后显示输出格式"
+                : device.FormatDescription;
         }
 
         private void SelectDevice(string deviceId)

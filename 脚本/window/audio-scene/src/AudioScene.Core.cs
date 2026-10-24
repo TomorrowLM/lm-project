@@ -206,7 +206,11 @@ namespace AudioScene.Core
                 new AudioScenePreset(
                     "movie-voice", "电影·人声清晰", "压低轰鸣，突出对白和人声。", 68,
                     -1.0, 2.0, 4.0, AudioSceneSpatialMode.Off,
-                    new double[] { -1, -1, 0, 1, 2, 3, 4, 3, 2, 1 })
+                    new double[] { -1, -1, 0, 1, 2, 3, 4, 3, 2, 1 }),
+                new AudioScenePreset(
+                    "voice-ai", "AI 人声·配音清晰", "适合 TTS、配音和讲解音频，突出中频清晰度。", 64,
+                    -2.0, 2.5, 5.0, AudioSceneSpatialMode.Off,
+                    new double[] { -2, -1, 0, 2, 4, 5, 5, 3, 1, 0 })
             };
         }
 
@@ -248,19 +252,48 @@ namespace AudioScene.Core
         }
 
         public AudioDeviceInfo(string id, string name, bool isDefault)
+            : this(id, name, isDefault, 0, 0)
+        {
+        }
+
+        public AudioDeviceInfo(string id, string name, bool isDefault, int sampleRateHz, int channelCount)
         {
             Id = id ?? string.Empty;
             Name = name ?? string.Empty;
             IsDefault = isDefault;
+            SampleRateHz = Math.Max(0, sampleRateHz);
+            ChannelCount = Math.Max(0, channelCount);
         }
 
         public string Id { get; private set; }
         public string Name { get; private set; }
         public bool IsDefault { get; private set; }
+        public int SampleRateHz { get; private set; }
+        public int ChannelCount { get; private set; }
+
+        public string FormatDescription
+        {
+            get
+            {
+                if (SampleRateHz <= 0)
+                {
+                    return "采样率未知";
+                }
+
+                return SampleRateHz + " Hz / " +
+                    (ChannelCount > 0 ? ChannelCount + " 声道" : "声道数未知");
+            }
+        }
 
         public override string ToString()
         {
-            return IsDefault ? Name + "（当前默认）" : Name;
+            string suffix = FormatDescription;
+            if (IsDefault)
+            {
+                suffix += "，当前默认";
+            }
+
+            return Name + "（" + suffix + "）";
         }
     }
 

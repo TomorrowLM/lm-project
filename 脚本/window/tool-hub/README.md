@@ -6,7 +6,7 @@
 - 壁纸中心：启动 `.lm-exe\Wallpaper-GUI\app\Wallpaper-GUI.cmd`
 - 桌面修复：启动 `.lm-exe\desktop-black-screen-repair\app\Repair-DesktopBlackScreen.cmd`
 - 系统稳定性诊断：启动 `.lm-exe\system-stability-diagnostics\app\SystemStabilityDiagnostics.exe`
-- 声音场景：启动 `.lm-exe\audio-scene\app\AudioScene.exe`，由用户选择设备、场景、音量、低音、高音、人声清晰度、空间模式和均衡器后显式应用。
+- 声音场景：启动 `.lm-exe\audio-scene\app\AudioScene.exe`，由用户选择设备、查看输出采样率、选择场景、音量、低音、高音、人声清晰度、空间模式和均衡器后显式应用。
 
 ToolHub 不引用子工具的源码、DLL 或内部状态，只负责启动部署后的独立入口。因此原工具的单独入口、快捷方式和构建方式保持不变；五个工具仍然可以单独运行。ToolHub 只记录本次由它启动的子进程，关闭 ToolHub 时会请求这些子进程正常退出；用户单独启动的工具不会被 ToolHub 关闭。
 

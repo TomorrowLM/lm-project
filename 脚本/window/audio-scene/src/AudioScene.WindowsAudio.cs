@@ -52,10 +52,15 @@ namespace AudioScene.Windows
                         string id;
                         ThrowIfFailed(device.GetId(out id), "读取播放设备 ID 失败。");
                         string name = ReadFriendlyName(device, id);
+                        int sampleRateHz;
+                        int channelCount;
+                        ReadMixFormat(device, out sampleRateHz, out channelCount);
                         devices.Add(new AudioDeviceInfo(
                             id,
                             name,
-                            string.Equals(id, defaultId, StringComparison.OrdinalIgnoreCase)));
+                            string.Equals(id, defaultId, StringComparison.OrdinalIgnoreCase),
+                            sampleRateHz,
+                            channelCount));
                     }
                     finally
                     {
@@ -184,6 +189,49 @@ namespace AudioScene.Windows
             finally
             {
                 Release(propertyStore);
+            }
+        }
+
+        private static void ReadMixFormat(IMMDevice device, out int sampleRateHz, out int channelCount)
+        {
+            sampleRateHz = 0;
+            channelCount = 0;
+            IAudioClient audioClient = null;
+            IntPtr formatPointer = IntPtr.Zero;
+            try
+            {
+                Guid audioClientGuid = typeof(IAudioClient).GUID;
+                object audioClientObject;
+                ThrowIfFailed(
+                    device.Activate(ref audioClientGuid, ClsCtx.InprocServer, IntPtr.Zero, out audioClientObject),
+                    "打开音频格式接口失败。");
+                audioClient = (IAudioClient)audioClientObject;
+                ThrowIfFailed(audioClient.GetMixFormat(out formatPointer), "读取输出采样率失败。");
+                if (formatPointer == IntPtr.Zero)
+                {
+                    return;
+                }
+
+                WaveFormatEx format = (WaveFormatEx)Marshal.PtrToStructure(
+                    formatPointer, typeof(WaveFormatEx));
+                sampleRateHz = format.SamplesPerSec > Int32.MaxValue
+                    ? Int32.MaxValue
+                    : (int)format.SamplesPerSec;
+                channelCount = format.Channels;
+            }
+            catch
+            {
+                sampleRateHz = 0;
+                channelCount = 0;
+            }
+            finally
+            {
+                if (formatPointer != IntPtr.Zero)
+                {
+                    Marshal.FreeCoTaskMem(formatPointer);
+                }
+
+                Release(audioClient);
             }
         }
 
@@ -317,11 +365,48 @@ namespace AudioScene.Windows
             int GetVolumeRange(out float minDb, out float maxDb, out float incrementDb);
         }
 
+        [ComImport]
+        [Guid("1CB9AD4C-DBFA-4C32-B178-C2F568A703B2")]
+        [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+        private interface IAudioClient
+        {
+            int Initialize(
+                int shareMode,
+                uint streamFlags,
+                long bufferDuration,
+                long periodicity,
+                IntPtr format,
+                IntPtr audioSessionGuid);
+            int GetBufferSize(out uint bufferSize);
+            int GetStreamLatency(out long latency);
+            int GetCurrentPadding(out uint padding);
+            int IsFormatSupported(int shareMode, IntPtr format, out IntPtr closestMatch);
+            int GetMixFormat(out IntPtr format);
+            int GetDevicePeriod(out long defaultDevicePeriod, out long minimumDevicePeriod);
+            int Start();
+            int Stop();
+            int Reset();
+            int SetEventHandle(IntPtr eventHandle);
+            int GetService(ref Guid interfaceId, [MarshalAs(UnmanagedType.Interface)] out object service);
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         private struct PropertyKey
         {
             public Guid FormatId;
             public uint PropertyId;
+        }
+
+        [StructLayout(LayoutKind.Sequential, Pack = 2)]
+        private struct WaveFormatEx
+        {
+            public ushort FormatTag;
+            public ushort Channels;
+            public uint SamplesPerSec;
+            public uint AverageBytesPerSec;
+            public ushort BlockAlign;
+            public ushort BitsPerSample;
+            public ushort ExtraSize;
         }
 
         [StructLayout(LayoutKind.Explicit)]
