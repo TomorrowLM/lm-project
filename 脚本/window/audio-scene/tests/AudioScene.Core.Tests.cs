@@ -42,6 +42,8 @@ internal static class AudioSceneCoreTests
             profileType.GetMethod("Normalize").Invoke(profile, null);
             Assert((int)profileType.GetProperty("VolumePercent").GetValue(profile, null) == 100,
                 "profile normalization clamps volume to 100");
+            Assert(profile.ToString() == "音乐-蓝牙",
+                "scene list text uses the profile name");
 
             profileType.GetProperty("VolumePercent").SetValue(profile, -20, null);
             profileType.GetMethod("Normalize").Invoke(profile, null);

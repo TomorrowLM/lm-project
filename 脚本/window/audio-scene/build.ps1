@@ -1,5 +1,6 @@
 param(
     [switch]$RunTests,
+    [switch]$RunDeviceTest,
     [string]$OutputDirectory = ''
 )
 
@@ -80,6 +81,14 @@ if ($RunTests) {
     & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $safetyTest -ProjectRoot $projectRoot
     if ($LASTEXITCODE -ne 0) {
         throw "AudioScene.Safety.Tests failed with exit code $LASTEXITCODE"
+    }
+
+    if ($RunDeviceTest) {
+        $deviceTest = Join-Path $projectRoot 'tests\AudioScene.Device.Tests.ps1'
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $deviceTest -ExecutablePath $appAssembly
+        if ($LASTEXITCODE -ne 0) {
+            throw "AudioScene.Device.Tests failed with exit code $LASTEXITCODE"
+        }
     }
 }
 

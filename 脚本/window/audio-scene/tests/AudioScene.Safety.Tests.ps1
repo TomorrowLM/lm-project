@@ -37,6 +37,13 @@ $loadBody = if ($loadStart -ge 0 -and $refreshStart -gt $loadStart) {
 } else {
     ''
 }
+$deleteStart = $appSource.IndexOf('private void DeleteProfile()', [StringComparison]::Ordinal)
+$deleteEnd = $appSource.IndexOf('private bool UpdateProfileFromEditor', $deleteStart, [StringComparison]::Ordinal)
+$deleteBody = if ($deleteStart -ge 0 -and $deleteEnd -gt $deleteStart) {
+    $appSource.Substring($deleteStart, $deleteEnd - $deleteStart)
+} else {
+    ''
+}
 
 Assert-Contains $appSource 'Application.Run(form)' 'audio scene has an explicit desktop application entry point'
 Assert-NotContains $loadBody 'backend.Apply' 'startup state loading does not apply a scene'
@@ -49,6 +56,10 @@ Assert-NotContains $source 'ServiceBase' 'audio scene does not create a Windows 
 Assert-NotContains $source 'OpenSCManager' 'audio scene does not access the service manager'
 Assert-NotContains $source 'SetDefaultEndpoint' 'audio scene does not switch the system default route'
 Assert-NotContains $source '.sys' 'audio scene does not install a driver'
+Assert-Contains $source '0BD7A1BE-7A1A-44DB-8397-CC5392387B5E' 'audio scene uses the Windows device collection interface IID'
+Assert-NotContains $source '0BD7A1BE-7A1A-44DB-8397-C0C5D4A5AFB4' 'audio scene does not use the invalid device collection IID'
+Assert-Contains $deleteBody 'profiles.Remove(profile)' 'delete action removes the selected scene'
+Assert-Contains $deleteBody 'store.Save(profiles)' 'delete action persists the remaining scenes'
 
 if ($failures -ne 0) {
     throw "FAILED AudioScene.Safety.Tests: $failures"

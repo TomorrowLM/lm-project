@@ -49,6 +49,11 @@ namespace AudioScene.Core
                 Muted = Muted
             };
         }
+
+        public override string ToString()
+        {
+            return string.IsNullOrWhiteSpace(Name) ? "未命名场景" : Name;
+        }
     }
 
     public sealed class AudioScenePreset

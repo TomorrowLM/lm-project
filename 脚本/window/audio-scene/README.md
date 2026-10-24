@@ -18,6 +18,7 @@
 .\build.ps1
 .\build.ps1 -RunTests
 .\build.ps1 -RunTests -OutputDirectory .\build-test\green
+.\build.ps1 -RunTests -RunDeviceTest
 ```
 
 开发构建产物保存在项目目录；ToolHub 同步部署时会复制到：
