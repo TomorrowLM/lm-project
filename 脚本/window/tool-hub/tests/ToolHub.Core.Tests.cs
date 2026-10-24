@@ -82,9 +82,9 @@ internal static class ToolHubCoreTests
             string fakeWindowRoot = Path.Combine(Path.GetTempPath(), "tool-hub-window");
             object tools = catalogType.GetMethod("GetTools").Invoke(null, new object[] { fakeWindowRoot });
             IList toolList = (IList)tools;
-            Assert(toolList.Count == 4, "catalog contains the four window tools");
+            Assert(toolList.Count == 5, "catalog contains the five window tools");
 
-            string[] expectedIds = { "workspace", "wallpaper", "desktop-repair", "system-diagnostics" };
+            string[] expectedIds = { "workspace", "wallpaper", "desktop-repair", "system-diagnostics", "audio-scene" };
             for (int i = 0; i < expectedIds.Length && i < toolList.Count; i++)
             {
                 object tool = toolList[i];
@@ -100,14 +100,17 @@ internal static class ToolHubCoreTests
             string deployedWallpaperApp = Path.Combine(deployedRoot, "Wallpaper-GUI", "app");
             string deployedRepairApp = Path.Combine(deployedRoot, "desktop-black-screen-repair", "app");
             string deployedDiagnosticsApp = Path.Combine(deployedRoot, "system-stability-diagnostics", "app");
+            string deployedAudioSceneApp = Path.Combine(deployedRoot, "audio-scene", "app");
             Directory.CreateDirectory(deployedWorkspaceApp);
             Directory.CreateDirectory(deployedWallpaperApp);
             Directory.CreateDirectory(deployedRepairApp);
             Directory.CreateDirectory(deployedDiagnosticsApp);
+            Directory.CreateDirectory(deployedAudioSceneApp);
             File.WriteAllBytes(Path.Combine(deployedWorkspaceApp, "WorkspaceSwitcher.exe"), new byte[] { 1 });
             File.WriteAllText(Path.Combine(deployedWallpaperApp, "Wallpaper-GUI.cmd"), "@echo off");
             File.WriteAllText(Path.Combine(deployedRepairApp, "Repair-DesktopBlackScreen.cmd"), "@echo off");
             File.WriteAllBytes(Path.Combine(deployedDiagnosticsApp, "SystemStabilityDiagnostics.exe"), new byte[] { 1 });
+            File.WriteAllBytes(Path.Combine(deployedAudioSceneApp, "AudioScene.exe"), new byte[] { 1 });
 
             IList deployedTools = (IList)catalogType.GetMethod("GetTools").Invoke(null, new object[] { deployedRoot });
             Assert(((string)toolType.GetProperty("EntryPath").GetValue(deployedTools[0], null))
@@ -141,6 +144,19 @@ internal static class ToolHubCoreTests
             else
             {
                 Assert(false, "system diagnostics tool is included in the deployed catalog");
+            }
+
+            if (deployedTools.Count > 4)
+            {
+                Assert(((string)toolType.GetProperty("EntryPath").GetValue(deployedTools[4], null))
+                        .Equals(Path.Combine(deployedAudioSceneApp, "AudioScene.exe"), StringComparison.OrdinalIgnoreCase),
+                    "audio scene tool prefers the deployed app directory");
+                Assert((bool)toolType.GetProperty("IsAvailable").GetValue(deployedTools[4], null),
+                    "audio scene tool is enabled when its deployed executable exists");
+            }
+            else
+            {
+                Assert(false, "audio scene tool is included in the deployed catalog");
             }
 
             if (layoutType != null)

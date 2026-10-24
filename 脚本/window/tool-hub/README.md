@@ -1,13 +1,14 @@
 # Windows ToolHub
 
-独立的 Windows 桌面工具中心，界面是靠近鼠标弹出的圆角浮动面板，当前接入 `window` 目录下的四个独立工具。源码和运行时严格分离：`脚本\window` 只保留源码，实际运行文件、用户配置、缓存、日志和备份统一放在 `C:\Users\<当前用户>\.lm-exe`。
+独立的 Windows 桌面工具中心，界面是靠近鼠标弹出的圆角浮动面板，当前接入 `window` 目录下的五个独立工具。源码和运行时严格分离：`脚本\window` 只保留源码，实际运行文件、用户配置、缓存、日志和备份统一放在 `C:\Users\<当前用户>\.lm-exe`。
 
 - 工作区切换：启动 `.lm-exe\workspace-switcher\app\WorkspaceSwitcher.exe`，并附加 `--show`；如果工作区切换器已经在后台运行，现有实例会被唤醒并显示面板，不会再被第二个单实例进程吞掉请求。
 - 壁纸中心：启动 `.lm-exe\Wallpaper-GUI\app\Wallpaper-GUI.cmd`
 - 桌面修复：启动 `.lm-exe\desktop-black-screen-repair\app\Repair-DesktopBlackScreen.cmd`
 - 系统稳定性诊断：启动 `.lm-exe\system-stability-diagnostics\app\SystemStabilityDiagnostics.exe`
+- 声音场景：启动 `.lm-exe\audio-scene\app\AudioScene.exe`，由用户选择设备、当前场景和安全声音预设后显式应用。
 
-ToolHub 不引用子工具的源码、DLL 或内部状态，只负责启动部署后的独立入口。因此原工具的单独入口、快捷方式和构建方式保持不变；四个工具仍然可以单独运行。ToolHub 只记录本次由它启动的子进程，关闭 ToolHub 时会请求这些子进程正常退出；用户单独启动的工具不会被 ToolHub 关闭。
+ToolHub 不引用子工具的源码、DLL 或内部状态，只负责启动部署后的独立入口。因此原工具的单独入口、快捷方式和构建方式保持不变；五个工具仍然可以单独运行。ToolHub 只记录本次由它启动的子进程，关闭 ToolHub 时会请求这些子进程正常退出；用户单独启动的工具不会被 ToolHub 关闭。
 
 “系统稳定性诊断”打开后会自动显示实时 CPU、GPU 使用率和内存已用/总量，每 2 秒刷新；实时状态只读且不写入历史。用户仍需主动开始，才会以 5 秒间隔记录 CPU、可用内存和高占用进程（按 CPU 占用与专用内存占物理内存的比例综合排序，同时记录工作集、句柄、线程）；单次采样最长 10 分钟。用户可标记鼠标指针卡顿、整机卡顿、应用无响应或应用崩溃的发生时刻，并只读查看最近 14 天 Windows Application/System 日志中的警告和错误。记录不会自动关闭应用、重启 Explorer、修改系统设置或采集转储；这些数据用于后续关联分析，不会单凭一次采样断言根因。
 
@@ -79,10 +80,15 @@ C:\Users\<当前用户>\.lm-exe\
 │  ├─ app\
 │  ├─ config\
 │  └─ logs\
-└─ system-stability-diagnostics\
+├─ system-stability-diagnostics\
+│  ├─ app\
+│  ├─ config\
+│  └─ logs\              # 每日 JSONL 诊断记录
+└─ audio-scene\
    ├─ app\
-   ├─ config\
-   └─ logs\              # 每日 JSONL 诊断记录
+   ├─ config\            # scenes.xml
+   ├─ cache\
+   └─ logs\
 ```
 
 `tools\build-toolhub.ps1` 负责 ToolHub 单体构建和部署；`tools\sync-window-tools.ps1` 负责五个运行时目录的完整同步。两者会显式使用 `.lm-exe` 下的构建路径，不会把部署产物写回源码目录。运行时优先读取 `tool-hub\config\window-root.txt` 和 `tool-roots.ini`，因此部署后不会再回到源码目录寻找工具。
@@ -98,7 +104,7 @@ C:\Users\<当前用户>\.lm-exe\tool-hub\
 ├─ config\
 │  ├─ window-root.txt   # .lm-exe 运行时根目录
 │  ├─ source-root.txt   # 同步脚本所在的 tool-hub 源码目录
-│  └─ tool-roots.ini    # 四个部署后工具的明确入口
+│  └─ tool-roots.ini    # 五个部署后工具的明确入口
 ├─ cache\               # 可重新生成的缓存
 ├─ logs\                # 构建和部署日志
 ├─ diagnostics\         # 诊断信息

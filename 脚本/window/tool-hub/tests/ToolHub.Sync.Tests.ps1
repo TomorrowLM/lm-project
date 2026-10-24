@@ -30,6 +30,8 @@ $expectedFiles = @(
     (Join-Path $ArtifactRoot 'Wallpaper-GUI\app\Wallpaper-GUI.cmd'),
     (Join-Path $ArtifactRoot 'desktop-black-screen-repair\app\Repair-DesktopBlackScreen.cmd'),
     (Join-Path $ArtifactRoot 'system-stability-diagnostics\app\SystemStabilityDiagnostics.exe'),
+    (Join-Path $ArtifactRoot 'audio-scene\app\AudioScene.exe'),
+    (Join-Path $ArtifactRoot 'audio-scene\app\AudioScene.Core.dll'),
     (Join-Path $ArtifactRoot 'tool-hub\app\ToolHub.exe'),
     (Join-Path $ArtifactRoot 'tool-hub\app\ToolHubLauncher.exe'),
     (Join-Path $ArtifactRoot 'tool-hub\app\ToolHubInstaller.exe'),
@@ -44,6 +46,9 @@ foreach ($expectedFile in $expectedFiles) {
 $toolRoots = Get-Content -Raw (Join-Path $ArtifactRoot 'tool-hub\config\tool-roots.ini')
 if ($toolRoots -notmatch '(?m)^system-stability-diagnostics=') {
     throw 'System stability diagnostics entry is missing from tool-roots.ini'
+}
+if ($toolRoots -notmatch '(?m)^audio-scene=') {
+    throw 'Audio scene entry is missing from tool-roots.ini'
 }
 
 Write-Output 'PASS ToolHub.Sync.Tests'

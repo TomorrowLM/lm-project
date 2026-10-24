@@ -86,10 +86,12 @@ namespace ToolHub.Core
             string wallpaperDirectory = Path.Combine(root, "Wallpaper-GUI");
             string repairDirectory = Path.Combine(root, "desktop-black-screen-repair");
             string diagnosticsDirectory = Path.Combine(root, "system-stability-diagnostics");
+            string audioSceneDirectory = Path.Combine(root, "audio-scene");
             string workspaceEntry = FindWorkspaceExecutable(workspaceDirectory);
             string wallpaperEntry = FindEntryPoint(wallpaperDirectory, "Wallpaper-GUI.cmd");
             string repairEntry = FindEntryPoint(repairDirectory, "Repair-DesktopBlackScreen.cmd");
             string diagnosticsEntry = FindExecutable(diagnosticsDirectory, "SystemStabilityDiagnostics.exe");
+            string audioSceneEntry = FindExecutable(audioSceneDirectory, "AudioScene.exe");
 
             return new List<ToolHubTool>
             {
@@ -124,6 +126,14 @@ namespace ToolHub.Core
                     diagnosticsEntry,
                     string.Empty,
                     Path.GetDirectoryName(diagnosticsEntry),
+                    ToolHubLaunchKind.Executable),
+                new ToolHubTool(
+                    "audio-scene",
+                    "声音场景",
+                    "按设备和当前场景切换安全的音量与静音预设",
+                    audioSceneEntry,
+                    string.Empty,
+                    Path.GetDirectoryName(audioSceneEntry),
                     ToolHubLaunchKind.Executable)
             };
         }

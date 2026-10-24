@@ -56,6 +56,8 @@ Assert-Contains $buildScript '/win32icon:' 'build embeds the shared icon into ap
 Assert-Contains $syncScript 'workspace-switcher' 'sync includes workspace switcher'
 Assert-Contains $syncScript 'Wallpaper-GUI' 'sync includes wallpaper tool'
 Assert-Contains $syncScript 'desktop-black-screen-repair' 'sync includes desktop repair tool'
+Assert-Contains $syncScript 'audio-scene' 'sync includes audio scene tool'
+Assert-Contains $syncScript 'AudioScene.exe' 'sync deploys audio scene executable'
 Assert-Contains $syncScript 'favorites.json' 'sync migrates wallpaper favorites'
 Assert-Contains $syncScript 'ArtifactRoot' 'sync supports an explicit artifact root'
 Assert-Contains $installerSource 'sync-window-tools.ps1' 'installer launches the sync script'

@@ -14,11 +14,13 @@ $workspaceSource = Join-Path $sourceWindowRoot 'workspace-switcher'
 $wallpaperSource = Join-Path $sourceWindowRoot 'Wallpaper-GUI'
 $repairSource = Join-Path $sourceWindowRoot 'desktop-black-screen-repair'
 $diagnosticsSource = Join-Path $sourceWindowRoot 'system-stability-diagnostics'
+$audioSceneSource = Join-Path $sourceWindowRoot 'audio-scene'
 $toolHubArtifact = Join-Path $ArtifactRoot 'tool-hub'
 $workspaceArtifact = Join-Path $ArtifactRoot 'workspace-switcher'
 $wallpaperArtifact = Join-Path $ArtifactRoot 'Wallpaper-GUI'
 $repairArtifact = Join-Path $ArtifactRoot 'desktop-black-screen-repair'
 $diagnosticsArtifact = Join-Path $ArtifactRoot 'system-stability-diagnostics'
+$audioSceneArtifact = Join-Path $ArtifactRoot 'audio-scene'
 $logDirectory = Join-Path $toolHubArtifact 'logs'
 $backupDirectory = Join-Path $toolHubArtifact 'backups'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -45,7 +47,12 @@ New-Item -ItemType Directory -Force -Path @(
     (Join-Path $diagnosticsArtifact 'app'),
     (Join-Path $diagnosticsArtifact 'config'),
     (Join-Path $diagnosticsArtifact 'build'),
-    (Join-Path $diagnosticsArtifact 'logs')
+    (Join-Path $diagnosticsArtifact 'logs'),
+    (Join-Path $audioSceneArtifact 'app'),
+    (Join-Path $audioSceneArtifact 'config'),
+    (Join-Path $audioSceneArtifact 'build'),
+    (Join-Path $audioSceneArtifact 'cache'),
+    (Join-Path $audioSceneArtifact 'logs')
 ) | Out-Null
 
 function Remove-DesktopShortcut {
@@ -196,6 +203,7 @@ if (-not (Test-Path -LiteralPath $workspaceSource -PathType Container)) { throw 
 if (-not (Test-Path -LiteralPath $wallpaperSource -PathType Container)) { throw "缺少源码目录：$wallpaperSource" }
 if (-not (Test-Path -LiteralPath $repairSource -PathType Container)) { throw "缺少源码目录：$repairSource" }
 if (-not (Test-Path -LiteralPath $diagnosticsSource -PathType Container)) { throw "缺少源码目录：$diagnosticsSource" }
+if (-not (Test-Path -LiteralPath $audioSceneSource -PathType Container)) { throw "缺少源码目录：$audioSceneSource" }
 
 Write-Output "同步开始：$ProjectRoot" | Tee-Object -FilePath $syncLog
 
@@ -228,6 +236,16 @@ Backup-AppDirectory -Path (Join-Path $diagnosticsArtifact 'app') -Name 'system-s
 Copy-DeployedFile -Source (Join-Path $diagnosticsBuild 'SystemStabilityDiagnostics.exe') -Destination (Join-Path $diagnosticsArtifact 'app\SystemStabilityDiagnostics.exe')
 Copy-DeployedFile -Source (Join-Path $diagnosticsBuild 'SystemStabilityDiagnostics.Core.dll') -Destination (Join-Path $diagnosticsArtifact 'app\SystemStabilityDiagnostics.Core.dll')
 
+$audioSceneBuild = Join-Path $audioSceneArtifact 'build'
+$audioSceneBuildLog = Join-Path $logDirectory "audio-scene-$stamp.log"
+Invoke-LoggedScript -ScriptPath (Join-Path $audioSceneSource 'build.ps1') -Parameters @{
+    RunTests = $true
+    OutputDirectory = $audioSceneBuild
+} -LogPath $audioSceneBuildLog
+Backup-AppDirectory -Path (Join-Path $audioSceneArtifact 'app') -Name 'audio-scene'
+Copy-DeployedFile -Source (Join-Path $audioSceneBuild 'AudioScene.exe') -Destination (Join-Path $audioSceneArtifact 'app\AudioScene.exe')
+Copy-DeployedFile -Source (Join-Path $audioSceneBuild 'AudioScene.Core.dll') -Destination (Join-Path $audioSceneArtifact 'app\AudioScene.Core.dll')
+
 $toolRootConfig = Join-Path $toolHubArtifact 'config\window-root.txt'
 Write-Utf8NoBom -Path $toolRootConfig -Value $ArtifactRoot
 $toolRootsConfig = Join-Path $toolHubArtifact 'config\tool-roots.ini'
@@ -235,7 +253,8 @@ $toolRootLines = @(
     "workspace-switcher=$(Join-Path $workspaceArtifact 'app\WorkspaceSwitcher.exe')",
     "wallpaper-gui=$(Join-Path $wallpaperArtifact 'app\Wallpaper-GUI.cmd')",
     "desktop-black-screen-repair=$(Join-Path $repairArtifact 'app\Repair-DesktopBlackScreen.cmd')",
-    "system-stability-diagnostics=$(Join-Path $diagnosticsArtifact 'app\SystemStabilityDiagnostics.exe')"
+    "system-stability-diagnostics=$(Join-Path $diagnosticsArtifact 'app\SystemStabilityDiagnostics.exe')",
+    "audio-scene=$(Join-Path $audioSceneArtifact 'app\AudioScene.exe')"
 )
 Write-Utf8NoBom -Path $toolRootsConfig -Value ($toolRootLines -join [Environment]::NewLine)
 
@@ -289,6 +308,7 @@ if ($Start) {
     Wallpaper = Join-Path $wallpaperArtifact 'app\Wallpaper-GUI.cmd'
     DesktopRepair = Join-Path $repairArtifact 'app\Repair-DesktopBlackScreen.cmd'
     SystemStabilityDiagnostics = Join-Path $diagnosticsArtifact 'app\SystemStabilityDiagnostics.exe'
+    AudioScene = Join-Path $audioSceneArtifact 'app\AudioScene.exe'
     DeferredFiles = @($deferredFiles)
     SyncLog = $syncLog
 } | ConvertTo-Json | Set-Content -LiteralPath (Join-Path $logDirectory 'last-sync.json') -Encoding UTF8
