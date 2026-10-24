@@ -111,9 +111,18 @@ namespace AudioScene.App
             sceneGroup.Controls.Add(sceneList);
             root.Controls.Add(sceneGroup, 0, 0);
 
-            TableLayoutPanel editor = new TableLayoutPanel
+            Panel editorHost = new Panel
             {
                 Dock = DockStyle.Fill,
+                AutoScroll = true
+            };
+            root.Controls.Add(editorHost, 1, 0);
+
+            TableLayoutPanel editor = new TableLayoutPanel
+            {
+                Dock = DockStyle.Top,
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 2,
                 RowCount = 11,
                 Padding = new Padding(12, 4, 4, 4)
@@ -126,11 +135,11 @@ namespace AudioScene.App
             }
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
-            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 210F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
-            editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
-            root.Controls.Add(editor, 1, 0);
+            editorHost.Controls.Add(editor);
 
             AddEditorRow(editor, 0, "场景名称", nameBox);
 
