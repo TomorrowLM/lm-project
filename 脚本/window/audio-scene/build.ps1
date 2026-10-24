@@ -75,6 +75,12 @@ if ($RunTests) {
     if ($LASTEXITCODE -ne 0) {
         throw "AudioScene.App.Tests failed with exit code $LASTEXITCODE"
     }
+
+    $safetyTest = Join-Path $projectRoot 'tests\AudioScene.Safety.Tests.ps1'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $safetyTest -ProjectRoot $projectRoot
+    if ($LASTEXITCODE -ne 0) {
+        throw "AudioScene.Safety.Tests failed with exit code $LASTEXITCODE"
+    }
 }
 
 Write-Output "AudioScene built: $appAssembly"
