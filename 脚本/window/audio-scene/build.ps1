@@ -35,7 +35,8 @@ Invoke-Csc @(
     '/target:library',
     "/out:$coreAssembly",
     '/reference:System.Xml.dll',
-    (Join-Path $projectRoot 'src\AudioScene.Core.cs')
+    (Join-Path $projectRoot 'src\AudioScene.Core.cs'),
+    (Join-Path $projectRoot 'src\AudioScene.Apo.cs')
 )
 
 $appAssembly = Join-Path $buildDirectory 'AudioScene.exe'

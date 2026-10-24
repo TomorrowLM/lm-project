@@ -28,7 +28,7 @@ namespace AudioScene.App
             string startupError = string.Empty;
             try
             {
-                backend = new WindowsAudioBackend();
+                backend = new WindowsAudioBackend(Path.GetDirectoryName(configPath));
             }
             catch (Exception ex)
             {
@@ -55,6 +55,15 @@ namespace AudioScene.App
         private readonly TextBox nameBox = new TextBox();
         private readonly TrackBar volumeBar = new TrackBar();
         private readonly Label volumeValue = new Label();
+        private readonly TrackBar bassBar = new TrackBar();
+        private readonly TrackBar trebleBar = new TrackBar();
+        private readonly TrackBar voiceClarityBar = new TrackBar();
+        private readonly Label bassValue = new Label();
+        private readonly Label trebleValue = new Label();
+        private readonly Label voiceClarityValue = new Label();
+        private readonly ComboBox spatialList = new ComboBox();
+        private readonly TrackBar[] equalizerBars = new TrackBar[10];
+        private readonly Label[] equalizerValues = new Label[10];
         private readonly Label presetDescription = new Label();
         private readonly CheckBox mutedBox = new CheckBox();
         private readonly Label statusLabel = new Label();
@@ -69,9 +78,9 @@ namespace AudioScene.App
             this.backend = backend;
             this.startupError = startupError ?? string.Empty;
             Text = "声音场景";
-            Width = 720;
-            Height = 500;
-            MinimumSize = new Size(620, 420);
+            Width = 860;
+            Height = 780;
+            MinimumSize = new Size(760, 650);
             StartPosition = FormStartPosition.CenterScreen;
             Font = new Font("Microsoft YaHei UI", 10F);
 
@@ -105,15 +114,20 @@ namespace AudioScene.App
             {
                 Dock = DockStyle.Fill,
                 ColumnCount = 2,
-                RowCount = 8,
+                RowCount = 10,
                 Padding = new Padding(12, 4, 4, 4)
             };
             editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
             editor.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
-            for (int i = 0; i < 7; i++)
+            for (int i = 0; i < 5; i++)
             {
                 editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             }
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 210F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
             editor.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             root.Controls.Add(editor, 1, 0);
 
@@ -150,11 +164,62 @@ namespace AudioScene.App
             mutedBox.AutoSize = true;
             AddEditorRow(editor, 4, "静音", mutedBox);
 
-            presetDescription.Text = "选择预设后会填入安全的推荐音量；不会自动修改系统。";
+            FlowLayoutPanel effectPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoSize = true,
+                WrapContents = false,
+                Padding = new Padding(0, 4, 0, 0)
+            };
+            ConfigureEffectBar(bassBar, bassValue, -12, 12);
+            ConfigureEffectBar(trebleBar, trebleValue, -12, 12);
+            ConfigureEffectBar(voiceClarityBar, voiceClarityValue, 0, 6);
+            effectPanel.Controls.Add(CreateEffectControl("低音", bassBar, bassValue));
+            effectPanel.Controls.Add(CreateEffectControl("高音", trebleBar, trebleValue));
+            effectPanel.Controls.Add(CreateEffectControl("人声", voiceClarityBar, voiceClarityValue));
+            AddEditorRow(editor, 5, "基础音效", effectPanel);
+
+            spatialList.DropDownStyle = ComboBoxStyle.DropDownList;
+            spatialList.Dock = DockStyle.Fill;
+            spatialList.DataSource = new List<SpatialModeOption>
+            {
+                new SpatialModeOption(AudioSceneSpatialMode.Off, "关闭"),
+                new SpatialModeOption(AudioSceneSpatialMode.StereoWide, "轻度立体声扩展"),
+                new SpatialModeOption(AudioSceneSpatialMode.StereoCinema, "影院立体声扩展")
+            };
+            AddEditorRow(editor, 6, "空间音效", spatialList);
+
+            GroupBox equalizerGroup = new GroupBox
+            {
+                Text = "10 段均衡器（dB）",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(6)
+            };
+            FlowLayoutPanel equalizerPanel = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                AutoScroll = true,
+                WrapContents = true,
+                FlowDirection = FlowDirection.LeftToRight
+            };
+            for (int index = 0; index < AudioSceneEffectDefaults.EqualizerFrequencies.Length; index++)
+            {
+                equalizerBars[index] = new TrackBar();
+                equalizerValues[index] = new Label();
+                ConfigureEffectBar(equalizerBars[index], equalizerValues[index], -12, 12);
+                equalizerPanel.Controls.Add(CreateEffectControl(
+                    AudioSceneEffectDefaults.EqualizerFrequencies[index] + " Hz",
+                    equalizerBars[index],
+                    equalizerValues[index]));
+            }
+            equalizerGroup.Controls.Add(equalizerPanel);
+            AddEditorRow(editor, 7, "均衡器", equalizerGroup);
+
+            presetDescription.Text = "选择预设后会填入音量和真实音效参数。";
             presetDescription.AutoEllipsis = true;
             presetDescription.Dock = DockStyle.Fill;
             presetDescription.ForeColor = Color.DimGray;
-            AddEditorRow(editor, 5, "预设说明", presetDescription);
+            AddEditorRow(editor, 8, "预设说明", presetDescription);
 
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
             Button newButton = CreateButton("新建场景", delegate { CreateProfile(); });
@@ -173,7 +238,7 @@ namespace AudioScene.App
             actions.Controls.Add(applyButton);
             actions.Controls.Add(deleteButton);
             actions.Controls.Add(refreshButton);
-            editor.Controls.Add(actions, 1, 6);
+            editor.Controls.Add(actions, 1, 9);
             editor.SetColumnSpan(actions, 1);
 
             statusLabel.Dock = DockStyle.Fill;
@@ -190,6 +255,46 @@ namespace AudioScene.App
             return button;
         }
 
+        private static void ConfigureEffectBar(TrackBar bar, Label valueLabel, int minimum, int maximum)
+        {
+            bar.Minimum = minimum;
+            bar.Maximum = maximum;
+            bar.TickFrequency = maximum - minimum > 10 ? 6 : 2;
+            bar.Width = 108;
+            bar.Height = 30;
+            bar.Value = minimum <= 0 && maximum >= 0 ? 0 : minimum;
+            valueLabel.AutoSize = false;
+            valueLabel.Width = 34;
+            valueLabel.TextAlign = ContentAlignment.MiddleRight;
+            valueLabel.Text = bar.Value + " dB";
+            bar.ValueChanged += delegate
+            {
+                valueLabel.Text = bar.Value + " dB";
+            };
+        }
+
+        private static Control CreateEffectControl(string title, TrackBar bar, Label valueLabel)
+        {
+            Panel panel = new Panel
+            {
+                Width = 150,
+                Height = 54,
+                Margin = new Padding(2, 0, 4, 0)
+            };
+            Label titleLabel = new Label
+            {
+                Text = title,
+                AutoSize = true,
+                Location = new Point(0, 0)
+            };
+            bar.Location = new Point(0, 18);
+            valueLabel.Location = new Point(112, 18);
+            panel.Controls.Add(titleLabel);
+            panel.Controls.Add(bar);
+            panel.Controls.Add(valueLabel);
+            return panel;
+        }
+
         private static void AddEditorRow(TableLayoutPanel table, int row, string labelText, Control control)
         {
             Label label = new Label
@@ -200,6 +305,23 @@ namespace AudioScene.App
             };
             table.Controls.Add(label, 0, row);
             table.Controls.Add(control, 1, row);
+        }
+
+        private sealed class SpatialModeOption
+        {
+            public SpatialModeOption(AudioSceneSpatialMode value, string name)
+            {
+                Value = value;
+                Name = name;
+            }
+
+            public AudioSceneSpatialMode Value { get; private set; }
+            public string Name { get; private set; }
+
+            public override string ToString()
+            {
+                return Name;
+            }
         }
 
         private void LoadState()
@@ -294,6 +416,17 @@ namespace AudioScene.App
                 nameBox.Text = profile.Name;
                 volumeBar.Value = Math.Max(volumeBar.Minimum, Math.Min(volumeBar.Maximum, profile.VolumePercent));
                 mutedBox.Checked = profile.Muted;
+                SetEffectBar(bassBar, profile.BassDb);
+                SetEffectBar(trebleBar, profile.TrebleDb);
+                SetEffectBar(voiceClarityBar, profile.VoiceClarityDb);
+                SelectSpatialMode(profile.SpatialMode);
+                for (int index = 0; index < equalizerBars.Length; index++)
+                {
+                    double value = profile.EqualizerBands != null && index < profile.EqualizerBands.Length
+                        ? profile.EqualizerBands[index]
+                        : 0.0;
+                    SetEffectBar(equalizerBars[index], value);
+                }
                 SelectDevice(profile.DeviceId);
                 SelectPreset(profile.PresetId);
                 UpdatePresetDescription();
@@ -436,6 +569,15 @@ namespace AudioScene.App
             profile.PresetId = preset == null ? string.Empty : preset.Id;
             profile.VolumePercent = volumeBar.Value;
             profile.Muted = mutedBox.Checked;
+            profile.BassDb = bassBar.Value;
+            profile.TrebleDb = trebleBar.Value;
+            profile.VoiceClarityDb = voiceClarityBar.Value;
+            profile.SpatialMode = GetSelectedSpatialMode();
+            profile.EqualizerBands = new double[equalizerBars.Length];
+            for (int index = 0; index < equalizerBars.Length; index++)
+            {
+                profile.EqualizerBands[index] = equalizerBars[index].Value;
+            }
             profile.Normalize();
             return true;
         }
@@ -454,15 +596,63 @@ namespace AudioScene.App
             }
 
             volumeBar.Value = Math.Max(volumeBar.Minimum, Math.Min(volumeBar.Maximum, preset.RecommendedVolumePercent));
+            SetEffectBar(bassBar, preset.BassDb);
+            SetEffectBar(trebleBar, preset.TrebleDb);
+            SetEffectBar(voiceClarityBar, preset.VoiceClarityDb);
+            SelectSpatialMode(preset.SpatialMode);
+            for (int index = 0; index < equalizerBars.Length; index++)
+            {
+                double value = preset.EqualizerBands != null && index < preset.EqualizerBands.Length
+                    ? preset.EqualizerBands[index]
+                    : 0.0;
+                SetEffectBar(equalizerBars[index], value);
+            }
             UpdatePresetDescription();
         }
 
         private void UpdatePresetDescription()
         {
             AudioScenePreset preset = presetList.SelectedItem as AudioScenePreset;
+            string effectsStatus = GetEffectsStatus();
             presetDescription.Text = preset == null
-                ? "选择预设后会填入安全的推荐音量；不会自动修改系统。"
-                : preset.Description + " 当前版本不安装驱动，通用 EQ 由设备自行提供。";
+                ? "选择预设后会填入音量和真实音效参数。 " + effectsStatus
+                : preset.Description + " " + effectsStatus;
+        }
+
+        private static void SetEffectBar(TrackBar bar, double value)
+        {
+            int rounded = (int)Math.Round(value, MidpointRounding.AwayFromZero);
+            bar.Value = Math.Max(bar.Minimum, Math.Min(bar.Maximum, rounded));
+        }
+
+        private AudioSceneSpatialMode GetSelectedSpatialMode()
+        {
+            SpatialModeOption option = spatialList.SelectedItem as SpatialModeOption;
+            return option == null ? AudioSceneSpatialMode.Off : option.Value;
+        }
+
+        private void SelectSpatialMode(AudioSceneSpatialMode mode)
+        {
+            for (int index = 0; index < spatialList.Items.Count; index++)
+            {
+                SpatialModeOption option = spatialList.Items[index] as SpatialModeOption;
+                if (option != null && option.Value == mode)
+                {
+                    spatialList.SelectedIndex = index;
+                    return;
+                }
+            }
+
+            if (spatialList.Items.Count > 0)
+            {
+                spatialList.SelectedIndex = 0;
+            }
+        }
+
+        private string GetEffectsStatus()
+        {
+            IAudioSceneBackendStatus statusBackend = backend as IAudioSceneBackendStatus;
+            return statusBackend == null ? "高级音效状态未知。" : statusBackend.EffectsStatus;
         }
 
         private AudioSceneProfile GetSelectedProfile()
@@ -519,6 +709,14 @@ namespace AudioScene.App
             presetList.Enabled = enabled;
             volumeBar.Enabled = enabled;
             mutedBox.Enabled = enabled;
+            bassBar.Enabled = enabled;
+            trebleBar.Enabled = enabled;
+            voiceClarityBar.Enabled = enabled;
+            spatialList.Enabled = enabled;
+            for (int index = 0; index < equalizerBars.Length; index++)
+            {
+                equalizerBars[index].Enabled = enabled;
+            }
             saveButton.Enabled = enabled;
             applyButton.Enabled = enabled && backend != null;
             deleteButton.Enabled = enabled;

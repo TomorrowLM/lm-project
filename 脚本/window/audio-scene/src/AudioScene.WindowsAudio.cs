@@ -1,17 +1,30 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Runtime.InteropServices;
 using AudioScene.Core;
 
 namespace AudioScene.Windows
 {
-    public sealed class WindowsAudioBackend : IAudioSceneBackend
+    public sealed class WindowsAudioBackend : IAudioSceneBackend, IAudioSceneBackendStatus
     {
         private readonly IMMDeviceEnumerator deviceEnumerator;
+        private readonly EqualizerApoAdapter apoAdapter;
 
         public WindowsAudioBackend()
+            : this(string.Empty)
+        {
+        }
+
+        public WindowsAudioBackend(string userConfigDirectory)
         {
             deviceEnumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
+            apoAdapter = new EqualizerApoAdapter(userConfigDirectory);
+        }
+
+        public string EffectsStatus
+        {
+            get { return apoAdapter.StatusMessage; }
         }
 
         public IList<AudioDeviceInfo> GetRenderDevices()
@@ -95,9 +108,20 @@ namespace AudioScene.Windows
                     endpointVolume.SetMute(profile.Muted, ref eventContext),
                     "设置设备静音状态失败。");
 
-                return AudioSceneApplyResult
+                AudioSceneApplyResult result = AudioSceneApplyResult
                     .Applied("已应用场景：" + (string.IsNullOrWhiteSpace(profile.Name) ? "未命名场景" : profile.Name))
-                    .AddWarning("当前版本只应用设备音量和静音；通用均衡器由设备或独立音频驱动提供。");
+                    .AddWarning("设备音量和静音已应用。");
+                AudioSceneApoApplyResult apoResult = apoAdapter.Apply(profile);
+                if (!apoResult.Applied)
+                {
+                    result.AddWarning(apoResult.Message);
+                }
+                else
+                {
+                    result.AddWarning(apoResult.Message);
+                }
+
+                return result;
             }
             catch (Exception ex)
             {

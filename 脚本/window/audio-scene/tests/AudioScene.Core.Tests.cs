@@ -31,8 +31,16 @@ internal static class AudioSceneCoreTests
         Assembly assembly = Assembly.LoadFrom(assemblyPath);
         Type profileType = assembly.GetType("AudioScene.Core.AudioSceneProfile");
         Type storeType = assembly.GetType("AudioScene.Core.AudioSceneStore");
+        Type spatialModeType = assembly.GetType("AudioScene.Core.AudioSceneSpatialMode");
+        Type rendererType = assembly.GetType("AudioScene.Core.AudioSceneApoRenderer");
+        Type detectorType = assembly.GetType("AudioScene.Core.EqualizerApoDetector");
+        Type adapterType = assembly.GetType("AudioScene.Core.EqualizerApoAdapter");
         Assert(profileType != null, "audio scene profile type exists");
         Assert(storeType != null, "audio scene store type exists");
+        Assert(spatialModeType != null, "audio scene spatial mode exists");
+        Assert(rendererType != null, "audio scene APO renderer exists");
+        Assert(detectorType != null, "audio scene APO detector exists");
+        Assert(adapterType != null, "audio scene APO adapter exists");
 
         if (profileType != null)
         {
@@ -49,6 +57,23 @@ internal static class AudioSceneCoreTests
             profileType.GetMethod("Normalize").Invoke(profile, null);
             Assert((int)profileType.GetProperty("VolumePercent").GetValue(profile, null) == 0,
                 "profile normalization clamps volume to zero");
+
+            Assert(profileType.GetProperty("BassDb") != null, "profile stores bass gain");
+            Assert(profileType.GetProperty("TrebleDb") != null, "profile stores treble gain");
+            Assert(profileType.GetProperty("VoiceClarityDb") != null, "profile stores voice clarity gain");
+            Assert(profileType.GetProperty("EqualizerBands") != null, "profile stores graphic EQ bands");
+            Assert(profileType.GetProperty("SpatialMode") != null, "profile stores spatial mode");
+
+            profileType.GetProperty("BassDb").SetValue(profile, 30.0, null);
+            profileType.GetProperty("TrebleDb").SetValue(profile, -30.0, null);
+            profileType.GetProperty("VoiceClarityDb").SetValue(profile, 30.0, null);
+            profileType.GetMethod("Normalize").Invoke(profile, null);
+            Assert(Math.Abs((double)profileType.GetProperty("BassDb").GetValue(profile, null) - 12.0) < 0.001,
+                "profile normalization clamps bass gain");
+            Assert(Math.Abs((double)profileType.GetProperty("TrebleDb").GetValue(profile, null) + 12.0) < 0.001,
+                "profile normalization clamps treble gain");
+            Assert(Math.Abs((double)profileType.GetProperty("VoiceClarityDb").GetValue(profile, null) - 6.0) < 0.001,
+                "profile normalization clamps voice clarity gain");
         }
 
         if (profileType != null && storeType != null)
@@ -63,6 +88,16 @@ internal static class AudioSceneCoreTests
                 profileType.GetProperty("DeviceName").SetValue(profile, "Bluetooth Headset", null);
                 profileType.GetProperty("VolumePercent").SetValue(profile, 72, null);
                 profileType.GetProperty("Muted").SetValue(profile, false, null);
+                profileType.GetProperty("BassDb").SetValue(profile, 3.0, null);
+                profileType.GetProperty("TrebleDb").SetValue(profile, 2.0, null);
+                profileType.GetProperty("VoiceClarityDb").SetValue(profile, 4.0, null);
+                profileType.GetProperty("SpatialMode").SetValue(
+                    profile,
+                    Enum.Parse(spatialModeType, "StereoWide"),
+                    null);
+                IList bands = (IList)profileType.GetProperty("EqualizerBands").GetValue(profile, null);
+                bands[0] = 2.5;
+                bands[9] = -1.5;
 
                 IList profiles = (IList)Activator.CreateInstance(typeof(ArrayList));
                 profiles.Add(profile);
@@ -75,6 +110,14 @@ internal static class AudioSceneCoreTests
                     "store round-trip preserves profile name");
                 Assert((int)profileType.GetProperty("VolumePercent").GetValue(restoredProfile, null) == 72,
                     "store round-trip preserves volume");
+                Assert(Math.Abs((double)profileType.GetProperty("BassDb").GetValue(restoredProfile, null) - 3.0) < 0.001,
+                    "store round-trip preserves bass gain");
+                Assert(profileType.GetProperty("SpatialMode").GetValue(restoredProfile, null).ToString() == "StereoWide",
+                    "store round-trip preserves spatial mode");
+                IList restoredBands = (IList)profileType.GetProperty("EqualizerBands").GetValue(restoredProfile, null);
+                Assert(restoredBands.Count == 10, "store round-trip preserves ten EQ bands");
+                Assert(Math.Abs((double)restoredBands[0] - 2.5) < 0.001,
+                    "store round-trip preserves EQ band value");
             }
             finally
             {
@@ -85,7 +128,128 @@ internal static class AudioSceneCoreTests
             }
         }
 
+        if (profileType != null && rendererType != null && spatialModeType != null)
+        {
+            object profile = Activator.CreateInstance(profileType);
+            profileType.GetProperty("DeviceName").SetValue(profile, "测试扬声器", null);
+            profileType.GetProperty("BassDb").SetValue(profile, 3.0, null);
+            profileType.GetProperty("TrebleDb").SetValue(profile, 2.0, null);
+            profileType.GetProperty("VoiceClarityDb").SetValue(profile, 4.0, null);
+            profileType.GetProperty("SpatialMode").SetValue(
+                profile,
+                Enum.Parse(spatialModeType, "StereoWide"),
+                null);
+            IList bands = (IList)profileType.GetProperty("EqualizerBands").GetValue(profile, null);
+            bands[0] = 2.0;
+            bands[9] = -1.0;
+
+            string config = (string)rendererType.GetMethod("Render").Invoke(null, new object[] { profile });
+            Assert(config.IndexOf("Device: 测试扬声器", StringComparison.Ordinal) >= 0,
+                "APO config targets the selected device");
+            Assert(config.IndexOf("Filter 1: ON LS", StringComparison.Ordinal) >= 0,
+                "APO config contains a bass shelf");
+            Assert(config.IndexOf("Filter 2: ON HS", StringComparison.Ordinal) >= 0,
+                "APO config contains a treble shelf");
+            Assert(config.IndexOf("Filter 3: ON PK", StringComparison.Ordinal) >= 0,
+                "APO config contains a voice clarity filter");
+            Assert(config.IndexOf("GraphicEQ:", StringComparison.Ordinal) >= 0,
+                "APO config contains graphic EQ bands");
+            Assert(config.IndexOf("Copy: L=L+", StringComparison.Ordinal) >= 0,
+                "APO config contains safe stereo widening");
+            Assert(config.IndexOf("Preamp: -", StringComparison.Ordinal) >= 0,
+                "APO config attenuates positive gains to reduce clipping risk");
+        }
+
+        if (profileType != null && catalogTypeExists(assembly))
+        {
+            Type catalogType = assembly.GetType("AudioScene.Core.AudioScenePresetCatalog");
+            Type presetType = assembly.GetType("AudioScene.Core.AudioScenePreset");
+            IList presets = (IList)catalogType.GetMethod("GetPresets").Invoke(null, null);
+            bool hasRealEffects = false;
+            bool moviePresetsDiffer = false;
+            object cinema = null;
+            object voice = null;
+            foreach (object preset in presets)
+            {
+                double bass = (double)presetType.GetProperty("BassDb").GetValue(preset, null);
+                double treble = (double)presetType.GetProperty("TrebleDb").GetValue(preset, null);
+                double clarity = (double)presetType.GetProperty("VoiceClarityDb").GetValue(preset, null);
+                hasRealEffects |= Math.Abs(bass) > 0.001 || Math.Abs(treble) > 0.001 || Math.Abs(clarity) > 0.001;
+                string id = (string)presetType.GetProperty("Id").GetValue(preset, null);
+                if (id == "movie-cinema") cinema = preset;
+                if (id == "movie-voice") voice = preset;
+            }
+
+            if (cinema != null && voice != null)
+            {
+                moviePresetsDiffer =
+                    (double)presetType.GetProperty("VoiceClarityDb").GetValue(cinema, null) !=
+                    (double)presetType.GetProperty("VoiceClarityDb").GetValue(voice, null);
+            }
+
+            Assert(hasRealEffects, "presets contain real audio effect values");
+            Assert(moviePresetsDiffer, "movie presets have different audio effect values");
+        }
+
+        if (detectorType != null)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "audio-scene-apo-detect-" + Guid.NewGuid().ToString("N"));
+            try
+            {
+                object installation = detectorType.GetMethod("Detect").Invoke(null, new object[] { root });
+                Assert(installation != null, "APO detector returns an installation status");
+                Assert(!Directory.Exists(root), "APO detection does not create configuration directories");
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
+        if (profileType != null && adapterType != null)
+        {
+            string root = Path.Combine(Path.GetTempPath(), "audio-scene-apo-adapter-" + Guid.NewGuid().ToString("N"));
+            string fakeInstall = Path.Combine(root, "fake-equalizer-apo");
+            string fakeConfig = Path.Combine(fakeInstall, "config");
+            try
+            {
+                Directory.CreateDirectory(fakeConfig);
+                File.WriteAllText(Path.Combine(fakeConfig, "config.txt"), "Preamp: 0 dB\r\n");
+                File.WriteAllText(Path.Combine(root, "apo-install-path.txt"), fakeInstall);
+
+                object profile = Activator.CreateInstance(profileType);
+                profileType.GetProperty("DeviceName").SetValue(profile, "测试扬声器", null);
+                profileType.GetProperty("BassDb").SetValue(profile, 2.0, null);
+                object adapter = Activator.CreateInstance(adapterType, new object[] { root });
+                object applyResult = adapterType.GetMethod("Apply").Invoke(adapter, new object[] { profile });
+                bool applied = (bool)applyResult.GetType().GetProperty("Applied").GetValue(applyResult, null);
+                string ownedPath = (string)adapter.GetType().GetProperty("Installation").GetValue(adapter, null)
+                    .GetType().GetProperty("OwnedConfigPath").GetValue(
+                        adapter.GetType().GetProperty("Installation").GetValue(adapter, null), null);
+                Assert(applied, "APO adapter writes an owned configuration");
+                Assert(File.Exists(ownedPath), "APO adapter writes under the user configuration directory");
+                Assert(File.ReadAllText(ownedPath).IndexOf("Filter 1: ON LS", StringComparison.Ordinal) >= 0,
+                    "owned APO configuration contains the selected effect");
+            }
+            finally
+            {
+                if (Directory.Exists(root))
+                {
+                    Directory.Delete(root, true);
+                }
+            }
+        }
+
         Console.WriteLine(failures == 0 ? "PASS AudioScene.Core.Tests" : "FAILED AudioScene.Core.Tests: " + failures);
         return failures;
+    }
+
+    private static bool catalogTypeExists(Assembly assembly)
+    {
+        return assembly.GetType("AudioScene.Core.AudioScenePresetCatalog") != null &&
+            assembly.GetType("AudioScene.Core.AudioScenePreset") != null;
     }
 }
