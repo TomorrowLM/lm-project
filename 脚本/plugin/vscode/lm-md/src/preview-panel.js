@@ -273,6 +273,7 @@ class MarkdownPreviewPanel {
     this.initialHtmlSet = false;
     this.webviewReady = false;
     this.pendingUpdate = null;
+    this.restoreScrollWhenVisible = false;
     this.pendingRevealLine = null;
     this.refreshTask = createCoalescedTask(() => this.render(), 150);
     this.panel = vscode.window.createWebviewPanel(
@@ -289,6 +290,28 @@ class MarkdownPreviewPanel {
         ),
       },
     );
+    const restoreScrollOnActivation = async () => {
+      const previewState = this.previewStateStore?.has(this.document.uri)
+        ? this.previewStateStore.get(this.document.uri)
+        : null;
+      const sent = await this.panel.webview.postMessage({
+        type: "restorePreviewScroll",
+        previewState,
+      });
+      if (!sent) this.restoreScrollWhenVisible = true;
+    };
+    this.viewStateSubscription = this.panel.onDidChangeViewState((event) => {
+      if (!event.webviewPanel.visible || !event.webviewPanel.active) return;
+      if (this.pendingRevealLine !== null) {
+        this.restoreScrollWhenVisible = false;
+        return;
+      }
+      if (!this.webviewReady) {
+        this.restoreScrollWhenVisible = true;
+        return;
+      }
+      void restoreScrollOnActivation();
+    });
 
     this.panel.webview.onDidReceiveMessage(
       createPreviewMessageHandler(
@@ -316,7 +339,13 @@ class MarkdownPreviewPanel {
               this.pendingUpdate = update;
             }
           }
+          const hadPendingReveal = this.pendingRevealLine !== null;
           await this.flushPendingRevealLine();
+          if (hadPendingReveal) this.restoreScrollWhenVisible = false;
+          if (this.restoreScrollWhenVisible && this.panel.visible && this.panel.active) {
+            this.restoreScrollWhenVisible = false;
+            await restoreScrollOnActivation();
+          }
         },
         (uri, state) => this.previewStateStore?.set(uri, state),
         async (uri) => {
@@ -341,6 +370,7 @@ class MarkdownPreviewPanel {
     this.panel.onDidDispose(() => {
       this.disposed = true;
       this.refreshTask.dispose();
+      this.viewStateSubscription.dispose();
     }, null, context.subscriptions);
 
     this.update(document);
@@ -558,10 +588,14 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-change-history { position: sticky; top: calc(var(--lm-md-toolbar-height, 0px) + 8px); z-index: 1; margin: 0 0 14px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-editor-foreground)); box-shadow: 0 4px 16px color-mix(in srgb, black 22%, transparent); }
     .lm-md-change-history[hidden] { display: none; }
     .lm-md-change-header { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-    .lm-md-change-header strong { flex: 0 0 auto; }
+    .lm-md-change-title-group { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 6px; }
+    .lm-md-change-help { position: relative; display: inline-flex; z-index: 5; }
+    .lm-md-change-help-button { display: inline-grid; width: 18px; height: 18px; place-items: center; padding: 0; border: 1px solid var(--vscode-descriptionForeground); border-radius: 50%; color: var(--vscode-descriptionForeground); background: transparent; font-size: 12px; font-weight: 600; line-height: 1; }
+    .lm-md-change-help-button:hover { color: var(--vscode-editor-foreground); background: var(--vscode-toolbar-hoverBackground); }
+    .lm-md-change-help-popover { position: absolute; top: calc(100% + 7px); left: 0; z-index: 20; display: none; width: min(360px, calc(100vw - 32px)); box-sizing: border-box; padding: 9px 11px; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: 5px; color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground)); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); box-shadow: 0 5px 18px color-mix(in srgb, black 35%, transparent); font-size: 12px; line-height: 1.5; white-space: normal; }
+    .lm-md-change-help.is-open .lm-md-change-help-popover { display: block; }
     .lm-md-change-file { min-width: 0; flex: 1 1 180px; overflow: hidden; color: var(--vscode-textLink-foreground); text-overflow: ellipsis; white-space: nowrap; }
     .lm-md-change-summary, .lm-md-change-empty { color: var(--vscode-descriptionForeground); font-size: 12px; }
-    .lm-md-change-note { margin: 5px 0 0; color: var(--vscode-descriptionForeground); font-size: 11px; }
     .lm-md-change-focus-title { margin: 0 0 4px; color: var(--vscode-descriptionForeground); font-size: 11px; font-weight: 600; }
     .lm-md-change-body[hidden] { display: none; }
     .lm-md-change-list-scroll { max-height: min(32vh, 210px); min-height: 0; margin-top: 6px; overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; }
@@ -570,12 +604,21 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-change-event-list { display: grid; gap: 5px; margin: 5px 0 0; padding-left: 18px; }
     .lm-md-change-entry { padding: 6px; border-left: 2px solid transparent; }
     .lm-md-change-entry.lm-md-change-selected { border-left-color: var(--vscode-focusBorder); background: var(--vscode-list-activeSelectionBackground); }
+    .lm-md-change-entry.lm-md-net-change-added { border-left-color: var(--vscode-gitDecoration-addedResourceForeground, #73c991); background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 10%, transparent); }
+    .lm-md-change-entry.lm-md-net-change-modified { border-left-color: var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); background: color-mix(in srgb, var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 10%, transparent); }
+    .lm-md-change-entry.lm-md-net-change-removed { border-left-color: var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c); background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 10%, transparent); }
     .lm-md-change-locate { display: flex; width: 100%; align-items: center; gap: 8px; padding: 3px 5px; text-align: left; color: var(--vscode-editor-foreground); background: transparent; border: 0; }
     .lm-md-change-detail { flex: 0 0 auto; color: var(--vscode-descriptionForeground); font-size: 11px; }
     .lm-md-change-diff { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 5px; }
     .lm-md-change-diff pre { max-height: 100px; margin: 3px 0 0; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .lm-md-change-before pre { border-left: 3px solid var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c); background: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 14%, var(--vscode-textCodeBlock-background, #1e1e1e)); }
+    .lm-md-change-after pre { border-left: 3px solid var(--vscode-gitDecoration-addedResourceForeground, #73c991); background: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 14%, var(--vscode-textCodeBlock-background, #1e1e1e)); }
     .lm-md-change-diff strong { color: var(--vscode-descriptionForeground); font-size: 11px; }
     .lm-md-change-source { margin-top: 5px; }
+    article .lm-md-net-change { border-radius: 2px; }
+    article .lm-md-net-change-added { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-addedResourceForeground, #73c991); background-color: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 8%, transparent); }
+    article .lm-md-net-change-modified { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); background-color: color-mix(in srgb, var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 9%, transparent); }
+    article .lm-md-net-change-removed { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c); background-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 9%, transparent); }
     .lm-md-change-mark { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); }
     .lm-md-change-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; border-radius: 2px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 35%, transparent); }
     .lm-md-reference-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 28%, transparent); transition: background-color 180ms ease; }
@@ -665,11 +708,10 @@ function renderChangeHistory(changeRecords, fileName, changeEvents = []) {
   for (const record of events) {
     for (const hunk of record.hunks || []) eventEntries.push({ record, hunk });
   }
-  const latestEvent = events.length ? events[events.length - 1] : null;
-  const showLatestEvent = latestEvent?.hunks?.length > 0;
-  const entries = showLatestEvent
-    ? latestEvent.hunks.map((hunk) => ({ record: latestEvent, hunk }))
-    : netEntries;
+  // Keep the visible list aligned with the saved-baseline diff. Session events
+  // remain available below, but may include manual edits and are not a source
+  // of Copilot attribution.
+  const entries = netEntries;
   const eventHistory = eventEntries.length
     ? `<details class="lm-md-change-events"><summary>本会话编辑事件（${eventEntries.length} 处）</summary><ol class="lm-md-change-event-list">${eventEntries
         .map(({ record, hunk }) => {
@@ -681,39 +723,46 @@ function renderChangeHistory(changeRecords, fileName, changeEvents = []) {
           const range = hunk.startLine === hunk.endLine
             ? hunk.startLine
             : `${hunk.startLine}-${hunk.endLine}`;
-          return `<li><span>第 ${range} 行 · +${hunk.addedLines} −${hunk.removedLines} · ${time}</span><details><summary>前后内容</summary><div class="lm-md-change-diff"><div><strong>之前</strong><pre>${escapeHtml(hunk.before)}</pre></div><div><strong>之后</strong><pre>${escapeHtml(hunk.after)}</pre></div></div></details></li>`;
+          return `<li><span>第 ${range} 行 · +${hunk.addedLines} −${hunk.removedLines} · ${time}</span><details><summary>前后内容</summary><div class="lm-md-change-diff"><div class="lm-md-change-before"><strong>之前</strong><pre>${escapeHtml(hunk.before)}</pre></div><div class="lm-md-change-after"><strong>之后</strong><pre>${escapeHtml(hunk.after)}</pre></div></div></details></li>`;
         })
         .join("")}</ol></details>`
     : "";
   const list = entries.length
-    ? `<p class="lm-md-change-focus-title">${showLatestEvent ? "最近一次编辑" : "基线净差异"}</p><ol id="lm-md-change-list" class="lm-md-change-list">${entries
+    ? `<p class="lm-md-change-focus-title">当前未保存净差异</p><ol id="lm-md-change-list" class="lm-md-change-list">${entries
         .map(({ record, hunk }, index) => {
-          return `<li class="lm-md-change-entry" data-change-index="${index}" data-start-line="${hunk.startLine}" data-end-line="${hunk.endLine}">
+          const addedLines = Number(hunk.addedLines) || 0;
+          const removedLines = Number(hunk.removedLines) || 0;
+          const changeKind = addedLines && removedLines
+            ? "modified"
+            : addedLines
+              ? "added"
+              : "removed";
+          return `<li class="lm-md-change-entry lm-md-net-change-${changeKind}" data-change-index="${index}" data-start-line="${hunk.startLine}" data-end-line="${hunk.endLine}" data-added-lines="${addedLines}" data-removed-lines="${removedLines}">
             <button class="lm-md-change-locate" type="button" data-change-locate="${index}">
               <span class="lm-md-change-detail">第 ${hunk.startLine === hunk.endLine ? hunk.startLine : `${hunk.startLine}-${hunk.endLine}`} 行 · +${hunk.addedLines} −${hunk.removedLines}</span>
             </button>
             <details>
               <summary>查看改动前后内容</summary>
               <div class="lm-md-change-diff">
-                <div><strong>${showLatestEvent ? "本次编辑前" : "基线内容"}</strong><pre>${escapeHtml(hunk.before)}</pre></div>
-                <div><strong>${showLatestEvent ? "本次编辑后" : "当前内容"}</strong><pre>${escapeHtml(hunk.after)}</pre></div>
+                <div class="lm-md-change-before"><strong>保存基线</strong><pre>${escapeHtml(hunk.before)}</pre></div>
+                <div class="lm-md-change-after"><strong>当前内容</strong><pre>${escapeHtml(hunk.after)}</pre></div>
               </div>
             </details>
             <button class="lm-md-change-source" type="button" data-source-review="${index}">在源码中审阅</button>
           </li>`;
         })
         .join("")}</ol>`
-    : '<p class="lm-md-change-empty" id="lm-md-change-empty">当前没有未保存的净变化；保存后基线会更新。可展开事件记录查看本会话已捕获的编辑。</p>';
+    : '<p class="lm-md-change-empty" id="lm-md-change-empty">当前没有未保存的净变化。</p>';
 
   return `<div class="lm-md-change-header">
-    <strong>当前文件净变化</strong>
+    <div class="lm-md-change-title-group"><strong>当前文件净变化</strong><span id="lm-md-change-help" class="lm-md-change-help"><button id="lm-md-change-help-button" class="lm-md-change-help-button" type="button" aria-label="改动计算说明" aria-controls="lm-md-change-help-popover" aria-expanded="false" title="改动计算说明">?</button><span id="lm-md-change-help-popover" class="lm-md-change-help-popover" role="tooltip">点击“刷新”后，按磁盘保存内容与当前文档重新计算净变化，并同步高亮预览正文。VS Code 不提供可靠的 Copilot 来源标记，因此结果也可能包含手动编辑；本会话已捕获的编辑事件可在下方展开查看。</span></span></div>
     <span class="lm-md-change-file" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
     <span id="lm-md-change-summary" class="lm-md-change-summary">${netEntries.length} 处 · +${addedLines} −${removedLines}</span>
     <button id="lm-md-change-refresh" type="button" title="刷新改动列表">刷新</button>
     <button id="lm-md-change-prev" type="button" title="上一处改动" ${entries.length ? "" : "disabled"}>上一处</button>
     <button id="lm-md-change-next" type="button" title="下一处改动" ${entries.length ? "" : "disabled"}>下一处</button>
     <button id="lm-md-change-toggle" type="button" aria-expanded="true" title="收起改动详情">收起改动</button>
-  </div><div id="lm-md-change-body" class="lm-md-change-body"><p class="lm-md-change-note">前后内容优先展示最近一次文档编辑事件；点击刷新会以磁盘保存内容重新计算净变化。记录来源不区分 Copilot 与手动编辑，也不等同于 Copilot 原生待审清单。</p><div id="lm-md-change-list-scroll" class="lm-md-change-list-scroll">${list}${eventHistory}</div></div>`;
+  </div><div id="lm-md-change-body" class="lm-md-change-body"><div id="lm-md-change-list-scroll" class="lm-md-change-list-scroll">${list}${eventHistory}</div></div>`;
 }
 
 function renderTableOfContents(headings) {

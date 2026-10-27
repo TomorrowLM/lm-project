@@ -28,6 +28,105 @@ namespace AudioScene.Core
         }
     }
 
+    public sealed class AudioLevelSample
+    {
+        public AudioLevelSample(double leftRms, double rightRms, double leftPeak, double rightPeak, bool hasSignal)
+        {
+            LeftRms = leftRms;
+            RightRms = rightRms;
+            LeftPeak = leftPeak;
+            RightPeak = rightPeak;
+            HasSignal = hasSignal;
+        }
+
+        public double LeftRms { get; private set; }
+        public double RightRms { get; private set; }
+        public double LeftPeak { get; private set; }
+        public double RightPeak { get; private set; }
+        public bool HasSignal { get; private set; }
+
+        public static AudioLevelSample Silent
+        {
+            get { return new AudioLevelSample(0.0, 0.0, 0.0, 0.0, false); }
+        }
+    }
+
+    public static class AudioLevelMath
+    {
+        public static AudioLevelSample MeasureInterleaved(float[] samples, int channelCount)
+        {
+            return MeasureInterleaved(samples, samples == null ? 0 : samples.Length, channelCount);
+        }
+
+        public static AudioLevelSample MeasureInterleaved(float[] samples, int sampleCount, int channelCount)
+        {
+            if (samples == null || sampleCount <= 0 || channelCount <= 0)
+            {
+                return AudioLevelSample.Silent;
+            }
+
+            int frameCount = Math.Min(samples.Length, sampleCount) / channelCount;
+            if (frameCount <= 0)
+            {
+                return AudioLevelSample.Silent;
+            }
+
+            double leftSum = 0.0;
+            double rightSum = 0.0;
+            double leftPeak = 0.0;
+            double rightPeak = 0.0;
+            for (int frame = 0; frame < frameCount; frame++)
+            {
+                double left = NormalizeSample(samples[frame * channelCount]);
+                double right = channelCount == 1
+                    ? left
+                    : NormalizeSample(samples[frame * channelCount + 1]);
+                leftSum += left * left;
+                rightSum += right * right;
+                leftPeak = Math.Max(leftPeak, Math.Abs(left));
+                rightPeak = Math.Max(rightPeak, Math.Abs(right));
+            }
+
+            return new AudioLevelSample(
+                Math.Sqrt(leftSum / frameCount),
+                Math.Sqrt(rightSum / frameCount),
+                leftPeak,
+                rightPeak,
+                Math.Max(leftPeak, rightPeak) > 0.000001);
+        }
+
+        public static int ToPercent(double amplitude)
+        {
+            return (int)Math.Round(ClampAmplitude(amplitude) * 100.0, MidpointRounding.AwayFromZero);
+        }
+
+        public static double ToDb(double amplitude)
+        {
+            double normalized = ClampAmplitude(amplitude);
+            return normalized <= 0.000001 ? -60.0 : 20.0 * Math.Log10(normalized);
+        }
+
+        private static double ClampAmplitude(double amplitude)
+        {
+            if (double.IsNaN(amplitude))
+            {
+                return 0.0;
+            }
+
+            return Math.Min(1.0, Math.Abs(amplitude));
+        }
+
+        private static double NormalizeSample(double sample)
+        {
+            if (double.IsNaN(sample))
+            {
+                return 0.0;
+            }
+
+            return Math.Max(-1.0, Math.Min(1.0, sample));
+        }
+    }
+
     public sealed class AudioSceneProfile
     {
         public AudioSceneProfile()
@@ -340,6 +439,12 @@ namespace AudioScene.Core
     public interface IAudioSceneBackendStatus
     {
         string EffectsStatus { get; }
+    }
+
+    public interface IAudioSceneLevelBackend
+    {
+        bool TryReadOutputLevel(string deviceId, out AudioLevelSample sample, out string message);
+        void StopOutputLevel();
     }
 
     public sealed class AudioSceneStore

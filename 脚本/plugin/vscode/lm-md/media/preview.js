@@ -6,6 +6,12 @@ let formattingBold = false;
 let contextMenu = null;
 let selectedChangeIndex = -1;
 let lastToolbarToggleAt = 0;
+let previewScrollPersistenceTimer = null;
+let previewScrollResizeTimer = null;
+let previewScrollRestoreSequence = 0;
+let previewScrollRestoreLocked = false;
+let mermaidRenderPromise = Promise.resolve();
+let changeHelpDocumentHandlersBound = false;
 
 function elementForNode(node) {
   if (!node) return null;
@@ -191,7 +197,8 @@ async function renderMermaidDiagrams(root = document.querySelector("article")) {
     pre.replaceWith(host);
     hosts.push(host);
   }
-  await Promise.all(hosts.map(renderMermaidDiagram));
+  mermaidRenderPromise = Promise.all(hosts.map(renderMermaidDiagram));
+  await mermaidRenderPromise;
 }
 
 function publishSelection() {
@@ -284,18 +291,312 @@ function collectPreviewState() {
     toolbarHidden: Boolean(
       document.querySelector(".lm-md-toolbar")?.classList.contains("lm-md-toolbar-hidden"),
     ),
+    ...collectScrollState(),
+    previewScrollUpdatedAt: nextPreviewScrollUpdatedAt(),
   };
 }
 
+function normalizeScrollOffset(value) {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+}
+
+function nextPreviewScrollUpdatedAt() {
+  const previousUpdatedAt = normalizeScrollOffset(
+    vscode.getState()?.previewState?.previewScrollUpdatedAt,
+  );
+  return Math.max(Date.now(), previousUpdatedAt + 1);
+}
+
+function capturePreviewAnchor() {
+  const article = document.querySelector("article");
+  if (!article) return {};
+
+  const viewportY = Math.min(80, Math.max(0, Math.round(window.innerHeight * 0.12)));
+  let best = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  let bestLineSpan = Number.POSITIVE_INFINITY;
+  let bestHeight = Number.POSITIVE_INFINITY;
+
+  for (const block of article.querySelectorAll("[data-md-start-line][data-md-end-line]")) {
+    const startLine = Number(block.dataset.mdStartLine);
+    const endLine = Number(block.dataset.mdEndLine);
+    if (!Number.isInteger(startLine) || !Number.isInteger(endLine) || startLine < 1 || endLine < startLine) {
+      continue;
+    }
+
+    const rect = block.getBoundingClientRect();
+    if (rect.height <= 0 || rect.bottom <= 0 || rect.top >= window.innerHeight) continue;
+    const distance = rect.top <= viewportY && rect.bottom >= viewportY
+      ? 0
+      : rect.top > viewportY
+        ? rect.top - viewportY
+        : viewportY - rect.bottom;
+    const lineSpan = endLine - startLine;
+    if (distance > bestDistance ||
+        (distance === bestDistance && lineSpan > bestLineSpan) ||
+        (distance === bestDistance && lineSpan === bestLineSpan && rect.height >= bestHeight)) {
+      continue;
+    }
+
+    best = { startLine, endLine, rect };
+    bestDistance = distance;
+    bestLineSpan = lineSpan;
+    bestHeight = rect.height;
+  }
+
+  if (!best) return {};
+  return {
+    previewAnchorStartLine: best.startLine,
+    previewAnchorEndLine: best.endLine,
+    previewAnchorProgress: Math.max(0, Math.min(1, (viewportY - best.rect.top) / best.rect.height)),
+    previewAnchorViewportY: viewportY,
+  };
+}
+
+function collectScrollState() {
+  const toc = document.getElementById("lm-md-toc-list");
+  const changeList = document.getElementById("lm-md-change-list-scroll");
+  return {
+    previewScrollTop: Math.max(0, Math.round(window.scrollY || 0)),
+    tocScrollTop: Math.max(0, Math.round(toc?.scrollTop || 0)),
+    changeListScrollTop: Math.max(0, Math.round(changeList?.scrollTop || 0)),
+    ...capturePreviewAnchor(),
+  };
+}
+
+function findPreviewAnchor(previewState) {
+  const article = document.querySelector("article");
+  const startLine = normalizeScrollOffset(previewState?.previewAnchorStartLine);
+  const endLine = Math.max(startLine, normalizeScrollOffset(previewState?.previewAnchorEndLine));
+  if (!article || startLine < 1) return null;
+
+  let best = null;
+  let bestDistance = Number.POSITIVE_INFINITY;
+  let bestLineSpan = Number.POSITIVE_INFINITY;
+  let bestHeight = Number.POSITIVE_INFINITY;
+  for (const block of article.querySelectorAll("[data-md-start-line][data-md-end-line]")) {
+    const blockStart = Number(block.dataset.mdStartLine);
+    const blockEnd = Number(block.dataset.mdEndLine);
+    if (!Number.isInteger(blockStart) || !Number.isInteger(blockEnd) || blockStart < 1 || blockEnd < blockStart) {
+      continue;
+    }
+    const rect = block.getBoundingClientRect();
+    if (rect.height <= 0) continue;
+    const distance = blockEnd < startLine
+      ? startLine - blockEnd
+      : blockStart > endLine
+        ? blockStart - endLine
+        : 0;
+    const lineSpan = blockEnd - blockStart;
+    if (distance > bestDistance ||
+        (distance === bestDistance && lineSpan > bestLineSpan) ||
+        (distance === bestDistance && lineSpan === bestLineSpan && rect.height >= bestHeight)) {
+      continue;
+    }
+    best = { block, rect };
+    bestDistance = distance;
+    bestLineSpan = lineSpan;
+    bestHeight = rect.height;
+  }
+  return best;
+}
+
+function applyPreviewScrollState(scrollState) {
+  const anchor = findPreviewAnchor(scrollState);
+  if (anchor) {
+    const progress = Number.isFinite(scrollState.previewAnchorProgress)
+      ? Math.max(0, Math.min(1, scrollState.previewAnchorProgress))
+      : 0;
+    const viewportY = normalizeScrollOffset(scrollState.previewAnchorViewportY);
+    const anchorY = anchor.rect.top + anchor.rect.height * progress;
+    window.scrollTo(0, Math.max(0, window.scrollY + anchorY - viewportY));
+  } else {
+    window.scrollTo(0, scrollState.previewScrollTop);
+  }
+
+  const toc = document.getElementById("lm-md-toc-list");
+  if (toc) toc.scrollTop = scrollState.tocScrollTop;
+  const changeList = document.getElementById("lm-md-change-list-scroll");
+  if (changeList) changeList.scrollTop = scrollState.changeListScrollTop;
+}
+
+async function restorePreviewScrollState(previewState) {
+  const scrollState = {
+    previewScrollTop: normalizeScrollOffset(previewState?.previewScrollTop),
+    tocScrollTop: normalizeScrollOffset(previewState?.tocScrollTop),
+    changeListScrollTop: normalizeScrollOffset(previewState?.changeListScrollTop),
+    previewAnchorStartLine: normalizeScrollOffset(previewState?.previewAnchorStartLine),
+    previewAnchorEndLine: normalizeScrollOffset(previewState?.previewAnchorEndLine),
+    previewAnchorProgress: Number.isFinite(previewState?.previewAnchorProgress)
+      ? Math.max(0, Math.min(1, previewState.previewAnchorProgress))
+      : 0,
+    previewAnchorViewportY: normalizeScrollOffset(previewState?.previewAnchorViewportY),
+    previewScrollUpdatedAt: normalizeScrollOffset(previewState?.previewScrollUpdatedAt),
+  };
+  const sequence = ++previewScrollRestoreSequence;
+  previewScrollRestoreLocked = true;
+
+  try {
+    await mermaidRenderPromise;
+  } catch {
+    // A failed diagram must not prevent restoring the reading position.
+  }
+  try {
+    await document.fonts?.ready;
+  } catch {
+    // Continue with the currently available font metrics.
+  }
+
+  const nextFrame = () => new Promise((resolve) => window.requestAnimationFrame(resolve));
+  await nextFrame();
+  for (let pass = 0; pass < 2; pass += 1) {
+    if (sequence !== previewScrollRestoreSequence) return;
+    applyPreviewScrollState(scrollState);
+    await nextFrame();
+  }
+  if (sequence === previewScrollRestoreSequence && scrollState.previewAnchorStartLine < 1) {
+    const migratedScrollState = collectScrollState();
+    if (migratedScrollState.previewAnchorStartLine > 0) {
+      const previousState = vscode.getState() || {};
+      const previewState = {
+        ...(previousState.previewState || {}),
+        ...migratedScrollState,
+        previewScrollUpdatedAt: nextPreviewScrollUpdatedAt(),
+      };
+      vscode.setState({ ...previousState, previewState });
+      vscode.postMessage({ type: "previewStateChanged", previewState });
+    }
+  }
+}
+
 function persistPreviewState() {
+  if (previewScrollPersistenceTimer !== null) {
+    window.clearTimeout(previewScrollPersistenceTimer);
+    previewScrollPersistenceTimer = null;
+  }
   const previewState = collectPreviewState();
   const previousState = vscode.getState() || {};
+  if (previewScrollRestoreLocked && previousState.previewState) {
+    Object.assign(previewState, pickPreviewScrollState(previousState.previewState));
+  } else {
+    previewState.previewScrollUpdatedAt = nextPreviewScrollUpdatedAt();
+  }
   vscode.setState({ ...previousState, previewState });
   vscode.postMessage({ type: "previewStateChanged", previewState });
 }
 
-function restorePreviewState(previewState) {
+function pickPreviewScrollState(previewState) {
+  return {
+    previewScrollTop: normalizeScrollOffset(previewState?.previewScrollTop),
+    tocScrollTop: normalizeScrollOffset(previewState?.tocScrollTop),
+    changeListScrollTop: normalizeScrollOffset(previewState?.changeListScrollTop),
+    previewAnchorStartLine: normalizeScrollOffset(previewState?.previewAnchorStartLine),
+    previewAnchorEndLine: normalizeScrollOffset(previewState?.previewAnchorEndLine),
+    previewAnchorProgress: Number.isFinite(previewState?.previewAnchorProgress)
+      ? Math.max(0, Math.min(1, previewState.previewAnchorProgress))
+      : 0,
+    previewAnchorViewportY: normalizeScrollOffset(previewState?.previewAnchorViewportY),
+    previewScrollUpdatedAt: normalizeScrollOffset(previewState?.previewScrollUpdatedAt),
+  };
+}
+
+function mergePreviewScrollState(incomingState) {
+  const localState = vscode.getState()?.previewState;
+  const externalState = incomingState && typeof incomingState === "object"
+    ? incomingState
+    : null;
+  if (!localState && !externalState) return null;
+
+  const localUpdatedAt = normalizeScrollOffset(localState?.previewScrollUpdatedAt);
+  const externalUpdatedAt = normalizeScrollOffset(externalState?.previewScrollUpdatedAt);
+  const scrollSource = localUpdatedAt > 0 && localUpdatedAt >= externalUpdatedAt
+    ? localState
+    : externalState || localState;
+  return {
+    ...(externalState || localState),
+    ...pickPreviewScrollState(scrollSource),
+    previewScrollUpdatedAt: Math.max(localUpdatedAt, externalUpdatedAt),
+  };
+}
+
+function persistPreviewScrollState() {
+  previewScrollPersistenceTimer = null;
+  if (previewScrollRestoreLocked) return;
+  const previousState = vscode.getState() || {};
+  const previousPreviewState = previousState.previewState || collectPreviewState();
+  const previewState = {
+    ...previousPreviewState,
+    ...collectScrollState(),
+    previewScrollUpdatedAt: nextPreviewScrollUpdatedAt(),
+  };
+  vscode.setState({ ...previousState, previewState });
+  vscode.postMessage({ type: "previewStateChanged", previewState });
+}
+
+function schedulePreviewScrollStatePersistence() {
+  if (previewScrollRestoreLocked) return;
+  if (previewScrollPersistenceTimer !== null) {
+    window.clearTimeout(previewScrollPersistenceTimer);
+  }
+  previewScrollPersistenceTimer = window.setTimeout(persistPreviewScrollState, 180);
+}
+
+function flushPreviewScrollState() {
+  if (previewScrollPersistenceTimer === null) return;
+  window.clearTimeout(previewScrollPersistenceTimer);
+  persistPreviewScrollState();
+}
+
+function unlockPreviewScrollPersistence(event) {
+  const target = elementForNode(event?.target);
+  if (target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+  previewScrollRestoreLocked = false;
+}
+
+function schedulePreviewPositionRestore() {
+  if (previewScrollResizeTimer !== null) {
+    window.clearTimeout(previewScrollResizeTimer);
+  }
+  previewScrollResizeTimer = window.setTimeout(() => {
+    previewScrollResizeTimer = null;
+    const previewState = vscode.getState()?.previewState;
+    if (previewState) void restorePreviewScrollState(previewState);
+  }, 120);
+}
+
+function initializePreviewScrollPersistence() {
+  window.addEventListener("scroll", schedulePreviewScrollStatePersistence, { passive: true });
+  document.addEventListener("scroll", (event) => {
+    const target = event.target;
+    if (target?.id === "lm-md-toc-list" || target?.id === "lm-md-change-list-scroll") {
+      schedulePreviewScrollStatePersistence();
+    }
+  }, { capture: true, passive: true });
+  window.addEventListener("blur", flushPreviewScrollState);
+  window.addEventListener("pagehide", flushPreviewScrollState);
+  window.addEventListener("resize", schedulePreviewPositionRestore, { passive: true });
+  window.addEventListener("wheel", unlockPreviewScrollPersistence, { passive: true });
+  window.addEventListener("touchstart", unlockPreviewScrollPersistence, { passive: true });
+  window.addEventListener("pointerdown", unlockPreviewScrollPersistence, { passive: true });
+  window.addEventListener("keydown", (event) => {
+    if (["ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " "].includes(event.key)) {
+      unlockPreviewScrollPersistence(event);
+    }
+  }, true);
+  document.addEventListener("load", (event) => {
+    if (event.target?.tagName === "IMG" && document.querySelector("article")?.contains(event.target)) {
+      schedulePreviewPositionRestore();
+    }
+  }, true);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") flushPreviewScrollState();
+    else schedulePreviewPositionRestore();
+  });
+}
+
+function restorePreviewState(previewState, options = {}) {
   if (!previewState || typeof previewState !== "object") return;
+  previewState = mergePreviewScrollState(previewState);
   const collapsedHeadingIds = new Set(
     Array.isArray(previewState.collapsedHeadingIds)
       ? previewState.collapsedHeadingIds
@@ -345,7 +646,12 @@ function restorePreviewState(previewState) {
   applyChangePanelHidden(Boolean(previewState.changePanelHidden));
   initializeStickyLayout();
   const previousState = vscode.getState() || {};
-  vscode.setState({ ...previousState, previewState: collectPreviewState() });
+  const nextPreviewState = collectPreviewState();
+  if (previewState && typeof previewState === "object") {
+    Object.assign(nextPreviewState, pickPreviewScrollState(previewState));
+    if (options.restoreScroll !== false) void restorePreviewScrollState(nextPreviewState);
+  }
+  vscode.setState({ ...previousState, previewState: nextPreviewState });
 }
 
 function toggleToolbarVisibility() {
@@ -680,7 +986,8 @@ function initializeThemeToggle() {
     event.preventDefault();
     event.stopPropagation();
     apply(!document.body.classList.contains("lm-md-light"));
-    void renderMermaidDiagrams();
+    const scrollState = collectScrollState();
+    void renderMermaidDiagrams().then(() => restorePreviewScrollState(scrollState));
   });
 }
 
@@ -800,6 +1107,34 @@ function blocksForChange(entry) {
   return nearest ? [nearest] : [];
 }
 
+function applyNetChangeHighlights() {
+  const article = document.querySelector("article");
+  if (!article) return;
+
+  const classes = [
+    "lm-md-net-change",
+    "lm-md-net-change-added",
+    "lm-md-net-change-modified",
+    "lm-md-net-change-removed",
+  ];
+  for (const block of article.querySelectorAll(classes.map((name) => `.${name}`).join(","))) {
+    block.classList.remove(...classes);
+  }
+
+  for (const entry of changeEntries()) {
+    const addedLines = Number(entry.dataset.addedLines) || 0;
+    const removedLines = Number(entry.dataset.removedLines) || 0;
+    const kind = addedLines && removedLines
+      ? "modified"
+      : addedLines
+        ? "added"
+        : "removed";
+    for (const block of blocksForChange(entry)) {
+      block.classList.add("lm-md-net-change", `lm-md-net-change-${kind}`);
+    }
+  }
+}
+
 function revealPreviewLine(line) {
   const sourceLine = Number(line);
   if (!Number.isInteger(sourceLine) || sourceLine < 1) return false;
@@ -835,6 +1170,8 @@ function revealPreviewLine(line) {
   activateTocForLine(sourceLine);
   for (const block of targets) block.classList.add("lm-md-reference-current");
   targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  previewScrollRestoreLocked = false;
+  window.setTimeout(schedulePreviewScrollStatePersistence, 400);
   window.setTimeout(() => {
     for (const block of targets) block.classList.remove("lm-md-reference-current");
   }, 3200);
@@ -868,6 +1205,7 @@ function initializeChangeHistory() {
   const next = document.getElementById("lm-md-change-next");
   const sourceReview = document.getElementById("lm-md-change-source-current");
   const toggle = document.getElementById("lm-md-change-toggle");
+  initializeChangeHistoryHelp();
   applyChangePanelCollapsed(false);
   if (toggle && toggle.dataset.bound !== "true") {
     toggle.dataset.bound = "true";
@@ -939,6 +1277,68 @@ function initializeChangeHistory() {
   }
 }
 
+function initializeChangeHistoryHelp() {
+  const help = document.getElementById("lm-md-change-help");
+  const button = document.getElementById("lm-md-change-help-button");
+  if (help && button && help.dataset.bound !== "true") {
+    help.dataset.bound = "true";
+    help.addEventListener("pointerenter", () => {
+      help.dataset.dismissed = "false";
+      setChangeHistoryHelpOpen(help, true);
+    });
+    help.addEventListener("pointerleave", () => {
+      if (help.dataset.pinned === "true" || help.matches(":focus-within")) return;
+      setChangeHistoryHelpOpen(help, false);
+    });
+    help.addEventListener("focusin", () => {
+      if (help.dataset.dismissed !== "true") setChangeHistoryHelpOpen(help, true);
+    });
+    help.addEventListener("focusout", () => {
+      if (help.dataset.pinned === "true" || help.matches(":hover")) return;
+      help.dataset.dismissed = "false";
+      setChangeHistoryHelpOpen(help, false);
+    });
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      if (help.dataset.pinned === "true") {
+        closeChangeHistoryHelp(help, true);
+      } else {
+        help.dataset.dismissed = "false";
+        help.dataset.pinned = "true";
+        setChangeHistoryHelpOpen(help, true);
+      }
+    });
+  }
+
+  if (!changeHelpDocumentHandlersBound) {
+    changeHelpDocumentHandlersBound = true;
+    document.addEventListener("click", (event) => {
+      const openHelp = document.querySelector("#lm-md-change-help.is-open");
+      if (openHelp && !openHelp.contains(event.target)) {
+        closeChangeHistoryHelp(openHelp, true);
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const openHelp = document.querySelector("#lm-md-change-help.is-open");
+      if (!openHelp) return;
+      closeChangeHistoryHelp(openHelp, true);
+      document.getElementById("lm-md-change-help-button")?.focus();
+    });
+  }
+}
+
+function setChangeHistoryHelpOpen(help, open) {
+  help.classList.toggle("is-open", open);
+  help.querySelector("#lm-md-change-help-button")?.setAttribute("aria-expanded", String(open));
+}
+
+function closeChangeHistoryHelp(help, dismiss) {
+  help.dataset.pinned = "false";
+  if (dismiss) help.dataset.dismissed = "true";
+  setChangeHistoryHelpOpen(help, false);
+}
+
 function applyChangePanelCollapsed(collapsed) {
   const panel = document.getElementById("lm-md-change-history");
   const body = document.getElementById("lm-md-change-body");
@@ -969,10 +1369,6 @@ function updatePreviewContent(message) {
   const toc = document.getElementById("lm-md-toc-list");
   const history = document.getElementById("lm-md-change-history");
   if (!article || !toc || !history) return;
-  const pageScrollTop = window.scrollY;
-  const tocScrollTop = toc.scrollTop;
-  const listScroll = document.getElementById("lm-md-change-list-scroll");
-  const historyScrollTop = listScroll?.scrollTop || 0;
   const previewState = collectPreviewState();
 
   article.innerHTML = message.bodyHtml;
@@ -983,17 +1379,15 @@ function updatePreviewContent(message) {
   history.innerHTML = message.changeHistoryHtml;
   initializeCollapsibleHeadings();
   initializeTocCollapsing();
-  restorePreviewState(previewState);
+  restorePreviewState(previewState, { restoreScroll: false });
   initializeTableOfContents();
   initializeTableOfContentsSearch();
   initializeContentSearch();
   initializeChangeHistory();
-  void renderMermaidDiagrams(article);
-  window.requestAnimationFrame(() => {
-    window.scrollTo(0, pageScrollTop);
-    toc.scrollTop = tocScrollTop;
-    const updatedListScroll = document.getElementById("lm-md-change-list-scroll");
-    if (updatedListScroll) updatedListScroll.scrollTop = historyScrollTop;
+  applyNetChangeHighlights();
+  void renderMermaidDiagrams(article).then(() => {
+    applyNetChangeHighlights();
+    restorePreviewScrollState(previewState);
   });
 }
 
@@ -1001,16 +1395,12 @@ function updateChangeHistory(message) {
   const history = document.getElementById("lm-md-change-history");
   if (!history) return;
   const previewState = collectPreviewState();
-  const listScroll = document.getElementById("lm-md-change-list-scroll");
-  const historyScrollTop = listScroll?.scrollTop || 0;
   history.innerHTML = message.changeHistoryHtml;
   initializeChangeHistory();
-  restorePreviewState(previewState);
+  applyNetChangeHighlights();
+  restorePreviewState(previewState, { restoreScroll: false });
   setStatus("改动列表已刷新");
-  window.requestAnimationFrame(() => {
-    const updatedListScroll = document.getElementById("lm-md-change-list-scroll");
-    if (updatedListScroll) updatedListScroll.scrollTop = historyScrollTop;
-  });
+  void restorePreviewScrollState(previewState);
 }
 
 initializeCollapsibleHeadings();
@@ -1020,12 +1410,16 @@ initializeTableOfContents();
 initializeTableOfContentsToggle();
 initializeTocPanelToggle();
 initializeThemeToggle();
-  initializeStickyLayout();
+initializeStickyLayout();
+initializePreviewScrollPersistence();
 restorePreviewState(vscode.getState()?.previewState);
 initializeTableOfContentsSearch();
 initializeContentSearch();
 initializeChangeHistory();
-void renderMermaidDiagrams();
+void renderMermaidDiagrams().then(() => {
+  const savedPreviewState = vscode.getState()?.previewState;
+  if (savedPreviewState) restorePreviewScrollState(savedPreviewState);
+});
 vscode.postMessage({ type: "previewReady" });
 
 document.addEventListener("mouseup", (event) => {
@@ -1228,6 +1622,10 @@ window.addEventListener("message", (event) => {
     restorePreviewState(event.data.previewState);
     initializeTableOfContentsSearch();
     initializeContentSearch();
+  }
+  if (event.data?.type === "restorePreviewScroll") {
+    const previewState = mergePreviewScrollState(event.data.previewState);
+    if (previewState) void restorePreviewScrollState(previewState);
   }
   if (event.data?.type === "updatePreviewContent") {
     updatePreviewContent(event.data);

@@ -50,6 +50,7 @@ Invoke-Csc @(
     '/reference:System.Xml.dll',
     "/reference:$coreAssembly",
     (Join-Path $projectRoot 'src\AudioScene.WindowsAudio.cs'),
+    (Join-Path $projectRoot 'src\AudioScene.WindowsAudio.LevelMeter.cs'),
     (Join-Path $projectRoot 'src\AudioScene.App.cs')
 )
 

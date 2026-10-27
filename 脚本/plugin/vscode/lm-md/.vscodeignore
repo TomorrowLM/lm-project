@@ -4,6 +4,8 @@ test/
 scripts/
 *.test.js
 *.vsix
+images/icon.png
+DEVELOPMENT.md
 
 # Local visual brainstorming artifacts
 docs/

@@ -8,6 +8,22 @@ const manifest = JSON.parse(
   fs.readFileSync(path.join(root, "package.json"), "utf8"),
 );
 
+test("uses the publisher ID that owns the Marketplace listing", () => {
+  assert.equal(manifest.publisher, "lmtomorrow");
+});
+
+test("declares a bundled extension icon", () => {
+  assert.equal(manifest.icon, "images/icon-1024.png");
+  assert.ok(fs.existsSync(path.join(root, manifest.icon)));
+});
+
+test("bundled extension icon stays within Marketplace dimensions", () => {
+  const icon = fs.readFileSync(path.join(root, manifest.icon));
+  assert.equal(icon.toString("ascii", 1, 4), "PNG");
+  assert.ok(icon.readUInt32BE(16) <= 1024, "icon width must be at most 1024 pixels");
+  assert.ok(icon.readUInt32BE(20) <= 1024, "icon height must be at most 1024 pixels");
+});
+
 test("extension manifest declares the Markdown preview command", () => {
   const commands = manifest.contributes.commands.map((item) => item.command);
   assert.ok(commands.includes("lmMd.openPreview"));

@@ -63,6 +63,10 @@ namespace AudioScene.App
         private readonly Label trebleValue = new Label();
         private readonly Label voiceClarityValue = new Label();
         private readonly ComboBox spatialList = new ComboBox();
+        private readonly CheckBox levelMonitorBox = new CheckBox();
+        private readonly Label levelStatusLabel = new Label();
+        private readonly OutputLevelMeterControl levelMeter = new OutputLevelMeterControl();
+        private readonly System.Windows.Forms.Timer levelTimer = new System.Windows.Forms.Timer();
         private readonly TrackBar[] equalizerBars = new TrackBar[10];
         private readonly Label[] equalizerValues = new Label[10];
         private readonly Label presetDescription = new Label();
@@ -86,6 +90,7 @@ namespace AudioScene.App
             Font = new Font("Microsoft YaHei UI", 10F);
 
             BuildUi();
+            FormClosed += delegate { StopLevelMonitor(); };
             LoadState();
         }
 
@@ -124,7 +129,7 @@ namespace AudioScene.App
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
                 ColumnCount = 2,
-                RowCount = 11,
+                RowCount = 12,
                 Padding = new Padding(12, 4, 4, 4)
             };
             editor.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 110F));
@@ -136,6 +141,7 @@ namespace AudioScene.App
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 48F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 40F));
+            editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 112F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 240F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 72F));
             editor.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
@@ -206,6 +212,56 @@ namespace AudioScene.App
             };
             AddEditorRow(editor, 7, "空间音效", spatialList);
 
+            GroupBox levelGroup = new GroupBox
+            {
+                Text = "声音动态",
+                Dock = DockStyle.Fill,
+                Padding = new Padding(6)
+            };
+            TableLayoutPanel levelLayout = new TableLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                ColumnCount = 1,
+                RowCount = 2
+            };
+            levelLayout.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
+            levelLayout.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
+            levelMeter.Dock = DockStyle.Fill;
+            levelLayout.Controls.Add(levelMeter, 0, 0);
+            FlowLayoutPanel levelOptions = new FlowLayoutPanel
+            {
+                Dock = DockStyle.Fill,
+                WrapContents = false,
+                AutoSize = true,
+                Padding = new Padding(0, 2, 0, 0)
+            };
+            levelMonitorBox.Text = "开启实时监测（选定设备输出）";
+            levelMonitorBox.AutoSize = true;
+            levelMonitorBox.CheckedChanged += delegate
+            {
+                levelTimer.Enabled = levelMonitorBox.Checked;
+                if (levelMonitorBox.Checked)
+                {
+                    levelStatusLabel.Text = "正在启动实时监测…";
+                    UpdateLevelMeter();
+                }
+                else
+                {
+                    StopLevelMonitor();
+                }
+            };
+            levelStatusLabel.AutoSize = true;
+            levelStatusLabel.ForeColor = Color.DimGray;
+            levelStatusLabel.Text = "实时监测未开启。";
+            levelOptions.Controls.Add(levelMonitorBox);
+            levelOptions.Controls.Add(levelStatusLabel);
+            levelLayout.Controls.Add(levelOptions, 0, 1);
+            levelGroup.Controls.Add(levelLayout);
+            AddEditorRow(editor, 8, "声音动态", levelGroup);
+
+            levelTimer.Interval = 80;
+            levelTimer.Tick += delegate { UpdateLevelMeter(); };
+
             GroupBox equalizerGroup = new GroupBox
             {
                 Text = "10 段均衡器（dB）",
@@ -230,13 +286,13 @@ namespace AudioScene.App
                     equalizerValues[index]));
             }
             equalizerGroup.Controls.Add(equalizerPanel);
-            AddEditorRow(editor, 8, "均衡器", equalizerGroup);
+            AddEditorRow(editor, 9, "均衡器", equalizerGroup);
 
             presetDescription.Text = "选择预设后会填入音量和真实音效参数。";
             presetDescription.AutoEllipsis = true;
             presetDescription.Dock = DockStyle.Fill;
             presetDescription.ForeColor = Color.DimGray;
-            AddEditorRow(editor, 9, "预设说明", presetDescription);
+            AddEditorRow(editor, 10, "预设说明", presetDescription);
 
             FlowLayoutPanel actions = new FlowLayoutPanel { Dock = DockStyle.Fill, AutoSize = true };
             Button newButton = CreateButton("新建场景", delegate { CreateProfile(); });
@@ -255,7 +311,7 @@ namespace AudioScene.App
             actions.Controls.Add(applyButton);
             actions.Controls.Add(deleteButton);
             actions.Controls.Add(refreshButton);
-            editor.Controls.Add(actions, 1, 10);
+            editor.Controls.Add(actions, 1, 11);
             editor.SetColumnSpan(actions, 1);
 
             statusLabel.Dock = DockStyle.Fill;
@@ -673,6 +729,49 @@ namespace AudioScene.App
             return statusBackend == null ? "高级音效状态未知。" : statusBackend.EffectsStatus;
         }
 
+        private void UpdateLevelMeter()
+        {
+            if (!levelMonitorBox.Checked)
+            {
+                return;
+            }
+
+            IAudioSceneLevelBackend levelBackend = backend as IAudioSceneLevelBackend;
+            string deviceId = GetSelectedDeviceId();
+            if (levelBackend == null || string.IsNullOrWhiteSpace(deviceId))
+            {
+                levelMeter.SetSample(AudioLevelSample.Silent);
+                levelStatusLabel.Text = "当前没有可监测的播放设备。";
+                return;
+            }
+
+            AudioLevelSample sample;
+            string message;
+            if (levelBackend.TryReadOutputLevel(deviceId, out sample, out message))
+            {
+                levelMeter.SetSample(sample);
+            }
+            else
+            {
+                levelMeter.SetSample(AudioLevelSample.Silent);
+            }
+
+            levelStatusLabel.Text = message;
+        }
+
+        private void StopLevelMonitor()
+        {
+            levelTimer.Stop();
+            IAudioSceneLevelBackend levelBackend = backend as IAudioSceneLevelBackend;
+            if (levelBackend != null)
+            {
+                levelBackend.StopOutputLevel();
+            }
+
+            levelMeter.SetSample(AudioLevelSample.Silent);
+            levelStatusLabel.Text = "实时监测未开启。";
+        }
+
         private AudioSceneProfile GetSelectedProfile()
         {
             return sceneList.SelectedItem as AudioSceneProfile;
@@ -739,6 +838,7 @@ namespace AudioScene.App
             trebleBar.Enabled = enabled;
             voiceClarityBar.Enabled = enabled;
             spatialList.Enabled = enabled;
+            levelMonitorBox.Enabled = enabled && backend is IAudioSceneLevelBackend;
             for (int index = 0; index < equalizerBars.Length; index++)
             {
                 equalizerBars[index].Enabled = enabled;
@@ -752,6 +852,72 @@ namespace AudioScene.App
         {
             statusLabel.Text = message ?? string.Empty;
             statusLabel.ForeColor = isError ? Color.Firebrick : Color.DimGray;
+        }
+    }
+
+    internal sealed class OutputLevelMeterControl : Control
+    {
+        private AudioLevelSample sample = AudioLevelSample.Silent;
+
+        public OutputLevelMeterControl()
+        {
+            SetStyle(
+                ControlStyles.UserPaint |
+                ControlStyles.AllPaintingInWmPaint |
+                ControlStyles.OptimizedDoubleBuffer |
+                ControlStyles.ResizeRedraw,
+                true);
+            BackColor = Color.White;
+            Height = 70;
+        }
+
+        public void SetSample(AudioLevelSample nextSample)
+        {
+            sample = nextSample;
+            Invalidate();
+        }
+
+        protected override void OnPaint(PaintEventArgs e)
+        {
+            base.OnPaint(e);
+            e.Graphics.Clear(BackColor);
+            int meterLeft = 34;
+            int meterWidth = Math.Max(120, Width - 250);
+            DrawChannel(e.Graphics, "左", sample.LeftRms, sample.LeftPeak, meterLeft, 8, meterWidth);
+            DrawChannel(e.Graphics, "右", sample.RightRms, sample.RightPeak, meterLeft, 36, meterWidth);
+        }
+
+        private void DrawChannel(Graphics graphics, string name, double rms, double peak, int left, int top, int width)
+        {
+            using (SolidBrush background = new SolidBrush(Color.FromArgb(232, 236, 242)))
+            using (SolidBrush fill = new SolidBrush(Color.FromArgb(22, 125, 210)))
+            using (Pen peakPen = new Pen(Color.FromArgb(224, 110, 40), 2F))
+            {
+                graphics.DrawString(name, Font, Brushes.DimGray, 0, top - 2);
+                Rectangle bar = new Rectangle(left, top + 2, width, 14);
+                graphics.FillRectangle(background, bar);
+                int fillWidth = (int)Math.Round(width * Clamp(rms));
+                if (fillWidth > 0)
+                {
+                    graphics.FillRectangle(fill, bar.X, bar.Y, fillWidth, bar.Height);
+                }
+
+                int peakX = bar.X + (int)Math.Round(width * Clamp(peak));
+                graphics.DrawLine(peakPen, peakX, bar.Y - 3, peakX, bar.Bottom + 3);
+                string text = "RMS " + AudioLevelMath.ToDb(rms).ToString("0") +
+                    " dBFS   峰值 " + AudioLevelMath.ToDb(peak).ToString("0") + " dBFS";
+                graphics.DrawString(text, Font, Brushes.DimGray, bar.Right + 8, top - 2);
+            }
+        }
+
+        private static double Clamp(double value)
+        {
+            if (double.IsNaN(value) || value <= 0.0)
+            {
+                return 0.0;
+            }
+
+            return Math.Min(1.0, value);
         }
     }
 }

@@ -6,10 +6,12 @@ using AudioScene.Core;
 
 namespace AudioScene.Windows
 {
-    public sealed class WindowsAudioBackend : IAudioSceneBackend, IAudioSceneBackendStatus
+    public sealed class WindowsAudioBackend : IAudioSceneBackend, IAudioSceneBackendStatus, IAudioSceneLevelBackend
     {
         private readonly IMMDeviceEnumerator deviceEnumerator;
         private readonly EqualizerApoAdapter apoAdapter;
+        private readonly Dictionary<string, AudioLevelLoopbackReader> levelReaders =
+            new Dictionary<string, AudioLevelLoopbackReader>(StringComparer.OrdinalIgnoreCase);
 
         public WindowsAudioBackend()
             : this(string.Empty)
@@ -25,6 +27,49 @@ namespace AudioScene.Windows
         public string EffectsStatus
         {
             get { return apoAdapter.StatusMessage; }
+        }
+
+        public bool TryReadOutputLevel(string deviceId, out AudioLevelSample sample, out string message)
+        {
+            sample = AudioLevelSample.Silent;
+            message = "请选择一个播放设备。";
+            if (string.IsNullOrWhiteSpace(deviceId))
+            {
+                return false;
+            }
+
+            AudioLevelLoopbackReader reader = null;
+            try
+            {
+                if (!levelReaders.TryGetValue(deviceId, out reader))
+                {
+                    reader = new AudioLevelLoopbackReader(deviceId);
+                    levelReaders.Add(deviceId, reader);
+                }
+
+                return reader.TryRead(out sample, out message);
+            }
+            catch (Exception ex)
+            {
+                if (reader != null)
+                {
+                    levelReaders.Remove(deviceId);
+                    reader.Dispose();
+                }
+
+                message = "无法开启播放设备回环：" + ex.Message;
+                return false;
+            }
+        }
+
+        public void StopOutputLevel()
+        {
+            foreach (AudioLevelLoopbackReader reader in levelReaders.Values)
+            {
+                reader.Dispose();
+            }
+
+            levelReaders.Clear();
         }
 
         public IList<AudioDeviceInfo> GetRenderDevices()
@@ -257,21 +302,21 @@ namespace AudioScene.Windows
             }
         }
 
-        private enum DataFlow
+        internal enum DataFlow
         {
             Render = 0,
             Capture = 1,
             All = 2
         }
 
-        private enum Role
+        internal enum Role
         {
             Console = 0,
             Multimedia = 1,
             Communications = 2
         }
 
-        private enum DeviceState
+        internal enum DeviceState
         {
             Active = 1,
             Disabled = 2,
@@ -280,26 +325,26 @@ namespace AudioScene.Windows
             MaskAll = 15
         }
 
-        private enum StorageAccess
+        internal enum StorageAccess
         {
             Read = 0
         }
 
-        private enum ClsCtx
+        internal enum ClsCtx
         {
             InprocServer = 1
         }
 
         [ComImport]
         [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
-        private class MMDeviceEnumerator
+        internal class MMDeviceEnumerator
         {
         }
 
         [ComImport]
         [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IMMDeviceEnumerator
+        internal interface IMMDeviceEnumerator
         {
             int EnumAudioEndpoints(DataFlow dataFlow, DeviceState stateMask, out IMMDeviceCollection devices);
             int GetDefaultAudioEndpoint(DataFlow dataFlow, Role role, out IMMDevice endpoint);
@@ -311,7 +356,7 @@ namespace AudioScene.Windows
         [ComImport]
         [Guid("0BD7A1BE-7A1A-44DB-8397-CC5392387B5E")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IMMDeviceCollection
+        internal interface IMMDeviceCollection
         {
             int GetCount(out uint count);
             int Item(uint index, out IMMDevice device);
@@ -320,7 +365,7 @@ namespace AudioScene.Windows
         [ComImport]
         [Guid("D666063F-1587-4E43-81F1-B948E807363F")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IMMDevice
+        internal interface IMMDevice
         {
             int Activate(ref Guid interfaceId, ClsCtx classContext, IntPtr activationParams, [MarshalAs(UnmanagedType.Interface)] out object interfacePointer);
             int OpenPropertyStore(StorageAccess access, out IPropertyStore propertyStore);
@@ -331,7 +376,7 @@ namespace AudioScene.Windows
         [ComImport]
         [Guid("886D8EEB-8CF2-4446-8D02-CD43E6DBE1F4")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IPropertyStore
+        internal interface IPropertyStore
         {
             int GetCount(out uint count);
             int GetAt(uint index, out PropertyKey key);
@@ -368,7 +413,7 @@ namespace AudioScene.Windows
         [ComImport]
         [Guid("1CB9AD4C-DBFA-4C32-B178-C2F568A703B2")]
         [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
-        private interface IAudioClient
+        internal interface IAudioClient
         {
             int Initialize(
                 int shareMode,
@@ -387,11 +432,13 @@ namespace AudioScene.Windows
             int Stop();
             int Reset();
             int SetEventHandle(IntPtr eventHandle);
-            int GetService(ref Guid interfaceId, [MarshalAs(UnmanagedType.Interface)] out object service);
+            int GetService(
+                ref Guid interfaceId,
+                [MarshalAs(UnmanagedType.IUnknown)] out object service);
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        private struct PropertyKey
+        internal struct PropertyKey
         {
             public Guid FormatId;
             public uint PropertyId;
@@ -410,7 +457,7 @@ namespace AudioScene.Windows
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        private struct PropVariant
+        internal struct PropVariant
         {
             [FieldOffset(0)]
             public ushort Type;

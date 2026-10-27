@@ -36,6 +36,8 @@ internal static class AudioSceneCoreTests
         Type detectorType = assembly.GetType("AudioScene.Core.EqualizerApoDetector");
         Type adapterType = assembly.GetType("AudioScene.Core.EqualizerApoAdapter");
         Type deviceType = assembly.GetType("AudioScene.Core.AudioDeviceInfo");
+        Type levelSampleType = assembly.GetType("AudioScene.Core.AudioLevelSample");
+        Type levelMathType = assembly.GetType("AudioScene.Core.AudioLevelMath");
         Assert(profileType != null, "audio scene profile type exists");
         Assert(storeType != null, "audio scene store type exists");
         Assert(spatialModeType != null, "audio scene spatial mode exists");
@@ -43,6 +45,27 @@ internal static class AudioSceneCoreTests
         Assert(detectorType != null, "audio scene APO detector exists");
         Assert(adapterType != null, "audio scene APO adapter exists");
         Assert(deviceType != null, "audio device info type exists");
+        Assert(levelSampleType != null, "audio level sample type exists");
+        Assert(levelMathType != null, "audio level math type exists");
+
+        if (levelSampleType != null && levelMathType != null)
+        {
+            object measured = levelMathType.GetMethod(
+                "MeasureInterleaved",
+                new Type[] { typeof(float[]), typeof(int) }).Invoke(
+                null,
+                new object[] { new float[] { 1.0f, -1.0f, 0.5f, -0.5f }, 2 });
+            double leftPeak = (double)levelSampleType.GetProperty("LeftPeak").GetValue(measured, null);
+            double rightPeak = (double)levelSampleType.GetProperty("RightPeak").GetValue(measured, null);
+            double leftRms = (double)levelSampleType.GetProperty("LeftRms").GetValue(measured, null);
+            Assert(Math.Abs(leftPeak - 1.0) < 0.001, "audio level math measures left peak");
+            Assert(Math.Abs(rightPeak - 1.0) < 0.001, "audio level math measures right peak");
+            Assert(Math.Abs(leftRms - Math.Sqrt(0.625)) < 0.001, "audio level math measures left RMS");
+            Assert((int)levelMathType.GetMethod(
+                "ToPercent",
+                new Type[] { typeof(double) }).Invoke(null, new object[] { 0.5 }) == 50,
+                "audio level math converts amplitude to percent");
+        }
 
         if (profileType != null)
         {

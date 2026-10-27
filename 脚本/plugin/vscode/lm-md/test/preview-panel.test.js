@@ -257,6 +257,27 @@ test("preview script supports section controls and content search", () => {
   assert.match(script, /persistPreviewState\(\)/);
 });
 
+test("preview script persists and restores scroll positions across editor recreation", () => {
+  const script = fs.readFileSync(
+    path.join(__dirname, "..", "media", "preview.js"),
+    "utf8",
+  );
+
+  assert.match(script, /previewScrollTop: Math\.max\(0, Math\.round\(window\.scrollY/);
+  assert.match(script, /tocScrollTop: Math\.max\(0, Math\.round\(toc\?\.scrollTop/);
+  assert.match(script, /changeListScrollTop: Math\.max\(0, Math\.round\(changeList\?\.scrollTop/);
+  assert.match(script, /function schedulePreviewScrollStatePersistence\(\)/);
+  assert.match(script, /function flushPreviewScrollState\(\)/);
+  assert.match(script, /window\.addEventListener\("scroll", schedulePreviewScrollStatePersistence/);
+  assert.match(script, /window\.addEventListener\("blur", flushPreviewScrollState\)/);
+  assert.match(script, /document\.addEventListener\("visibilitychange"/);
+  assert.match(script, /window\.scrollTo\(0, scrollState\.previewScrollTop\)/);
+  assert.match(script, /toc\.scrollTop = scrollState\.tocScrollTop/);
+  assert.match(script, /changeList\.scrollTop = scrollState\.changeListScrollTop/);
+  assert.match(script, /initializePreviewScrollPersistence\(\);\s*restorePreviewState/);
+  assert.match(script, /renderMermaidDiagrams\(\)\.then\(\(\) => \{\s*const savedPreviewState = vscode\.getState\(\)\?\.previewState;\s*if \(savedPreviewState\) restorePreviewScrollState\(savedPreviewState\);/);
+});
+
 test("preview context menu routes selected source lines to split source review", () => {
   const script = fs.readFileSync(
     path.join(__dirname, "..", "media", "preview.js"),

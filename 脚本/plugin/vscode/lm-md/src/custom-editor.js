@@ -35,6 +35,7 @@ class MarkdownCustomEditorProvider {
       webview,
       ready: false,
       pendingLine: null,
+      restoreScrollWhenVisible: false,
     };
     this.previewPanels.set(documentKey, previewRecord);
     webview.options = {
@@ -111,6 +112,28 @@ class MarkdownCustomEditorProvider {
       });
     };
     const renderTask = createCoalescedTask(render, 150);
+    const restoreScrollOnActivation = async () => {
+      const previewState = this.previewStateStore?.has(document.uri)
+        ? this.previewStateStore.get(document.uri)
+        : null;
+      const sent = await webview.postMessage({
+        type: "restorePreviewScroll",
+        previewState,
+      });
+      if (!sent) previewRecord.restoreScrollWhenVisible = true;
+    };
+    const viewStateSubscription = webviewPanel.onDidChangeViewState((event) => {
+      if (!event.webviewPanel.visible || !event.webviewPanel.active) return;
+      if (previewRecord.pendingLine !== null) {
+        previewRecord.restoreScrollWhenVisible = false;
+        return;
+      }
+      if (!webviewReady) {
+        previewRecord.restoreScrollWhenVisible = true;
+        return;
+      }
+      void restoreScrollOnActivation();
+    });
     const flushPendingReveal = async () => {
       if (!webviewReady || previewRecord.pendingLine === null) return;
       const line = previewRecord.pendingLine;
@@ -147,7 +170,14 @@ class MarkdownCustomEditorProvider {
             pendingUpdate = update;
           }
         }
+        const hadPendingLine = previewRecord.pendingLine !== null;
         await flushPendingReveal();
+        if (hadPendingLine) previewRecord.restoreScrollWhenVisible = false;
+        if (!hadPendingLine && previewRecord.restoreScrollWhenVisible &&
+            webviewPanel.visible && webviewPanel.active) {
+          previewRecord.restoreScrollWhenVisible = false;
+          await restoreScrollOnActivation();
+        }
       },
       (uri, state) => this.previewStateStore?.set(uri, state),
       async (uri) => {
@@ -183,17 +213,20 @@ class MarkdownCustomEditorProvider {
       messageSubscription.dispose();
       documentSubscription.dispose();
       saveSubscription.dispose();
+      viewStateSubscription.dispose();
       renderTask.dispose();
       this.webviewPanels.delete(webviewPanel);
       if (this.previewPanels.get(documentKey) === previewRecord) {
         this.previewPanels.delete(documentKey);
       }
       this.disposables.delete(panelSubscription);
+      this.disposables.delete(viewStateSubscription);
     });
 
     this.disposables.add(messageSubscription);
     this.disposables.add(documentSubscription);
     this.disposables.add(saveSubscription);
+    this.disposables.add(viewStateSubscription);
     this.disposables.add(panelSubscription);
     render(document);
   }

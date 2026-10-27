@@ -1,13 +1,14 @@
 const assert = require("node:assert/strict");
 const path = require("node:path");
 const vscode = require("vscode");
+const manifest = require("../package.json");
 
 function delay(milliseconds) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 async function run() {
-  const extension = vscode.extensions.getExtension("local.lm-md");
+  const extension = vscode.extensions.getExtension(`${manifest.publisher}.${manifest.name}`);
   assert.ok(extension, "the development extension must be discoverable");
   await extension.activate();
 
