@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LM Markdown 预览设置与图片上传设计 v3</title>
+  <style>
+    :root { color-scheme: dark; --bg:#111315; --panel:#1c2023; --panel2:#24292d; --line:#3a4249; --text:#e7ebef; --muted:#aab3bb; --blue:#5db5e6; --green:#86d39a; }
+    * { box-sizing:border-box; }
+    body { margin:0; padding:24px; background:var(--bg); color:var(--text); font:14px/1.6 "Segoe UI","Microsoft YaHei",sans-serif; }
+    .page { max-width:1480px; margin:auto; }
+    h1 { margin:0 0 6px; font-size:25px; }
+    .intro { margin:0 0 17px; color:var(--muted); }
+    .shell { overflow:hidden; border:1px solid #414950; border-radius:9px; background:#171a1c; box-shadow:0 14px 42px #0007; }
+    .tabs { height:38px; display:flex; align-items:center; gap:20px; padding:0 14px; background:#22272b; color:#aeb7bf; font-size:12px; }
+    .active-tab { align-self:stretch; display:flex; align-items:center; padding:0 12px; border-bottom:2px solid var(--blue); color:#f3f5f7; }
+    .toolbar { display:flex; align-items:center; gap:8px; min-height:46px; padding:7px 14px; border-bottom:1px solid var(--line); }
+    .path { flex:1; overflow:hidden; color:#aeb7bf; text-overflow:ellipsis; white-space:nowrap; }
+    .button { padding:6px 10px; border:1px solid #48525a; border-radius:5px; background:#282e33; color:#e4e9ed; font-size:12px; white-space:nowrap; }
+    .button.primary { border-color:#3687af; background:#246f91; color:white; }
+    .button.gear { width:34px; font-size:17px; text-align:center; outline:2px solid #5db5e655; }
+    .workspace { display:grid; grid-template-columns:minmax(0,1fr) 340px; min-height:660px; }
+    .article-scroll { min-width:0; max-height:665px; overflow:auto; padding:24px clamp(18px,4vw,58px) 38px; }
+    article { max-width:92ch; margin:auto; font-size:16px; line-height:1.75; }
+    article h1, article h2, article h3, article h4, article h5, article h6 { line-height:1.35; font-weight:700; }
+    article h1 { margin:0 0 14px; padding-bottom:10px; border-bottom:1px solid #424a50; font-size:34px; }
+    article h2 { margin:30px 0 12px; padding-left:12px; border-left:3px solid var(--blue); font-size:29px; }
+    article h3 { margin:24px 0 10px; font-size:25px; }
+    article h4 { margin:20px 0 8px; font-size:22px; }
+    article h5 { margin:18px 0 7px; font-size:19px; }
+    article h6 { margin:16px 0 7px; color:#c8d8e2; font-size:17px; }
+    article p, article li, article blockquote { max-width:84ch; }
+    article p { margin:0 0 13px; }
+    .example { padding:14px 16px; border:1px solid #39434a; border-radius:6px; background:#1d2226; }
+    .levels { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; margin:10px 0 16px; }
+    .level { padding:9px 4px; border:1px solid #39434a; border-radius:5px; background:#202529; text-align:center; }
+    .level small { display:block; color:var(--muted); font-size:10px; }
+    .mermaid { margin-top:18px; padding:10px; border:1px solid #39434a; border-radius:6px; background:#1d2226; }
+    .mermaid-bar { display:flex; align-items:center; gap:6px; padding-bottom:8px; color:var(--muted); font-size:11px; }
+    .mermaid-bar .spacer { flex:1; }
+    .mini { padding:3px 7px; border:1px solid #48525a; border-radius:4px; color:#e4e9ed; }
+    .diagram { overflow:auto; padding:14px; text-align:center; }
+    .diagram svg { width:min(100%,780px); min-width:530px; height:125px; }
+    .settings { min-width:0; padding:15px; border-left:1px solid var(--line); background:#202427; }
+    .settings h2 { margin:0 0 10px; font-size:17px; }
+    .row { padding:11px 0; border-bottom:1px solid #3a4248; }
+    .row-title { display:flex; justify-content:space-between; gap:8px; margin-bottom:7px; font-size:12px; font-weight:650; }
+    .hint { color:var(--muted); font-size:10px; font-weight:400; }
+    .segments { display:flex; gap:5px; }
+    .segments span { flex:1; padding:5px 4px; border:1px solid #465058; border-radius:4px; color:#cad1d7; font-size:10px; text-align:center; }
+    .segments .selected { border-color:var(--blue); background:#17394a; color:#e3f6ff; }
+    .stepper { display:flex; align-items:center; gap:8px; color:#e6ebef; }
+    .stepper b { min-width:54px; text-align:center; }
+    .step { width:28px; padding:2px; border:1px solid #465058; border-radius:4px; text-align:center; }
+    .field { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:7px 8px; border:1px solid #414b52; border-radius:4px; background:#171a1c; color:#d5dce1; font-size:11px; }
+    .field + .field { margin-top:6px; }
+    .secure { color:var(--green); font-size:10px; }
+    .notice { margin-top:9px; padding:8px; border-left:2px solid var(--green); background:#1a2b21; color:#c5e8cf; font-size:10px; line-height:1.5; }
+    .below { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:18px; }
+    .card { padding:15px; border:1px solid #39434a; border-radius:7px; background:#191d20; }
+    .card h2 { margin:0 0 8px; font-size:17px; }
+    .card p, .card li { color:#b7c0c7; font-size:12px; }
+    .card ul { margin:8px 0 0; padding-left:18px; }
+    .flow { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:11px; }
+    .flow div { padding:10px; border:1px solid #3e484f; border-radius:5px; background:#202529; text-align:center; font-size:11px; }
+    .flow b { display:block; margin-bottom:4px; color:#dfe8ee; }
+    .confirm { margin-top:18px; padding:13px; border:1px solid #3589b3; border-radius:7px; background:#17394a; color:#e9f7ff; text-align:center; font-weight:700; }
+    @media (max-width:950px) { body{padding:14px} .workspace{grid-template-columns:1fr}.settings{border-left:0;border-top:1px solid var(--line)} .settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 15px} }
+    @media (max-width:620px) { .toolbar{flex-wrap:wrap}.levels{grid-template-columns:repeat(3,1fr)}.below{grid-template-columns:1fr}.flow{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <h1>预览设置与图片上传 · 更新方案</h1>
+    <p class="intro">已按你的补充调整：腾讯 COS 凭据由每位用户在设置里配置并安全保存；标题层级整体增大；其余采用已推荐的阅读、Mermaid 和图片菜单方案。</p>
+    <section class="shell">
+      <div class="tabs"><span class="active-tab">agent.md</span><span>LM Markdown Copilot Preview</span><span style="margin-left:auto">预览</span></div>
+      <div class="toolbar"><span class="path">lm-document / agent / agent.md</span><span class="button">正文搜索</span><span class="button primary">同步到 Copilot</span><span class="button gear">⚙</span></div>
+      <div class="workspace">
+        <div class="article-scroll">
+          <article>
+            <h1>Markdown 标题与正文层级</h1>
+            <p>正文采用 16 px 舒适字号和较宽松行距；各级标题按层级递减，但最小标题仍保持清晰可辨。段落行宽适中，代码和表格在自身容器内滚动。</p>
+            <div class="example">
+              <h2 style="margin-top:0">标题尺寸预览</h2>
+              <div class="levels">
+                <div class="level"><b style="font-size:34px">H1</b><small>34 px</small></div>
+                <div class="level"><b style="font-size:29px">H2</b><small>29 px</small></div>
+                <div class="level"><b style="font-size:25px">H3</b><small>25 px</small></div>
+                <div class="level"><b style="font-size:22px">H4</b><small>22 px</small></div>
+                <div class="level"><b style="font-size:19px">H5</b><small>19 px</small></div>
+                <div class="level"><b style="font-size:17px">H6</b><small>17 px</small></div>
+              </div>
+              <h3>三级标题示例</h3>
+              <p>标题字号、字重和间距一起形成阅读层级；用户仍可在设置中调整正文大小，标题按比例同步变化。</p>
+              <h4>四级标题示例</h4>
+              <h5>五级标题示例</h5>
+              <h6>六级标题示例（最小标题 17 px）</h6>
+            </div>
+            <div class="mermaid">
+              <div class="mermaid-bar"><span>Mermaid 图表</span><span class="spacer"></span><span class="mini">−</span><span>100%</span><span class="mini">＋</span><span class="mini">适应宽度</span><span class="mini">重置</span></div>
+              <div class="diagram"><svg viewBox="0 0 780 125" role="img" aria-label="Mermaid 图表完整显示示意"><defs><marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0L8 4L0 8z" fill="#82929f"/></marker></defs><g fill="#263a46" stroke="#5795b8" stroke-width="2"><rect x="20" y="30" width="180" height="58" rx="8"/><rect x="300" y="30" width="180" height="58" rx="8"/><rect x="580" y="30" width="180" height="58" rx="8"/></g><g fill="#e4e9ed" font-size="16" text-anchor="middle"><text x="110" y="65">读取 Markdown</text><text x="390" y="65">渲染 Mermaid</text><text x="670" y="65">适应或缩放查看</text></g><g stroke="#82929f" stroke-width="3" marker-end="url(#arr)"><path d="M204 59h88"/><path d="M484 59h88"/></g></svg></div>
+            </div>
+          </article>
+        </div>
+        <aside class="settings">
+          <h2>⚙ 预览设置</h2>
+          <div class="settings-grid">
+            <div class="row"><div class="row-title"><span>主题</span><span class="hint">自动保存</span></div><div class="segments"><span class="selected">跟随 VS Code</span><span>深色</span><span>浅色</span></div></div>
+            <div class="row"><div class="row-title"><span>正文大小</span><span class="hint">标题同步缩放</span></div><div class="stepper"><span class="step">A−</span><b>16 px</b><span class="step">A+</span><span class="hint">重置</span></div></div>
+            <div class="row"><div class="row-title"><span>行距</span></div><div class="segments"><span>紧凑</span><span class="selected">舒适</span><span>宽松</span></div></div>
+            <div class="row"><div class="row-title"><span>正文宽度</span></div><div class="segments"><span>窄</span><span class="selected">标准</span><span>宽</span></div></div>
+            <div class="row">
+              <div class="row-title"><span>图片上传 · 腾讯 COS</span><span class="secure">● 已加密保存</span></div>
+              <div class="field"><span>SecretId</span><span>••••••••••••••••</span></div>
+              <div class="field"><span>SecretKey</span><span>••••••••••••••••</span></div>
+              <div class="field"><span>Bucket / Region</span><span>你的存储桶 / ap-…</span></div>
+              <div class="field"><span>上传目录</span><span>images/</span></div>
+              <div class="notice">密钥保存在 VS Code SecretStorage，不写入 README、普通设置文件、日志或 VSIX。每个安装用户自行填写 COS 凭据和存储桶参数。</div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="below">
+      <div class="card">
+        <h2>图片右键菜单</h2>
+        <p>右键预览图片可设置显示宽度：25%、50%、75%、100% 或自定义百分比。保持宽高比，保留 alt 和现有属性，并把变更写回 Markdown，支持撤销。</p>
+        <ul><li>上传固定使用腾讯 COS；本地图片直接上传，外链图片先下载临时副本。</li><li>上传成功后替换 Markdown 图片地址，保留 alt 和尺寸；上传失败不改源文档。</li><li>用户在设置里配置自己的 SecretId、SecretKey、Bucket、Region 与目录前缀。</li></ul>
+      </div>
+      <div class="card">
+        <h2>中英文说明同步到 Marketplace</h2>
+        <p>以仓库 README.md 中的简体中文和 English 内容为唯一来源；更新功能说明后，同一份 README 随 VSIX 一起进入 Marketplace 发布包。</p>
+        <div class="flow"><div><b>1 · 编辑 README</b>中英文内容保持一致</div><div><b>2 · 打包校验</b>检查 VSIX 内 README 与源文件相同</div><div><b>3 · 你决定发布</b>发布后 Marketplace 页面更新</div></div>
+        <p style="margin:10px 0 0">插件不自动上传或发布版本，避免未经确认改动公开页面。</p>
+      </div>
+    </section>
+    <div class="confirm">请确认这版整体方案；确认后我再进入正式功能实现。</div>
+  </main>
+</body>
+</html>

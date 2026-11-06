@@ -1,0 +1,86 @@
+<h2>B 方案细化 · 独立 Markdown 目录侧栏</h2>
+<p class="subtitle">按你的选择，目录拥有独立的 VS Code 侧栏入口；下面展示它跟随当前预览、突出当前章节，以及正文铺满编辑器的状态。</p>
+
+<div class="mockup">
+  <div class="mockup-header">预览：独立侧栏 + 全宽 Markdown 正文　·　点击左侧目录项，右侧预览在原标签中定位</div>
+  <div class="mockup-body" style="padding:0;background:#1e1e1e;">
+    <div style="height:510px;display:grid;grid-template-columns:38px 260px minmax(0,1fr);overflow:hidden;background:#1e1e1e;color:#ccc;font:12px/1.45 'Segoe UI',sans-serif;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:17px;padding-top:14px;background:#181818;border-right:1px solid #303030;color:#888;font-size:16px;">
+        <span title="资源管理器">▣</span><span title="搜索">⌕</span><span title="源代码管理">⑂</span>
+        <span title="Markdown 目录" style="padding-left:5px;border-left:2px solid #3794ff;color:#fff;font-weight:700;">M</span>
+      </div>
+      <aside style="display:flex;min-width:0;flex-direction:column;background:#252526;border-right:1px solid #343434;">
+        <div style="height:38px;flex:0 0 38px;display:flex;align-items:center;padding:0 12px;color:#ddd;font-weight:600;letter-spacing:.2px;">MARKDOWN 目录 <span style="margin-left:auto;color:#888;font-size:14px;">•••</span></div>
+        <div style="margin:0 10px 6px;padding:7px 8px;border:1px solid #3c3c3c;border-radius:3px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="lm-document/agent/agent.md">▤　agent.md <span style="color:#777;">· lm-document/agent</span></div>
+        <div style="display:flex;gap:6px;padding:0 10px 8px;">
+          <span style="flex:1;padding:5px;text-align:center;border:1px solid #454545;border-radius:3px;color:#bbb;font-size:10px;">全部折叠</span>
+          <span style="flex:1;padding:5px;text-align:center;border:1px solid #454545;border-radius:3px;color:#bbb;font-size:10px;">全部展开</span>
+          <span title="定位当前阅读章节" style="width:27px;padding:4px;text-align:center;border:1px solid #454545;border-radius:3px;color:#aaa;">⊙</span>
+        </div>
+        <div style="margin:0 10px 8px;padding:6px 8px;border:1px solid #454545;border-radius:3px;color:#777;">⌕　搜索标题</div>
+        <div style="padding:0 10px 6px;color:#888;font-size:10px;">共 348 个标题</div>
+        <nav style="flex:1;min-height:0;overflow:auto;padding:0 8px 10px 6px;">
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">⌄　目标</div>
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">⌄　技术栈和流程架构</div>
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">⌄　LangChain 入门</div>
+          <div style="padding:5px 19px;color:#62b7e8;font-weight:600;">⌄　依赖库</div>
+          <div style="padding:5px 33px;color:#aaa;">›　Prompt Templates</div>
+          <div style="padding:5px 33px;color:#aaa;">›　Runnable 与 LCEL</div>
+          <div style="padding:5px 33px;color:#62b7e8;font-weight:600;">⌄　事件与调试</div>
+          <div style="padding:5px 47px;color:#999;">1. 回调事件</div>
+          <div style="padding:5px 47px;background:#37373d;border-left:2px solid #3794ff;color:#fff;font-weight:600;">2. 事件流与调试</div>
+          <div style="padding:5px 47px;color:#999;">3. 常见问题</div>
+          <div style="padding:5px 33px;color:#aaa;">›　工具</div>
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">›　跑通最简单的 Agent</div>
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">›　做出能用的 Agent</div>
+          <div style="padding:5px 8px;color:#62b7e8;font-weight:600;">›　进阶自由探索</div>
+        </nav>
+        <div style="flex:0 0 auto;padding:7px 10px;border-top:1px solid #3a3a3a;color:#888;font-size:10px;">跟随当前 Markdown 预览</div>
+      </aside>
+
+      <main style="display:flex;min-width:0;flex-direction:column;">
+        <div style="height:34px;flex:0 0 34px;display:flex;align-items:center;padding:0 12px;background:#252526;border-bottom:1px solid #333;color:#ddd;">agent.md　× <span style="margin-left:auto;color:#999;font-size:10px;">LM Markdown Preview</span></div>
+        <div style="height:34px;flex:0 0 34px;display:flex;align-items:center;gap:10px;padding:0 16px;border-bottom:1px solid #333;color:#999;font-size:10px;">
+          <span>lm-document　›　agent　›　agent.md</span><span style="margin-left:auto;padding:4px 8px;border-radius:3px;background:#0e639c;color:white;">同步到 Copilot</span>
+        </div>
+        <article style="flex:1;min-height:0;overflow:auto;padding:22px clamp(24px,5vw,70px) 38px;background:#1e1e1e;color:#d4d4d4;">
+          <div style="max-width:1120px;margin:0 auto;">
+            <h1 style="margin:0 0 14px;padding-bottom:9px;border-bottom:1px solid #454545;color:#e4e4e4;font-size:28px;">事件流与调试</h1>
+            <p style="margin:0 0 18px;color:#c6c6c6;">通过回调事件观察模型、链、检索器和工具的执行过程，并在目录中快速定位章节。</p>
+            <h2 style="margin:18px 0 9px;color:#ddd;font-size:20px;">回调事件</h2>
+            <p style="margin:0 0 14px;color:#c6c6c6;">每个事件对应一个运行阶段。下面的宽表格在自身区域滚动，不会覆盖左侧目录。</p>
+            <div style="max-width:100%;overflow:auto;border:1px solid #3b3b3b;border-radius:3px;">
+              <table style="width:100%;min-width:680px;border-collapse:collapse;color:#ccc;font-size:11px;">
+                <tr style="background:#252526;color:#eee;"><th style="padding:9px;border:1px solid #3b3b3b;text-align:left;">事件</th><th style="padding:9px;border:1px solid #3b3b3b;text-align:left;">名称</th><th style="padding:9px;border:1px solid #3b3b3b;text-align:left;">输入</th><th style="padding:9px;border:1px solid #3b3b3b;text-align:left;">输出</th></tr>
+                <tr><td style="padding:9px;border:1px solid #3b3b3b;">on_llm_start</td><td style="padding:9px;border:1px solid #3b3b3b;">模型名称</td><td style="padding:9px;border:1px solid #3b3b3b;">消息列表</td><td style="padding:9px;border:1px solid #3b3b3b;">请求开始</td></tr>
+                <tr><td style="padding:9px;border:1px solid #3b3b3b;">on_chain_stream</td><td style="padding:9px;border:1px solid #3b3b3b;">format_docs</td><td style="padding:9px;border:1px solid #3b3b3b;">Document 集合</td><td style="padding:9px;border:1px solid #3b3b3b;">逐段内容</td></tr>
+                <tr><td style="padding:9px;border:1px solid #3b3b3b;">on_tool_end</td><td style="padding:9px;border:1px solid #3b3b3b;">search_tool</td><td style="padding:9px;border:1px solid #3b3b3b;">检索参数</td><td style="padding:9px;border:1px solid #3b3b3b;">完整检索结果</td></tr>
+              </table>
+            </div>
+            <h2 style="margin:22px 0 9px;color:#ddd;font-size:20px;">目录定位反馈</h2>
+            <p style="margin:0;padding:10px 12px;border-left:3px solid #3794ff;background:#252526;color:#c6c6c6;">点击左侧“事件流与调试”后，当前预览滚动到此章节；活动目录项同步高亮。编辑器标签保持不变。</p>
+          </div>
+        </article>
+      </main>
+    </div>
+  </div>
+</div>
+
+<div class="pros-cons">
+  <div class="pros">
+    <h4>这版解决的点</h4>
+    <ul>
+      <li>目录独占侧栏高度，长目录有自己的滚动区域。</li>
+      <li>文档名和路径提示目录当前跟随的预览。</li>
+      <li>正文不再预留目录栏宽度，长表格只在表格内部横向滚动。</li>
+    </ul>
+  </div>
+  <div class="cons">
+    <h4>需要你确认的使用感受</h4>
+    <ul>
+      <li>左侧 Activity Bar 会多一个 Markdown 图标。</li>
+      <li>需要切换到该图标，才能查看目录；关闭侧栏时正文仍铺满编辑器。</li>
+      <li>切换 Markdown 预览标签时，侧栏自动切换对应目录。</li>
+    </ul>
+  </div>
+</div>

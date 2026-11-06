@@ -230,7 +230,7 @@ test("does not auto-navigate for ordinary cursor movement or non-Markdown files"
   assert.deepEqual(routed, []);
 });
 
-test("routes Markdown selection changes when VS Code omits the event kind", async () => {
+test("does not route Markdown selection changes when VS Code omits the event kind", async () => {
   const routed = [];
   const uri = { toString: () => "file:///docs/agent.md" };
   const vscode = { TextEditorSelectionChangeKind: { Command: 3 } };
@@ -239,12 +239,13 @@ test("routes Markdown selection changes when VS Code omits the event kind", asyn
     async (...args) => routed.push(args),
   );
 
-  await controller.handleSelectionChange({
+  const handled = await controller.handleSelectionChange({
     textEditor: markdownEditor(uri, 20),
     selections: [markdownEditor(uri, 20).selection],
   });
 
-  assert.deepEqual(routed, [[uri, 21]]);
+  assert.equal(handled, false);
+  assert.deepEqual(routed, []);
 });
 
 test("routes a citation tab opened by Copilot even when no selection event is emitted", async () => {

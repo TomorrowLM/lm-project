@@ -2,7 +2,7 @@
   "name": "lm-md",
   "displayName": "LM Markdown Copilot Preview",
   "description": "Selectable Markdown preview that syncs source ranges to native Copilot Chat.",
-  "version": "0.2.37",
+  "version": "0.2.47",
   "publisher": "lmtomorrow",
   "icon": "images/icon-1024.png",
   "engines": {
@@ -15,13 +15,18 @@
     "onCommand:lmMd.openCopilotForSelection",
     "onCommand:lmMd.togglePreviewToolbar",
     "onCommand:lmMd.revealPreviewLocation",
-    "onCustomEditor:lmMd.previewEditor"
+    "onCustomEditor:lmMd.previewEditor",
+    "onView:lmMd.markdownOutline"
   ],
   "scripts": {
     "build:mermaid": "node scripts/build-mermaid.js",
+    "docs:check": "node scripts/check-marketplace-readme.js",
+    "vscode:prepublish": "npm run docs:check && npm run build:mermaid",
     "test": "node --test test/*.test.js"
   },
   "dependencies": {
+    "cos-nodejs-sdk-v5": "3.0.0",
+    "highlight.js": "11.12.0",
     "markdown-it": "^14.1.0"
   },
   "devDependencies": {
@@ -29,6 +34,24 @@
     "mermaid": "12.2.0"
   },
   "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "lmMd-markdownSidebar",
+          "title": "Markdown",
+          "icon": "images/markdown-outline.svg"
+        }
+      ]
+    },
+    "views": {
+      "lmMd-markdownSidebar": [
+        {
+          "id": "lmMd.markdownOutline",
+          "name": "目录",
+          "type": "webview"
+        }
+      ]
+    },
     "commands": [
       {
         "command": "lmMd.openPreview",
@@ -69,6 +92,63 @@
     "configurationDefaults": {
       "workbench.editorAssociations": {
         "*.md": "lmMd.previewEditor"
+      }
+    },
+    "configuration": {
+      "title": "LM Markdown Copilot Preview",
+      "properties": {
+        "lmMd.preview.theme": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "dark",
+            "light"
+          ],
+          "default": "auto",
+          "description": "Preview theme: follow VS Code, dark, or light."
+        },
+        "lmMd.preview.fontSize": {
+          "type": "number",
+          "minimum": 12,
+          "maximum": 24,
+          "default": 16,
+          "description": "Markdown preview body font size in pixels."
+        },
+        "lmMd.preview.lineHeight": {
+          "type": "number",
+          "enum": [
+            1.5,
+            1.75,
+            2
+          ],
+          "default": 1.75,
+          "description": "Markdown preview body line height."
+        },
+        "lmMd.preview.contentWidth": {
+          "type": "string",
+          "enum": [
+            "narrow",
+            "standard",
+            "wide"
+          ],
+          "default": "standard",
+          "description": "Maximum reading width of the Markdown preview."
+        },
+        "lmMd.tencentCos.bucket": {
+          "type": "string",
+          "default": "",
+          "description": "Tencent COS bucket name including the AppID suffix."
+        },
+        "lmMd.tencentCos.region": {
+          "type": "string",
+          "default": "",
+          "description": "Tencent COS region, for example ap-shanghai."
+        },
+        "lmMd.tencentCos.pathPrefix": {
+          "type": "string",
+          "default": "images",
+          "description": "Object key prefix for uploaded Markdown images."
+        }
       }
     },
     "menus": {

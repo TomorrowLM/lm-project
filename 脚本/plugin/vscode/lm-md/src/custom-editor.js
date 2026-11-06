@@ -12,7 +12,7 @@ const { getDocumentUriKey } = require("./document-uri");
 const { createCoalescedTask } = require("./coalesced-task");
 
 class MarkdownCustomEditorProvider {
-  constructor(vscode, context, onSelection, changeHistory, onSourceReview, previewStateStore, onFormatBold) {
+  constructor(vscode, context, onSelection, changeHistory, onSourceReview, previewStateStore, onFormatBold, outlineView, previewActions) {
     this.vscode = vscode;
     this.context = context;
     this.onSelection = onSelection;
@@ -20,6 +20,8 @@ class MarkdownCustomEditorProvider {
     this.onSourceReview = onSourceReview;
     this.previewStateStore = previewStateStore;
     this.onFormatBold = onFormatBold;
+    this.outlineView = outlineView;
+    this.previewActions = previewActions;
     this.disposables = new Set();
     this.webviewPanels = new Map();
     this.previewPanels = new Map();
@@ -33,6 +35,7 @@ class MarkdownCustomEditorProvider {
     const previewRecord = {
       panel: webviewPanel,
       webview,
+      outlineKey: `custom:${documentKey}`,
       ready: false,
       pendingLine: null,
       restoreScrollWhenVisible: false,
@@ -73,6 +76,17 @@ class MarkdownCustomEditorProvider {
     const render = (currentDocument) => {
       latestDocument = currentDocument;
       const payload = makePayload(currentDocument);
+      this.outlineView?.updatePreview(
+        previewRecord.outlineKey,
+        currentDocument.uri,
+        payload.fileName,
+        payload.headings,
+        (line) => this.revealSourceLine(currentDocument.uri, line),
+        Number(this.previewStateStore?.get(currentDocument.uri)?.previewAnchorStartLine) || 0,
+      );
+      if (webviewPanel.visible && webviewPanel.active) {
+        this.outlineView?.activatePreview(previewRecord.outlineKey);
+      }
       const scriptUri = webview.asWebviewUri(
         vscode.Uri.joinPath(context.extensionUri, "media", "preview.js"),
       );
@@ -94,6 +108,7 @@ class MarkdownCustomEditorProvider {
             changeEvents: this.changeHistory?.getEvents(currentDocument.uri) || [],
             fileName: payload.fileName,
             mermaidScriptUri: mermaidScriptUri.toString(),
+            externalOutline: true,
           },
         );
         initialHtmlSet = true;
@@ -124,6 +139,7 @@ class MarkdownCustomEditorProvider {
     };
     const viewStateSubscription = webviewPanel.onDidChangeViewState((event) => {
       if (!event.webviewPanel.visible || !event.webviewPanel.active) return;
+      this.outlineView?.activatePreview(previewRecord.outlineKey);
       if (previewRecord.pendingLine !== null) {
         previewRecord.restoreScrollWhenVisible = false;
         return;
@@ -179,7 +195,13 @@ class MarkdownCustomEditorProvider {
           await restoreScrollOnActivation();
         }
       },
-      (uri, state) => this.previewStateStore?.set(uri, state),
+      (uri, state) => {
+        this.previewStateStore?.set(uri, state);
+        this.outlineView?.updateActiveLine(
+          previewRecord.outlineKey,
+          Number(state?.previewAnchorStartLine) || 0,
+        );
+      },
       async (uri) => {
         const fileName = vscode.workspace.asRelativePath(uri);
         const savedText = await readSavedDocumentText(vscode, uri);
@@ -194,6 +216,7 @@ class MarkdownCustomEditorProvider {
         });
       },
       this.onFormatBold,
+      this.previewActions,
     );
     const messageSubscription = webview.onDidReceiveMessage(messageHandler);
     const documentSubscription = vscode.workspace.onDidChangeTextDocument(
@@ -215,6 +238,7 @@ class MarkdownCustomEditorProvider {
       saveSubscription.dispose();
       viewStateSubscription.dispose();
       renderTask.dispose();
+      this.outlineView?.removePreview(previewRecord.outlineKey);
       this.webviewPanels.delete(webviewPanel);
       if (this.previewPanels.get(documentKey) === previewRecord) {
         this.previewPanels.delete(documentKey);

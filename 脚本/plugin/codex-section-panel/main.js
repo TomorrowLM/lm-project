@@ -18,13 +18,87 @@ const APP_SERVER_STREAMING_TIMEOUT_MS = 180000;
 const APP_SERVER_INTERRUPT_TIMEOUT_MS = 3000;
 const PROXY_PROBE_TIMEOUT_MS = 5000;
 const PROXY_CACHE_TTL_MS = 30000;
-const DEFAULT_CODEX_PATH = "C:\\Users\\12032\\AppData\\Local\\OpenAI\\Codex\\bin\\2e5e00daee91c61d\\codex.exe";
+const DEFAULT_CODEX_PATH = "codex";
 const AUTO_PROXY_CANDIDATES = ["http://127.0.0.1:7890"];
 const DEFAULT_SETTINGS = {
   codexPath: DEFAULT_CODEX_PATH,
   defaultModel: "",
   proxyUrl: "auto",
 };
+
+function resolveCodexExecutable(configuredPath, options) {
+  const settings = options && typeof options === "object" ? options : {};
+  const environment = settings.env && typeof settings.env === "object" ? settings.env : process.env;
+  const getEnvironmentValue = (name) => {
+    const key = Object.keys(environment).find((item) => item.toLowerCase() === name.toLowerCase());
+    return key ? String(environment[key] || "").trim() : "";
+  };
+  const configured = String(configuredPath || "").trim();
+  const platform = process.platform;
+  const isFile = (candidate) => {
+    try {
+      return fs.statSync(candidate).isFile();
+    } catch (error) {
+      return false;
+    }
+  };
+  if (configured && isFile(configured)) return configured;
+
+  const pathValue = getEnvironmentValue("PATH");
+  // child_process.spawn cannot launch Windows batch files without a shell.
+  const pathExtensions = platform === "win32" ? [".EXE", ".COM"] : [""];
+  const findOnPath = (command) => {
+    if (!command) return "";
+    const names = path.extname(command)
+      ? [command]
+      : [...pathExtensions.map((extension) => `${command}${extension}`), command];
+    for (const directory of pathValue.split(path.delimiter).filter(Boolean)) {
+      for (const name of names) {
+        const candidate = path.resolve(directory, name);
+        if (isFile(candidate)) return candidate;
+      }
+    }
+    return "";
+  };
+
+  const configuredIsPath = configured && (path.isAbsolute(configured) || /[\\/]/.test(configured));
+  const pathCommands = configured && !configuredIsPath && configured.toLowerCase() !== "codex"
+    ? [configured, "codex"]
+    : ["codex"];
+  for (const command of pathCommands) {
+    const candidate = findOnPath(command);
+    if (candidate) return candidate;
+  }
+
+  const homeDirectory = String(settings.homeDirectory || getEnvironmentValue("USERPROFILE")
+    || getEnvironmentValue("HOME") || os.homedir()).trim();
+  const localAppData = String(settings.localAppData || getEnvironmentValue("LOCALAPPDATA")
+    || (platform === "win32" && homeDirectory ? path.join(homeDirectory, "AppData", "Local") : "")).trim();
+  const managedBin = localAppData
+    ? path.join(localAppData, "OpenAI", "Codex", "bin")
+    : "";
+  if (platform === "win32" && managedBin) {
+    try {
+      const candidates = fs.readdirSync(managedBin, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(managedBin, entry.name, "codex.exe"))
+        .filter(isFile)
+        .sort((left, right) => {
+          let leftTime = 0;
+          let rightTime = 0;
+          try { leftTime = fs.statSync(left).mtimeMs; } catch (error) { /* Ignore a concurrent uninstall. */ }
+          try { rightTime = fs.statSync(right).mtimeMs; } catch (error) { /* Ignore a concurrent uninstall. */ }
+          return rightTime - leftTime || right.localeCompare(left);
+        });
+      if (candidates.length) return candidates[0];
+    } catch (error) {
+      // The Codex managed install folder may not exist; report the actionable error below.
+    }
+  }
+
+  const configuredLabel = configured || "codex";
+  throw new Error(`找不到 Codex CLI：设置路径「${configuredLabel}」不可用，且系统 PATH / Codex 安装目录中没有可启动的 codex.exe。请检查插件设置中的 Codex CLI 路径。`);
+}
 
 function withoutMarkdownExtension(value) {
   return String(value || "").replace(/\.md$/i, "");
@@ -810,7 +884,7 @@ function normalizeMessage(message) {
     replyToMessageId: String(message.replyToMessageId || ""),
     proposal,
     editStatus: proposal
-      ? (["applied", "unchanged"].includes(message.editStatus) ? message.editStatus : "pending")
+      ? (["applied", "unchanged", "stale"].includes(message.editStatus) ? message.editStatus : "pending")
       : "",
   };
 }
@@ -976,6 +1050,7 @@ async function copyTextToClipboard(value) {
 function buildContextBlock(context) {
   const contexts = normalizePendingContexts(context);
   if (!contexts.length) return "本轮没有附加章节正文。";
+  const hasImageReferences = contexts.some((item) => /!\[\[[^\]]+\]\]|!\[[^\]]*\]\([^)]+\)/.test(String(item.text || "")));
   const blocks = contexts.map((item, index) => [
       `引用 ${index + 1}`,
       `文件：${item.path}`,
@@ -987,8 +1062,11 @@ function buildContextBlock(context) {
     ].join("\n"));
   return [
     "引用材料按用户添加顺序编号。请按本轮问题决定如何使用各引用；不要默认某一条更重要，也不要自行合并、改写引用内容。",
+    hasImageReferences
+      ? "图片引用提示：正文包含 Markdown/Obsidian 图片引用，但本次只附带了 Markdown 文本，未附带图像数据；不要声称看到了图片内容，也不要根据文件名推断图片内容。"
+      : "",
     ...blocks,
-  ].join("\n\n---\n\n");
+  ].filter(Boolean).join("\n\n---\n\n");
 }
 
 function getReferenceKey(reference) {
@@ -1128,7 +1206,7 @@ function buildCodexResponseProtocol() {
     "1. 请自行判断用户是在咨询，还是要求修改笔记。",
     "2. 只需回答时，intent 写 answer，answer 写正常的 Markdown 回答，edit 必须为 null。",
     "3. 用户要求修改笔记且有可用引用时，intent 写 edit，answer 写简短说明，edit 必须包含可应用的完整修改建议。",
-    "4. 修改建议只能覆盖上下文中列出的引用范围。若本轮没有附加引用，可复用本对话历史中已发送的引用；没有可用引用时，不要猜测内容，intent 写 answer 并说明需要引用正文。",
+    "4. 修改建议只能覆盖本轮提示中明确列出的引用范围。历史消息里的旧引用只有在插件本轮重新列出后才可用于修改；本轮没有列出引用时，不要依据历史旧引用生成修改建议，intent 写 answer 并说明需要重新读取当前章节或选区。",
     "5. 每个修改项用 contextIndex 指向一个引用，从 1 开始；replacement 必须是该引用范围的完整替换文本。",
     "6. 你不能直接修改或声称已修改 Obsidian 笔记；插件会在用户确认后通过 Obsidian API 应用 edit 建议。",
     "7. 只返回一个 JSON 对象，不要返回 Markdown 代码块、解释文字或其他内容。",
@@ -1472,6 +1550,30 @@ function positionToOffset(markdown, position) {
 function adaptReplacementLineEndings(value, markdown) {
   const replacement = normalizeLineEndings(value);
   return String(markdown || "").includes("\r\n") ? replacement.replace(/\n/g, "\r\n") : replacement;
+}
+
+function checkContextRangeFreshness(markdown, value) {
+  const context = normalizeExternalContext(value);
+  if (!context || !context.range) return { fresh: false, reason: "引用没有可验证的精确范围" };
+  const source = String(markdown || "");
+  try {
+    const from = positionToOffset(source, context.range.from);
+    const to = positionToOffset(source, context.range.to);
+    if (from > to) return { fresh: false, reason: "引用范围无效" };
+    const current = source.slice(from, to);
+    const lineBreak = current.match(/(\r\n|\r|\n)$/);
+    const contextEndsWithLineBreak = normalizeLineEndings(context.text).endsWith("\n");
+    const boundaryLineBreak = context.range.to.ch === 0 && lineBreak && !contextEndsWithLineBreak
+      ? lineBreak[1]
+      : "";
+    const comparableCurrent = boundaryLineBreak ? current.slice(0, -boundaryLineBreak.length) : current;
+    if (normalizeLineEndings(comparableCurrent) !== normalizeLineEndings(context.text)) {
+      return { fresh: false, reason: "笔记中的引用正文已变化" };
+    }
+    return { fresh: true, reason: "" };
+  } catch (error) {
+    return { fresh: false, reason: error instanceof Error ? error.message.trim() : "引用范围无法定位" };
+  }
 }
 
 function buildDocumentEditPlan(contexts, edits) {
@@ -2169,6 +2271,21 @@ class CodexSectionPanelView extends ItemView {
       footer.createDiv({ cls: "codex-section-panel__edit-proposal-state is-applied", text: "已写入笔记" });
     } else if (message.editStatus === "unchanged") {
       footer.createDiv({ cls: "codex-section-panel__edit-proposal-state", text: "笔记内容未变化" });
+    } else if (message.editStatus === "stale") {
+      footer.createDiv({
+        cls: "codex-section-panel__edit-proposal-state",
+        text: message.responseError || "引用正文已变化，这条旧建议不可写入。",
+      });
+      const regenerate = footer.createEl("button", {
+        cls: "codex-section-panel__edit-apply",
+        text: "用当前读取范围重新生成",
+        attr: { type: "button", title: "使用输入区已读取的最新章节或选区，重新生成建议" },
+      });
+      regenerate.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        void this.regenerateStaleProposalFromCurrentContexts({ message, proposal, contexts });
+      });
     } else {
       const applyButton = footer.createEl("button", {
         cls: "codex-section-panel__edit-apply mod-cta",
@@ -2630,29 +2747,55 @@ class CodexSectionPanelView extends ItemView {
     const attachedContexts = retryMessage
       ? normalizeMessageReferences(userMessage.references)
       : this.contexts.slice();
-    const historicalContexts = attachedContexts.length
+    let historicalContexts = attachedContexts.length
       ? []
       : collectConversationReferences(historyMessages);
-    const contexts = attachedContexts.length ? attachedContexts : historicalContexts;
+    let contexts = attachedContexts.length ? attachedContexts : historicalContexts;
+    let skippedHistoricalReferenceCount = 0;
+    if (!retryMessage && historicalContexts.length > 0) {
+      const vault = this.plugin && this.plugin.app && this.plugin.app.vault;
+      const currentHistoricalContexts = [];
+      for (const context of historicalContexts) {
+        let fresh = false;
+        try {
+          const file = vault && typeof vault.getAbstractFileByPath === "function"
+            ? vault.getAbstractFileByPath(context.path)
+            : null;
+          if (file && typeof vault.read === "function") {
+            const markdown = await vault.read(file);
+            fresh = checkContextRangeFreshness(markdown, context).fresh;
+          }
+        } catch (error) {
+          fresh = false;
+        }
+        if (fresh) currentHistoricalContexts.push(context);
+        else skippedHistoricalReferenceCount += 1;
+      }
+      historicalContexts = currentHistoricalContexts;
+      contexts = currentHistoricalContexts;
+    }
     const question = retryMessage
       ? String(userMessage.content || "").trim()
       : this.promptInput ? this.promptInput.value.trim() : "";
     const effectiveQuestion = question || (contexts.length ? "请分析这个章节。" : "请回答这个问题。");
-    const request = buildUnifiedConversationPrompt(effectiveQuestion, contexts, historyMessages);
+    const safeQuestion = skippedHistoricalReferenceCount > 0
+      ? `${effectiveQuestion}\n\n插件安全说明：${skippedHistoricalReferenceCount} 个历史引用与笔记当前内容不再匹配，已从本轮引用索引中跳过。请按普通追问回答；不得根据对话历史中的旧引用生成笔记修改建议。若用户要求修改，请提示其读取当前章节或选区。`
+      : effectiveQuestion;
+    const request = buildUnifiedConversationPrompt(safeQuestion, contexts, historyMessages);
     const recoveryRequest = buildUnifiedConversationPrompt(
-      effectiveQuestion,
+      safeQuestion,
       contexts,
       historyMessages,
       retryMessage
-        ? { includeHistoricalReferences: true }
-        : { includeHistoricalReferences: true, omitCurrentUserMessage: true },
+        ? { includeHistoricalReferences: skippedHistoricalReferenceCount === 0 }
+        : { includeHistoricalReferences: skippedHistoricalReferenceCount === 0, omitCurrentUserMessage: true },
     );
     // 沿用线程里已有的正文，仅重新列出稳定的引用编号，避免编号与本地可写范围错位。
     const turnRequest = attachedContexts.length
-      ? buildUnifiedTurnPrompt(effectiveQuestion, attachedContexts)
+      ? buildUnifiedTurnPrompt(safeQuestion, attachedContexts)
       : historicalContexts.length
-        ? buildHistoricalTurnPrompt(effectiveQuestion, historicalContexts)
-        : buildUnifiedTurnPrompt(effectiveQuestion, []);
+        ? buildHistoricalTurnPrompt(safeQuestion, historicalContexts)
+        : buildUnifiedTurnPrompt(safeQuestion, []);
     const model = retryMessage
       ? String(userMessage.requestModel || conversation.model || this.plugin.settings.defaultModel || "").trim()
       : String(this.modelSelect && this.modelSelect.value || conversation.model || this.plugin.settings.defaultModel || "").trim();
@@ -2673,6 +2816,8 @@ class CodexSectionPanelView extends ItemView {
       this.contexts = [];
       this.renderContexts(attachedContexts.length
         ? "本次上下文已发送并释放；引用正文保存在该条消息中。"
+        : skippedHistoricalReferenceCount
+          ? `本轮问题已发送；跳过 ${skippedHistoricalReferenceCount} 个无法定位的旧引用。若要修改笔记，请读取最新章节或选区。`
         : historicalContexts.length
           ? "已复用当前对话的引用索引；正文与当前请求关联保存。"
           : "本次只发送问题，没有附加章节或选区正文。");
@@ -3037,9 +3182,123 @@ class CodexSectionPanelView extends ItemView {
       new Notice(result.changed ? `修改已写入${targetLabel}。` : "没有需要写入的变化。");
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (pending.message && /引用范围已发生变化|笔记中的引用正文已变化|修改范围无效|引用范围超出笔记内容/.test(message)) {
+        pending.message.editStatus = "stale";
+        pending.message.responseError = "旧建议因引用范围变化已作废。请在编辑器中读取最新章节或选区，再点击“用当前读取范围重新生成”；旧建议不会写入。";
+        this.pendingEdit = null;
+        this.setStatus(pending.message.responseError);
+        new Notice(pending.message.responseError);
+        this.renderConversation();
+        try {
+          await this.plugin.persistChatState();
+        } catch (persistError) {
+          new Notice(`旧建议状态保存失败：${persistError instanceof Error ? persistError.message : String(persistError)}`);
+        }
+        return;
+      }
       this.setStatus(`写入失败：${message}`);
       new Notice(`写入失败：${message}`);
     }
+  }
+
+  async regenerateStaleProposalFromCurrentContexts(pending) {
+    if (this.busy || !pending || !pending.message) return false;
+    const currentContexts = normalizeMessageReferences(this.contexts);
+    if (currentContexts.length === 0) {
+      const message = "请先在编辑器中将光标放到最新章节，点击“读取当前章节”，再点此处重新生成。";
+      this.setStatus(message);
+      new Notice(message);
+      return false;
+    }
+
+    const vault = this.plugin && this.plugin.app && this.plugin.app.vault;
+    if (!vault || typeof vault.getAbstractFileByPath !== "function" || typeof vault.read !== "function") {
+      const message = "当前无法验证最新读取范围；请重新打开 Obsidian 后重试。";
+      this.setStatus(message);
+      new Notice(message);
+      return false;
+    }
+    const files = new Map();
+    const contents = new Map();
+    for (const context of currentContexts) {
+      let file = files.get(context.path);
+      if (file === undefined) {
+        file = vault.getAbstractFileByPath(context.path) || null;
+        files.set(context.path, file);
+      }
+      if (!file) {
+        const message = `最新读取范围对应的笔记不存在：${context.path}。尚未发送请求，笔记未改动。`;
+        this.setStatus(message);
+        new Notice(message);
+        return false;
+      }
+      let markdown = contents.get(context.path);
+      if (markdown === undefined) {
+        try {
+          markdown = await vault.read(file);
+          contents.set(context.path, markdown);
+        } catch (error) {
+          const message = `无法验证最新读取范围：${error instanceof Error ? error.message : String(error)}。尚未发送请求。`;
+          this.setStatus(message);
+          new Notice(message);
+          return false;
+        }
+      }
+      const freshness = checkContextRangeFreshness(markdown, context);
+      if (!freshness.fresh) {
+        const message = `最新读取范围在发送前又发生变化：${freshness.reason}。请重新读取后再试；笔记未改动。`;
+        this.setStatus(message);
+        new Notice(message);
+        return false;
+      }
+    }
+
+    const conversation = this.getConversation();
+    const messages = conversation && Array.isArray(conversation.messages) ? conversation.messages : [];
+    const codexMessage = pending.message;
+    let userMessage = codexMessage.replyToMessageId
+      ? messages.find((message) => message.id === codexMessage.replyToMessageId && message.role === "user")
+      : null;
+    if (!userMessage) {
+      const responseIndex = messages.indexOf(codexMessage);
+      for (let index = responseIndex - 1; index >= 0; index -= 1) {
+        if (messages[index].role === "user") {
+          userMessage = messages[index];
+          break;
+        }
+      }
+    }
+    if (!userMessage) {
+      const message = "找不到这条旧建议对应的原始请求，无法安全重新生成。";
+      this.setStatus(message);
+      new Notice(message);
+      return false;
+    }
+
+    this.contexts = currentContexts;
+    this.clearPendingEdit();
+    this.renderContexts("已验证当前读取范围；正在基于这些最新正文重新生成建议。旧建议不会写入笔记。 ");
+    codexMessage.responseError = "旧建议已作废。正在使用当前读取的最新范围重新生成；新建议仍需你确认后才会写入。";
+    this.setStatus(codexMessage.responseError);
+    this.renderConversation();
+    try {
+      await this.plugin.persistChatState();
+    } catch (error) {
+      new Notice(`旧建议状态保存失败：${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    const originalRequest = String(userMessage.content || "").trim().replace(
+      /\[\[[^\]\n]+\]\]\s*\(\s*L\d+:C\d+\s*[-–—]\s*L\d+:C\d+\s*\)/gi,
+      "[原引用范围]",
+    );
+    await this.requestEdit({
+      question: [
+        `原始修改请求：${originalRequest || "请按历史对话中的原修改目标处理。"}`,
+        "旧建议因引用范围变化已作废。请忽略旧建议及旧引用位置，只根据本轮插件已重新读取并附加的最新正文，重新完成原修改目标，并返回完整修改建议。不要直接写入笔记，等待用户确认。",
+      ].join("\n\n"),
+      preservePrompt: true,
+    });
+    return true;
   }
 
   formatElapsed(milliseconds) {
@@ -3069,7 +3328,7 @@ class CodexSectionPanelSettingTab extends PluginSettingTab {
     containerEl.empty();
     new Setting(containerEl)
       .setName("Codex CLI 路径")
-      .setDesc("填写 codex.exe 的完整路径；默认使用当前电脑上的 Codex CLI。")
+      .setDesc("有效的自定义路径会优先使用；路径失效时自动从 PATH 或 Codex 安装目录重新查找并保存。")
       .addText((text) => text
         .setPlaceholder("codex")
         .setValue(this.plugin.settings.codexPath)
@@ -3136,7 +3395,15 @@ class CodexAppServerClient {
     this.stopping = false;
     this.buffer = "";
     this.stderr = "";
-    const executable = this.plugin.settings.codexPath.trim() || "codex";
+    const configuredExecutable = String(this.plugin.settings.codexPath || "").trim();
+    const executable = resolveCodexExecutable(configuredExecutable, {
+      env: process.env,
+      homeDirectory: os.homedir(),
+    });
+    if (executable !== configuredExecutable) {
+      this.plugin.settings.codexPath = executable;
+      await this.plugin.persistData();
+    }
     const proxyUrl = await this.plugin.resolveCodexProxy();
     await this.plugin.ensureCodexProxy(proxyUrl);
     const child = childProcess.spawn(executable, buildAppServerArgs(), {
@@ -3848,9 +4115,11 @@ class CodexSectionPanelPlugin extends Plugin {
 
 var CodexSectionPanelTestAPI = {
   appendConversationMessage,
+  CodexSectionPanelView,
   buildAppServerArgs,
   buildCodexArgs,
   buildCodexEnvironment,
+  resolveCodexExecutable,
   buildProxyFailureMessage,
   probeHttpsThroughHttpProxy,
   buildConversationPrompt,

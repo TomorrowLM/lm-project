@@ -1,0 +1,118 @@
+<h2>Markdown 预览：目录放在哪里？</h2>
+<p class="subtitle">两种方案都会把目录移出预览正文，让 Markdown 内容占满编辑器区域。点击卡片选择更顺手的布局，也可以先比较再告诉我需要怎么调整。</p>
+
+<div class="cards">
+  <div class="card" data-choice="explorer-outline" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#181818;padding:0;overflow:hidden;aspect-ratio:16/10;">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;background:#1e1e1e;color:#cccccc;font:11px/1.35 'Segoe UI',sans-serif;text-align:left;">
+        <div style="height:25px;flex:0 0 25px;display:flex;align-items:center;padding:0 10px;background:#181818;border-bottom:1px solid #303030;color:#aaa;">文件　编辑　选择　查看　运行</div>
+        <div style="display:flex;flex:1;min-height:0;">
+          <div style="width:28px;flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:12px;background:#181818;color:#858585;font-size:15px;">
+            <span style="color:#fff;border-left:2px solid #3794ff;padding-left:4px;">▣</span><span>⌕</span><span>⑂</span><span>▤</span>
+          </div>
+          <div style="width:190px;flex:0 0 190px;min-width:0;background:#252526;border-right:1px solid #333;overflow:hidden;">
+            <div style="height:29px;padding:8px 10px;color:#bbb;letter-spacing:.4px;">资源管理器</div>
+            <div style="padding:4px 10px;color:#888;font-size:9px;">LM-PROJECT</div>
+            <div style="padding:3px 12px;color:#ccc;">⌄　lm-document</div>
+            <div style="padding:3px 24px;color:#aaa;">⌄　agent</div>
+            <div style="padding:3px 38px;color:#d7ba7d;">▤　agent.md</div>
+            <div style="padding:3px 24px;color:#aaa;">›　skills</div>
+            <div style="height:1px;margin:7px 0;background:#3a3a3a;"></div>
+            <div style="padding:6px 10px;color:#aaa;font-size:9px;letter-spacing:.45px;">MARKDOWN 目录 <span style="float:right;color:#777;">⌄</span></div>
+            <div style="padding:4px 12px;color:#5db6e8;font-weight:600;">⌄　LangChain 入门</div>
+            <div style="padding:4px 22px;color:#5db6e8;font-weight:600;">⌄　LCEL</div>
+            <div style="padding:4px 33px;color:#999;">›　概念与关系</div>
+            <div style="padding:4px 33px;color:#999;">›　Runnable 调用方法</div>
+            <div style="padding:4px 33px;background:#37373d;border-left:2px solid #3794ff;color:#fff;">5. 事件与调试</div>
+            <div style="padding:4px 33px;color:#999;">6. 工具</div>
+            <div style="padding:4px 33px;color:#999;">7. Agent</div>
+          </div>
+          <div style="display:flex;flex:1;min-width:0;flex-direction:column;">
+            <div style="height:29px;flex:0 0 29px;display:flex;align-items:center;padding:0 10px;background:#252526;border-bottom:1px solid #333;color:#ccc;">agent.md　× <span style="margin-left:auto;color:#888;font-size:9px;">LM Markdown Preview</span></div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:18px 24px;background:#1e1e1e;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#777;font-size:9px;">lm-document　›　agent　›　agent.md</div>
+              <h3 style="margin:0 0 9px;color:#ddd;font-size:19px;font-weight:600;">事件与调试</h3>
+              <p style="margin:0 0 14px;color:#bbb;font-size:11px;">LangChain 提供回调事件，用于观察模型、链和工具的执行过程。</p>
+              <div style="max-width:100%;overflow:auto;border:1px solid #3a3a3a;">
+                <table style="width:100%;min-width:390px;border-collapse:collapse;color:#ccc;font-size:10px;">
+                  <tr style="background:#252526;color:#ddd;"><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">事件</th><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">名称</th><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">输出</th></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_llm_start</td><td style="padding:7px;border:1px solid #3a3a3a;">模型名称</td><td style="padding:7px;border:1px solid #3a3a3a;">输入消息</td></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_chain_stream</td><td style="padding:7px;border:1px solid #3a3a3a;">format_docs</td><td style="padding:7px;border:1px solid #3a3a3a;">逐段输出内容</td></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_tool_end</td><td style="padding:7px;border:1px solid #3a3a3a;">search_tool</td><td style="padding:7px;border:1px solid #3a3a3a;">检索结果</td></tr>
+                </table>
+              </div>
+              <p style="margin:12px 0 0;color:#888;font-size:10px;">正文在编辑器中完整展开；超宽表格只在表格区域内横向滚动。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · 放进 Explorer</h3>
+      <p>目录作为 Explorer 里的可折叠视图，与文件树并列；沿用 VS Code 左侧栏，切换成本低。文件树和目录会共享纵向空间。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="dedicated-markdown-view" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#181818;padding:0;overflow:hidden;aspect-ratio:16/10;">
+      <div style="width:100%;height:100%;display:flex;flex-direction:column;background:#1e1e1e;color:#cccccc;font:11px/1.35 'Segoe UI',sans-serif;text-align:left;">
+        <div style="height:25px;flex:0 0 25px;display:flex;align-items:center;padding:0 10px;background:#181818;border-bottom:1px solid #303030;color:#aaa;">文件　编辑　选择　查看　运行</div>
+        <div style="display:flex;flex:1;min-height:0;">
+          <div style="width:28px;flex:0 0 28px;display:flex;flex-direction:column;align-items:center;gap:14px;padding-top:12px;background:#181818;color:#858585;font-size:15px;">
+            <span>▣</span><span>⌕</span><span>⑂</span><span style="color:#fff;border-left:2px solid #3794ff;padding-left:4px;font-weight:700;">M</span>
+          </div>
+          <div style="width:218px;flex:0 0 218px;min-width:0;background:#252526;border-right:1px solid #333;overflow:hidden;">
+            <div style="height:30px;padding:8px 10px;color:#bbb;letter-spacing:.35px;">MARKDOWN 目录 <span style="float:right;color:#777;">•••</span></div>
+            <div style="padding:4px 10px 8px;color:#888;font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">agent.md · lm-document/agent</div>
+            <div style="margin:0 9px 7px;padding:5px 7px;border:1px solid #454545;border-radius:3px;color:#777;font-size:10px;">⌕　搜索标题</div>
+            <div style="display:flex;gap:6px;padding:0 9px 8px;">
+              <span style="flex:1;padding:4px;text-align:center;border:1px solid #454545;border-radius:3px;color:#bbb;font-size:9px;">全部折叠</span>
+              <span style="flex:1;padding:4px;text-align:center;border:1px solid #454545;border-radius:3px;color:#bbb;font-size:9px;">全部展开</span>
+            </div>
+            <div style="padding:5px 12px;color:#5db6e8;font-weight:600;">⌄　LangChain 入门</div>
+            <div style="padding:5px 23px;color:#5db6e8;font-weight:600;">⌄　LCEL</div>
+            <div style="padding:5px 35px;color:#aaa;">›　概念与关系</div>
+            <div style="padding:5px 35px;color:#aaa;">›　Runnable 调用方法</div>
+            <div style="padding:5px 35px;background:#37373d;border-left:2px solid #3794ff;color:#fff;">5. 事件与调试</div>
+            <div style="padding:5px 35px;color:#aaa;">6. 工具</div>
+            <div style="padding:5px 35px;color:#aaa;">7. Agent</div>
+            <div style="padding:5px 12px;color:#5db6e8;font-weight:600;">›　运行配置</div>
+            <div style="padding:5px 12px;color:#5db6e8;font-weight:600;">›　错误处理</div>
+            <div style="position:absolute;opacity:0;pointer-events:none;"></div>
+          </div>
+          <div style="display:flex;flex:1;min-width:0;flex-direction:column;">
+            <div style="height:29px;flex:0 0 29px;display:flex;align-items:center;padding:0 10px;background:#252526;border-bottom:1px solid #333;color:#ccc;">agent.md　× <span style="margin-left:auto;color:#888;font-size:9px;">LM Markdown Preview</span></div>
+            <div style="flex:1;min-height:0;overflow:hidden;padding:18px 24px;background:#1e1e1e;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;color:#777;font-size:9px;">lm-document　›　agent　›　agent.md</div>
+              <h3 style="margin:0 0 9px;color:#ddd;font-size:19px;font-weight:600;">事件与调试</h3>
+              <p style="margin:0 0 14px;color:#bbb;font-size:11px;">LangChain 提供回调事件，用于观察模型、链和工具的执行过程。</p>
+              <div style="max-width:100%;overflow:auto;border:1px solid #3a3a3a;">
+                <table style="width:100%;min-width:390px;border-collapse:collapse;color:#ccc;font-size:10px;">
+                  <tr style="background:#252526;color:#ddd;"><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">事件</th><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">名称</th><th style="padding:7px;border:1px solid #3a3a3a;text-align:left;">输出</th></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_llm_start</td><td style="padding:7px;border:1px solid #3a3a3a;">模型名称</td><td style="padding:7px;border:1px solid #3a3a3a;">输入消息</td></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_chain_stream</td><td style="padding:7px;border:1px solid #3a3a3a;">format_docs</td><td style="padding:7px;border:1px solid #3a3a3a;">逐段输出内容</td></tr>
+                  <tr><td style="padding:7px;border:1px solid #3a3a3a;">on_tool_end</td><td style="padding:7px;border:1px solid #3a3a3a;">search_tool</td><td style="padding:7px;border:1px solid #3a3a3a;">检索结果</td></tr>
+                </table>
+              </div>
+              <p style="margin:12px 0 0;color:#888;font-size:10px;">正文在编辑器中完整展开；超宽表格只在表格区域内横向滚动。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · 独立 Markdown 侧栏</h3>
+      <p>在 Activity Bar 增加独立入口，打开后整栏用于目录、标题搜索和折叠操作；Explorer 文件树保持原样。适合长目录和频繁定位。</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:1.25rem;">
+  <h3>两种布局共用的行为</h3>
+  <ul style="margin:0 0 0 1.25rem;color:var(--text-secondary);font-size:.9rem;">
+    <li>正文只占编辑器区域；目录移至 VS Code 侧栏，不覆盖预览内容。</li>
+    <li>点击目录标题后，在当前 Markdown 预览标签中定位并短暂高亮，不额外打开标签。</li>
+    <li>目录跟随当前激活的 Markdown 预览；没有活动预览时显示空状态提示。</li>
+    <li>长表格、代码块和 Mermaid 图表超出宽度时在内容块内滚动。</li>
+  </ul>
+</div>

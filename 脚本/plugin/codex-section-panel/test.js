@@ -2,6 +2,7 @@
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
+const os = require("node:os");
 const path = require("node:path");
 const vm = require("node:vm");
 
@@ -29,6 +30,7 @@ const sandbox = {
   console,
   exports: {},
   module: { exports: {} },
+  process,
   require: (id) => id === "obsidian" ? obsidian : require(id),
   setTimeout,
 };
@@ -40,6 +42,7 @@ assert.equal(typeof api.findMarkdownSection, "function", "section parser should 
 assert.equal(typeof api.buildOneShotPrompt, "function", "one-shot prompt builder should be exposed for testing");
 assert.equal(typeof api.buildCodexArgs, "function", "Codex CLI argument builder should be exposed for testing");
 assert.equal(typeof api.buildCodexEnvironment, "function", "Codex CLI environment builder should be exposed for testing");
+assert.equal(typeof api.resolveCodexExecutable, "function", "Codex CLI startup should recover a moved executable path");
 assert.equal(typeof api.createConversationRecord, "function", "conversation record factory should be exposed for testing");
 assert.equal(typeof api.normalizeChatState, "function", "chat state normalizer should be exposed for testing");
 assert.equal(typeof api.normalizePluginData, "function", "plugin data normalizer should be exposed for testing");
@@ -95,6 +98,44 @@ const preservedCodexEnv = api.buildCodexEnvironment({
 }, "C:\\Users\\12032");
 assert.equal(preservedCodexEnv.HOME, "D:\\CustomHome");
 assert.equal(preservedCodexEnv.CODEX_HOME, "D:\\CustomHome\\codex");
+const codexPathFixture = fs.mkdtempSync(path.join(os.tmpdir(), "codex-path-resolution-"));
+try {
+  const pathBin = path.join(codexPathFixture, "path-bin");
+  const localAppData = path.join(codexPathFixture, "local-app-data");
+  const managedBin = path.join(localAppData, "OpenAI", "Codex", "bin");
+  fs.mkdirSync(pathBin, { recursive: true });
+  const pathExecutable = path.join(pathBin, "codex.exe");
+  fs.writeFileSync(pathExecutable, "path cli");
+  const olderManaged = path.join(managedBin, "older", "codex.exe");
+  const newerManaged = path.join(managedBin, "newer", "codex.exe");
+  fs.mkdirSync(path.dirname(olderManaged), { recursive: true });
+  fs.mkdirSync(path.dirname(newerManaged), { recursive: true });
+  fs.writeFileSync(olderManaged, "older cli");
+  fs.writeFileSync(newerManaged, "newer cli");
+  const oldTime = new Date("2026-01-01T00:00:00Z");
+  const newTime = new Date("2026-02-01T00:00:00Z");
+  fs.utimesSync(olderManaged, oldTime, oldTime);
+  fs.utimesSync(newerManaged, newTime, newTime);
+  const resolverOptions = {
+    env: { PATH: pathBin, LOCALAPPDATA: localAppData, PATHEXT: ".EXE" },
+    homeDirectory: codexPathFixture,
+  };
+  const missingConfiguredPath = path.join(codexPathFixture, "old-version", "codex.exe");
+  assert.equal(api.resolveCodexExecutable(missingConfiguredPath, resolverOptions).toLowerCase(), pathExecutable.toLowerCase(),
+    "a missing saved path should recover to the Codex executable available on PATH");
+  assert.equal(api.resolveCodexExecutable(missingConfiguredPath, {
+    ...resolverOptions,
+    env: { LOCALAPPDATA: localAppData },
+  }).toLowerCase(), newerManaged.toLowerCase(),
+  "without a PATH entry, the newest valid versioned Codex installation should be selected");
+  const customExecutable = path.join(codexPathFixture, "custom", "codex.exe");
+  fs.mkdirSync(path.dirname(customExecutable), { recursive: true });
+  fs.writeFileSync(customExecutable, "custom cli");
+  assert.equal(api.resolveCodexExecutable(customExecutable, resolverOptions).toLowerCase(), customExecutable.toLowerCase(),
+    "a valid custom executable path should remain unchanged");
+} finally {
+  fs.rmSync(codexPathFixture, { recursive: true, force: true });
+}
 assert.equal(api.normalizeProxyUrl("127.0.0.1:7890"), "http://127.0.0.1:7890");
 assert.equal(api.normalizeProxyUrl("http://127.0.0.1:7890/"), "http://127.0.0.1:7890");
 assert.equal(api.normalizeProxyUrl("off"), "");
@@ -153,6 +194,14 @@ assert.equal(persistedProposalState.conversations[0].messages[1].replyToMessageI
 assert.deepEqual(JSON.parse(JSON.stringify(persistedProposalState.conversations[0].messages[1].proposal)), structuredEdit,
   "structured edit proposals survive persistence and history reload");
 assert.equal(persistedProposalState.conversations[0].messages[1].editStatus, "pending");
+const persistedStaleProposal = api.normalizeChatState({ conversations: [{ id: "stale-proposal", messages: [{
+  role: "codex",
+  content: "旧建议已失效。",
+  proposal: structuredEdit,
+  editStatus: "stale",
+  responseError: "引用已变化。",
+}] }] }).conversations[0].messages[0];
+assert.equal(persistedStaleProposal.editStatus, "stale", "a stale proposal remains disabled after history reload");
 const persistedResponseError = api.normalizeChatState({ conversations: [{ id: "protocol-error", messages: [{
   role: "codex", content: "已完成合并。", status: "error", responseError: "未通过结构校验，笔记未改动。",
 }] }] }).conversations[0].messages[0];
@@ -330,6 +379,15 @@ assert.match(unifiedConversationPrompt, /contextIndex/);
 const unifiedTurnPrompt = api.buildUnifiedTurnPrompt("继续回答", [context]);
 assert.match(unifiedTurnPrompt, /只返回一个 JSON 对象/);
 assert.match(unifiedTurnPrompt, /声称已修改 Obsidian 笔记/);
+const imageReferencePrompt = api.buildUnifiedTurnPrompt("说明图片", [api.createSelectionContext({
+  path: "image-note.md",
+  kind: "section",
+  heading: "## 图片章节",
+  range: { from: { line: 0, ch: 0 }, to: { line: 2, ch: 0 } },
+  text: "## 图片章节\n![[Pasted image.png]]\n",
+})]);
+assert.match(imageReferencePrompt, /图片引用.*未附带图像数据/,
+  "embedded image syntax is identified as text rather than unseen image pixels");
 
 const normalCodexResponse = api.parseCodexResponse('{"answer":"已收到","edit":null}');
 assert.equal(normalCodexResponse.answer, "已收到");
@@ -820,6 +878,99 @@ assert.equal(
 async function runDocumentWriteIntegrationTests() {
   const PluginClass = sandbox.module.exports;
   const plugin = new PluginClass();
+  const staleConversation = api.createConversationRecord({ threadId: "stale-reread-thread" });
+  const staleReference = api.createSelectionContext({
+    path: "note.md",
+    kind: "section",
+    heading: "## 原章节",
+    from: { line: 0, ch: 0 },
+    to: { line: 2, ch: 0 },
+    text: "## 原章节\n旧正文\n",
+  });
+  const staleUser = api.appendConversationMessage(staleConversation, "user", "合并章节并保留垃圾回收机制\n引用：[[note]] (L1:C1-L3:C1)", "complete", 1000, [staleReference]);
+  const staleProposal = { summary: "旧合并建议", edits: [{ contextIndex: 1, replacement: "旧替换内容" }] };
+  const staleMessage = api.appendConversationMessage(staleConversation, "codex", "旧建议已失效", "complete", 2000, undefined, [], {
+    replyToMessageId: staleUser.id,
+    proposal: staleProposal,
+    editStatus: "stale",
+    responseError: "引用已变化。",
+  });
+  const rereadMarkdownLines = Array(23).fill("");
+  rereadMarkdownLines[20] = "## 垃圾回收机制（已移动并改名）";
+  rereadMarkdownLines[21] = "最新正文";
+  const rereadMarkdown = rereadMarkdownLines.join("\n");
+  const rereadContext = api.createSelectionContext({
+    path: "note.md",
+    kind: "section",
+    heading: "## 垃圾回收机制（已移动并改名）",
+    from: { line: 20, ch: 0 },
+    to: { line: 22, ch: 0 },
+    text: "## 垃圾回收机制（已移动并改名）\n最新正文\n",
+  });
+  let regeneratedRequest = null;
+  const staleView = Object.create(api.CodexSectionPanelView.prototype);
+  staleView.busy = false;
+  staleView.contexts = [rereadContext];
+  staleView.getConversation = () => staleConversation;
+  staleView.plugin = {
+    app: { vault: {
+      getAbstractFileByPath: (filePath) => filePath === "note.md" ? { path: filePath } : null,
+      read: async () => rereadMarkdown,
+    } },
+    persistChatState: async () => {},
+  };
+  staleView.renderContexts = () => {};
+  staleView.renderConversation = () => {};
+  staleView.renderEditPreview = () => {};
+  staleView.setStatus = (value) => { staleView.status = value; };
+  staleView.requestEdit = async (options) => { regeneratedRequest = options; };
+  await staleView.regenerateStaleProposalFromCurrentContexts({ message: staleMessage, proposal: staleProposal, contexts: [staleReference] });
+  assert.equal(staleView.contexts[0].heading, rereadContext.heading,
+    "manual reread supplies the current heading even when the original chapter moved and was renamed");
+  assert.equal(staleView.contexts[0].range.from.line, 20);
+  assert.match(regeneratedRequest.question, /合并章节并保留垃圾回收机制/);
+  assert.doesNotMatch(regeneratedRequest.question, /L1:C1-L3:C1/, "the obsolete line citation is removed before regeneration");
+  assert.equal(staleMessage.editStatus, "stale", "the old edit remains disabled while a new proposal is generated");
+  assert.equal(regeneratedRequest.preservePrompt, true);
+
+  const staleFollowupConversation = api.createConversationRecord({ threadId: "stale-followup-thread" });
+  api.appendConversationMessage(staleFollowupConversation, "user", "读取旧章节", "complete", 1000, [staleReference]);
+  api.appendConversationMessage(staleFollowupConversation, "codex", "已读取旧章节。", "complete", 2000);
+  const staleFollowupView = Object.create(api.CodexSectionPanelView.prototype);
+  staleFollowupView.busy = false;
+  staleFollowupView.contexts = [];
+  staleFollowupView.promptInput = { value: "请解释刚才的建议" };
+  staleFollowupView.modelSelect = { value: "gpt-test" };
+  staleFollowupView.getConversation = () => staleFollowupConversation;
+  staleFollowupView.clearPendingEdit = () => {};
+  staleFollowupView.setStatus = (value) => { staleFollowupView.status = value; };
+  staleFollowupView.renderContexts = (value) => { staleFollowupView.contextStatus = value; };
+  staleFollowupView.renderHistory = () => {};
+  staleFollowupView.renderConversation = () => {};
+  staleFollowupView.updateStreamingMessage = () => {};
+  staleFollowupView.plugin = {
+    app: { vault: {
+      getAbstractFileByPath: (filePath) => filePath === "note.md" ? { path: filePath } : null,
+      read: async () => rereadMarkdown,
+    } },
+    settings: { defaultModel: "gpt-test" },
+    persistChatState: async () => {},
+    requestCodex: async (_request, requestOptions) => {
+      staleFollowupView.turnPrompt = requestOptions.turnPrompt;
+      staleFollowupView.recoveryPrompt = requestOptions.recoveryPrompt;
+      return { cancelled: false, text: JSON.stringify({ intent: "answer", answer: "可以继续说明。", edit: null }) };
+    },
+  };
+  await staleFollowupView.send();
+  assert.match(staleFollowupView.turnPrompt, /请解释刚才的建议/);
+  assert.doesNotMatch(staleFollowupView.turnPrompt, /历史引用索引|旧正文/,
+    "the maintained source omits unlocatable historical references from a normal follow-up");
+  assert.match(staleFollowupView.turnPrompt, /本轮提示中明确列出的引用范围/,
+    "the model may only create edits against references explicitly listed in the current turn");
+  assert.doesNotMatch(staleFollowupView.recoveryPrompt, /旧正文/);
+  assert.equal(staleFollowupConversation.messages[2].references.length, 0);
+  assert.match(staleFollowupView.contextStatus, /跳过 1 个无法定位的旧引用/);
+
   const historyPlugin = new PluginClass();
   historyPlugin.chatState = api.normalizeChatState({
     activeConversationId: "persisted-active",

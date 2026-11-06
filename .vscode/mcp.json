@@ -1,46 +1,46 @@
-{
-  "mcpServers": {
-    "lm-mcp-server": {
-      "command": "npm",
-      "args": [
-        "run",
-        "start:watch"
-      ],
-      "cwd": "d:/work/demo/front/qiankun/ai/mcp/front-mcp"
-    },
-    "gitnexus": {
-      "type": "stdio",
-      "command": "npx",
-      "args": [
-        "gitnexus",
-        "mcp"
-      ]
-    },
-    "chrome-devtools": {
-      "command": "npx",
-      "args": [
-        "--registry",
-        "https://registry.npmjs.org",
-        "chrome-devtools-mcp@0.21.0"
-      ]
-    },
-    "fetch": {
-      "command": "uvx",
-      "args": [
-        "mcp-server-fetch"
-      ]
-    },
-    "mind-map": {
-      "command": "npx",
-      "args": [
-        "@lucianaib/mind-map-mcp"
-      ]
-    },
-    "drawio-mcp": {
-      "command": "npx",
-      "args": [
-        "@drawio/mcp@latest"
-      ]
-    }
-  }
-}
+// {
+//   "servers": {
+//     "lm-mcp-server": {
+//       "command": "npm",
+//       "args": [
+//         "run",
+//         "start:watch"
+//       ],
+//       "cwd": "d:/work/demo/front/qiankun/ai/mcp/front-mcp"
+//     },
+//     "gitnexus": {
+//       "type": "stdio",
+//       "command": "npx",
+//       "args": [
+//         "gitnexus",
+//         "mcp"
+//       ]
+//     },
+//     "chrome-devtools": {
+//       "command": "npx",
+//       "args": [
+//         "--registry",
+//         "https://registry.npmjs.org",
+//         "chrome-devtools-mcp@0.21.0"
+//       ]
+//     },
+//     "fetch": {
+//       "command": "uvx",
+//       "args": [
+//         "mcp-server-fetch"
+//       ]
+//     },
+//     "mind-map": {
+//       "command": "npx",
+//       "args": [
+//         "@lucianaib/mind-map-mcp"
+//       ]
+//     },
+//     "drawio-mcp": {
+//       "command": "npx",
+//       "args": [
+//         "@drawio/mcp@latest"
+//       ]
+//     }
+//   }
+// }

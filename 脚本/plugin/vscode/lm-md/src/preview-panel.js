@@ -73,6 +73,7 @@ function createPreviewMessageHandler(
   onPreviewStateChanged,
   onRefreshChangeHistory,
   onFormatBold,
+  previewActions,
 ) {
   return async (message) => {
     if (message?.type === "previewStateChanged") {
@@ -87,6 +88,52 @@ function createPreviewMessageHandler(
 
     if (message?.type === "previewReady") {
       await onReady?.();
+      if (previewActions?.getSettings) {
+        try {
+          await webview.postMessage({
+            type: "previewSettings",
+            settings: await previewActions.getSettings(),
+          });
+        } catch (error) {
+          await webview.postMessage({
+            type: "previewActionResult",
+            action: "loadSettings",
+            error: error instanceof Error ? error.message : String(error),
+          });
+        }
+      }
+      return;
+    }
+
+    if (["getPreviewSettings", "savePreviewSettings", "setImageSize", "uploadImageToCos"].includes(message?.type)) {
+      const action = message.type;
+      const requestId = message.requestId;
+      try {
+        let result;
+        if (action === "getPreviewSettings") {
+          result = await previewActions?.getSettings?.();
+          await webview.postMessage({ type: "previewSettings", requestId, settings: result });
+          return;
+        }
+        if (action === "savePreviewSettings") {
+          result = await previewActions?.saveSettings?.(message.settings);
+          await webview.postMessage({ type: "previewSettings", requestId, settings: result });
+          return;
+        }
+        if (action === "setImageSize") {
+          result = await previewActions?.setImageSize?.(documentUri, message.image);
+        } else {
+          result = await previewActions?.uploadImage?.(documentUri, message.image);
+        }
+        await webview.postMessage({ type: "previewActionResult", action, requestId, result });
+      } catch (error) {
+        await webview.postMessage({
+          type: "previewActionResult",
+          action,
+          requestId,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
       return;
     }
 
@@ -164,6 +211,8 @@ function createMarkdownPreviewPanel(
   previewStateStore,
   changeHistoryStore,
   onFormatBold,
+  outlineView,
+  previewActions,
 ) {
   const vscode = require("vscode");
   return new MarkdownPreviewPanel(
@@ -177,6 +226,8 @@ function createMarkdownPreviewPanel(
     previewStateStore,
     changeHistoryStore,
     onFormatBold,
+    outlineView,
+    previewActions,
   );
 }
 
@@ -260,6 +311,8 @@ class MarkdownPreviewPanel {
     previewStateStore,
     changeHistoryStore,
     onFormatBold,
+    outlineView,
+    previewActions,
   ) {
     this.vscode = vscode;
     this.extensionUri = extensionUri;
@@ -269,6 +322,9 @@ class MarkdownPreviewPanel {
     this.previewStateStore = previewStateStore;
     this.changeHistoryStore = changeHistoryStore;
     this.onFormatBold = onFormatBold;
+    this.outlineView = outlineView;
+    this.previewActions = previewActions;
+    this.outlineKey = `standalone:${document.uri.toString()}`;
     this.changeRecords = changeRecords;
     this.initialHtmlSet = false;
     this.webviewReady = false;
@@ -302,6 +358,7 @@ class MarkdownPreviewPanel {
     };
     this.viewStateSubscription = this.panel.onDidChangeViewState((event) => {
       if (!event.webviewPanel.visible || !event.webviewPanel.active) return;
+      this.outlineView?.activatePreview(this.outlineKey);
       if (this.pendingRevealLine !== null) {
         this.restoreScrollWhenVisible = false;
         return;
@@ -347,7 +404,13 @@ class MarkdownPreviewPanel {
             await restoreScrollOnActivation();
           }
         },
-        (uri, state) => this.previewStateStore?.set(uri, state),
+        (uri, state) => {
+          this.previewStateStore?.set(uri, state);
+          this.outlineView?.updateActiveLine(
+            this.outlineKey,
+            Number(state?.previewAnchorStartLine) || 0,
+          );
+        },
         async (uri) => {
           const fileName = this.vscode.workspace.asRelativePath(uri);
           const savedText = await readSavedDocumentText(this.vscode, uri);
@@ -362,6 +425,7 @@ class MarkdownPreviewPanel {
           });
         },
         this.onFormatBold,
+        this.previewActions,
       ),
       null,
       context.subscriptions,
@@ -369,6 +433,7 @@ class MarkdownPreviewPanel {
 
     this.panel.onDidDispose(() => {
       this.disposed = true;
+      this.outlineView?.removePreview(this.outlineKey);
       this.refreshTask.dispose();
       this.viewStateSubscription.dispose();
     }, null, context.subscriptions);
@@ -421,6 +486,17 @@ class MarkdownPreviewPanel {
       headings: rendered.headings,
       fileName,
     };
+    this.outlineView?.updatePreview(
+      this.outlineKey,
+      document.uri,
+      fileName,
+      rendered.headings,
+      (line) => this.revealSourceLine(line),
+      Number(this.previewStateStore?.get(document.uri)?.previewAnchorStartLine) || 0,
+    );
+    if (this.panel.visible && this.panel.active) {
+      this.outlineView?.activatePreview(this.outlineKey);
+    }
     if (!this.initialHtmlSet) {
       this.panel.webview.html = buildPreviewHtml(
         payload.bodyHtml,
@@ -432,6 +508,7 @@ class MarkdownPreviewPanel {
           changeEvents: this.changeHistoryStore?.getEvents(document.uri) || [],
           fileName,
           mermaidScriptUri: mermaidScriptUri.toString(),
+          externalOutline: true,
         },
       );
       this.initialHtmlSet = true;
@@ -497,9 +574,33 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     content="default-src 'none'; img-src ${cspSource} https: http: data:; style-src ${cspSource} 'nonce-${nonce}'; script-src ${cspSource};"
   >
   <style nonce="${nonce}">
-    :root { color-scheme: light dark; }
+    :root {
+      color-scheme: light dark;
+      --lm-hl-foreground: #d4d4d4;
+      --lm-hl-comment: #6a9955;
+      --lm-hl-keyword: #569cd6;
+      --lm-hl-string: #ce9178;
+      --lm-hl-number: #b5cea8;
+      --lm-hl-title: #dcdcaa;
+      --lm-hl-attribute: #9cdcfe;
+      --lm-hl-built-in: #4ec9b0;
+      --lm-hl-meta: #c586c0;
+      --lm-hl-symbol: #d7ba7d;
+      --lm-hl-muted: #808080;
+    }
     body.lm-md-light {
       color-scheme: light;
+      --lm-hl-foreground: #1f2328;
+      --lm-hl-comment: #008000;
+      --lm-hl-keyword: #0000ff;
+      --lm-hl-string: #a31515;
+      --lm-hl-number: #098658;
+      --lm-hl-title: #795e26;
+      --lm-hl-attribute: #ff0000;
+      --lm-hl-built-in: #267f99;
+      --lm-hl-meta: #af00db;
+      --lm-hl-symbol: #811f3f;
+      --lm-hl-muted: #6a737d;
       --vscode-editor-background: #ffffff;
       --vscode-editor-foreground: #1f2328;
       --vscode-panel-border: #d0d7de;
@@ -528,17 +629,89 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
       --vscode-menu-foreground: #1f2328;
       --vscode-menu-selectionBackground: #dbeafe;
       --vscode-menu-selectionForeground: #1f2328;
+      --vscode-editorWidget-border: #d0d7de;
+      --vscode-editorWidget-background: #f8f8f8;
+      --vscode-editorWidget-foreground: #1f2328;
+      --vscode-gitDecoration-addedResourceForeground: #1a7f37;
+      --vscode-gitDecoration-modifiedResourceForeground: #9a6700;
+      --vscode-gitDecoration-deletedResourceForeground: #cf222e;
       --vscode-errorForeground: #cf222e;
     }
-    body { margin: 0; overflow-x: hidden; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); line-height: 1.65; }
+    body.lm-md-dark {
+      color-scheme: dark;
+      --lm-hl-foreground: #d4d4d4;
+      --lm-hl-comment: #6a9955;
+      --lm-hl-keyword: #569cd6;
+      --lm-hl-string: #ce9178;
+      --lm-hl-number: #b5cea8;
+      --lm-hl-title: #dcdcaa;
+      --lm-hl-attribute: #9cdcfe;
+      --lm-hl-built-in: #4ec9b0;
+      --lm-hl-meta: #c586c0;
+      --lm-hl-symbol: #d7ba7d;
+      --lm-hl-muted: #808080;
+      --vscode-editor-background: #1f1f1f;
+      --vscode-editor-foreground: #d4d4d4;
+      --vscode-panel-border: #454545;
+      --vscode-descriptionForeground: #9d9d9d;
+      --vscode-button-foreground: #ffffff;
+      --vscode-button-background: #0e639c;
+      --vscode-button-secondaryForeground: #cccccc;
+      --vscode-button-secondaryBackground: #3a3d41;
+      --vscode-button-border: #454545;
+      --vscode-input-foreground: #cccccc;
+      --vscode-input-background: #3c3c3c;
+      --vscode-input-border: #454545;
+      --vscode-tree-indentGuidesStroke: #585858;
+      --vscode-textLink-foreground: #3794ff;
+      --vscode-textLink-activeForeground: #75beff;
+      --vscode-list-activeSelectionBackground: #094771;
+      --vscode-list-hoverBackground: #2a2d2e;
+      --vscode-toolbar-hoverBackground: #2a2d2e;
+      --vscode-focusBorder: #007fd4;
+      --vscode-editor-selectionBackground: #264f78;
+      --vscode-textCodeBlock-background: #1e1e1e;
+      --vscode-textBlockQuote-border: #007acc;
+      --vscode-textBlockQuote-foreground: #cccccc;
+      --vscode-menu-border: #454545;
+      --vscode-menu-background: #252526;
+      --vscode-menu-foreground: #cccccc;
+      --vscode-menu-selectionBackground: #094771;
+      --vscode-menu-selectionForeground: #ffffff;
+      --vscode-editorWidget-border: #454545;
+      --vscode-editorWidget-background: #252526;
+      --vscode-editorWidget-foreground: #cccccc;
+      --vscode-gitDecoration-addedResourceForeground: #73c991;
+      --vscode-gitDecoration-modifiedResourceForeground: #e2c08d;
+      --vscode-gitDecoration-deletedResourceForeground: #f14c4c;
+      --vscode-errorForeground: #f48771;
+    }
+    body { margin: 0; overflow-x: hidden; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); line-height: var(--lm-md-line-height, 1.75); }
+    .lm-md-main article { width: min(100%, var(--lm-md-content-width, 88ch)); margin: 0 auto; font-size: var(--lm-md-body-font-size, 16px); line-height: var(--lm-md-line-height, 1.75); overflow-wrap: anywhere; }
+    .lm-md-main article h1, .lm-md-main article h2, .lm-md-main article h3, .lm-md-main article h4, .lm-md-main article h5, .lm-md-main article h6 { line-height: 1.35; font-weight: 700; letter-spacing: .01em; }
+    .lm-md-main article h1 { margin: 0 0 18px; padding: 0 0 12px; border-bottom: 1px solid var(--vscode-panel-border); font-size: 2.125em; }
+    .lm-md-main article h2 { margin: 32px 0 13px; padding-left: 12px; border-left: 3px solid var(--vscode-focusBorder); font-size: 1.8125em; }
+    .lm-md-main article h3 { margin: 26px 0 10px; font-size: 1.5625em; }
+    .lm-md-main article h4 { margin: 22px 0 9px; font-size: 1.375em; }
+    .lm-md-main article h5 { margin: 19px 0 8px; font-size: 1.1875em; }
+    .lm-md-main article h6 { margin: 17px 0 8px; color: var(--vscode-descriptionForeground); font-size: 1.0625em; }
+    .lm-md-main article p, .lm-md-main article li, .lm-md-main article blockquote { max-width: none; }
+    .lm-md-main article p { margin: 0 0 14px; }
+    .lm-md-main article ul, .lm-md-main article ol { padding-left: 1.55em; }
+    .lm-md-main article li { padding: 2px 0; }
     .lm-md-layout { display: flex; align-items: flex-start; gap: 16px; width: 100%; max-width: none; box-sizing: border-box; margin: 0; padding: 24px 0 56px 32px; }
     .lm-md-main { min-width: 0; flex: 1 1 auto; max-width: none; }
     .lm-md-toc { position: sticky; top: 18px; align-self: flex-start; flex: 0 0 clamp(260px, 24vw, 360px); width: clamp(260px, 24vw, 360px); min-width: 0; height: calc(100vh - 36px); max-height: calc(100vh - 36px); min-height: 0; overflow: hidden; order: 2; }
     .lm-md-toc.lm-md-toc-hidden { display: none !important; }
     .lm-md-toc-panel { display: grid; grid-template-rows: auto minmax(0, 1fr); width: 100%; height: 100%; min-height: 0; box-sizing: border-box; padding: 8px 10px; overflow: hidden; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-editor-foreground)); }
     .lm-md-toc-panel.lm-md-toc-collapsed { height: auto; }
-    .lm-md-toc-summary { display: flex; width: 100%; align-items: center; gap: 6px; padding: 0 0 5px; text-align: left; font-weight: 600; color: var(--vscode-editor-foreground); background: transparent; border: 0; cursor: pointer; }
+    .lm-md-toc-header { display: flex; min-width: 0; align-items: center; gap: 4px; }
+    .lm-md-toc-summary { display: flex; min-width: 0; flex: 1 1 auto; align-items: center; gap: 6px; padding: 0 0 5px; text-align: left; font-weight: 600; color: var(--vscode-editor-foreground); background: transparent; border: 0; cursor: pointer; }
     .lm-md-toc-summary:hover { background: var(--vscode-toolbar-hoverBackground); }
+    .lm-md-toc-locate { display: inline-flex; flex: 0 0 26px; width: 26px; height: 24px; align-items: center; justify-content: center; padding: 3px; color: var(--vscode-icon-foreground, var(--vscode-descriptionForeground)); background: transparent; border: 1px solid transparent; border-radius: 4px; }
+    .lm-md-toc-locate:hover { color: var(--vscode-editor-foreground); background: var(--vscode-toolbar-hoverBackground); }
+    .lm-md-toc-locate:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
+    .lm-md-toc-locate svg { width: 16px; height: 16px; }
     .lm-md-toc-content { display: grid; grid-template-rows: auto minmax(0, 1fr); min-height: 0; overflow: hidden; }
     .lm-md-toc-content[hidden] { display: none; }
     .lm-md-toc-tools { display: grid; gap: 8px; min-height: 0; margin-top: 4px; }
@@ -566,13 +739,32 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-toc-link:hover { background: var(--vscode-list-hoverBackground); }
     .lm-md-toc-link:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     .lm-md-empty-toc { color: var(--vscode-descriptionForeground); font-size: 12px; }
-    .lm-md-toolbar { position: sticky; top: 0; z-index: 2; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "status toc theme search sync"; align-items: center; gap: 12px; min-height: 32px; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent); border-bottom: 1px solid var(--vscode-panel-border); }
+    .lm-md-toolbar { position: sticky; top: 0; z-index: 4; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "status toc settings search sync"; align-items: center; gap: 12px; min-height: 32px; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent); border-bottom: 1px solid var(--vscode-panel-border); }
     .lm-md-toolbar.lm-md-toolbar-hidden { display: none !important; }
     .lm-md-selection-group { grid-area: status; display: flex; min-width: 0; align-items: center; gap: 6px; }
     .lm-md-status { min-width: 0; flex: 1 1 auto; overflow: hidden; color: var(--vscode-descriptionForeground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
     .lm-md-selection-group button { flex: 0 0 auto; padding: 4px 8px; font-size: 11px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
     .lm-md-toc-toggle { grid-area: toc; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
-    .lm-md-theme-toggle { grid-area: theme; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
+    .lm-md-settings-holder { position: relative; grid-area: settings; }
+    .lm-md-settings-toggle { min-width: 34px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
+    .lm-md-settings-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 15; width: min(390px, calc(100vw - 36px)); max-height: min(76vh, 720px); overflow: auto; padding: 13px; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: 6px; background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground)); box-shadow: 0 8px 28px color-mix(in srgb, black 38%, transparent); }
+    .lm-md-settings-popover[hidden] { display: none; }
+    .lm-md-settings-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+    .lm-md-settings-close { min-width: 28px; padding: 2px 7px; }
+    .lm-md-settings-section { padding: 10px 0; border-bottom: 1px solid var(--vscode-panel-border); }
+    .lm-md-settings-section:last-of-type { border-bottom: 0; }
+    .lm-md-settings-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; font-size: 12px; font-weight: 600; }
+    .lm-md-settings-hint { color: var(--vscode-descriptionForeground); font-size: 10px; font-weight: 400; }
+    .lm-md-settings-options { display: flex; gap: 5px; }
+    .lm-md-settings-options button { flex: 1 1 0; min-width: 0; padding: 5px 6px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); font-size: 11px; }
+    .lm-md-settings-options button[aria-pressed="true"] { outline: 1px solid var(--vscode-focusBorder); }
+    .lm-md-font-stepper { display: flex; align-items: center; gap: 8px; }
+    .lm-md-font-stepper output { min-width: 52px; text-align: center; }
+    .lm-md-font-stepper button { min-width: 32px; }
+    .lm-md-settings-input { display: block; width: 100%; box-sizing: border-box; margin: 5px 0; padding: 6px 8px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; }
+    .lm-md-settings-status { min-height: 16px; margin-top: 6px; color: var(--vscode-descriptionForeground); font-size: 11px; }
+    .lm-md-settings-actions { display: flex; gap: 6px; margin-top: 8px; }
+    .lm-md-settings-actions button { flex: 1 1 auto; }
     .lm-md-content-search-toolbar { display: flex; grid-area: search; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
     .lm-md-content-search-toolbar input { width: clamp(120px, 14vw, 220px); min-width: 80px; box-sizing: border-box; padding: 5px 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; }
     .lm-md-content-search-toolbar button { min-width: 26px; padding: 4px 7px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
@@ -622,32 +814,79 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-change-mark { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); }
     .lm-md-change-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; border-radius: 2px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 35%, transparent); }
     .lm-md-reference-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 28%, transparent); transition: background-color 180ms ease; }
-    pre { overflow: auto; padding: 12px 14px; background: var(--vscode-textCodeBlock-background); }
-    .lm-md-mermaid { max-width: 100%; margin: 1em 0; overflow: auto; text-align: center; }
-    .lm-md-mermaid svg { max-width: 100%; height: auto; }
+    .lm-md-main article pre { max-width: 100%; margin: 14px 0; overflow: auto; padding: 13px 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; background: var(--vscode-textCodeBlock-background); font-size: .86em; line-height: 1.6; }
+    .lm-md-main article code { padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 78%, var(--vscode-editor-foreground)); font-size: .9em; }
+    .lm-md-main article pre > code { display: block; padding: 0; border-radius: 0; background: transparent; font-size: inherit; }
+    .lm-md-main article pre > code.hljs { color: var(--lm-hl-foreground); }
+    .lm-md-main article pre > code .hljs-comment, .lm-md-main article pre > code .hljs-quote, .lm-md-main article pre > code .hljs-doctag { color: var(--lm-hl-comment); font-style: italic; }
+    .lm-md-main article pre > code .hljs-keyword, .lm-md-main article pre > code .hljs-selector-tag, .lm-md-main article pre > code .hljs-literal, .lm-md-main article pre > code .hljs-section { color: var(--lm-hl-keyword); }
+    .lm-md-main article pre > code .hljs-string, .lm-md-main article pre > code .hljs-regexp, .lm-md-main article pre > code .hljs-template-tag, .lm-md-main article pre > code .hljs-template-variable { color: var(--lm-hl-string); }
+    .lm-md-main article pre > code .hljs-number, .lm-md-main article pre > code .hljs-variable { color: var(--lm-hl-number); }
+    .lm-md-main article pre > code .hljs-title, .lm-md-main article pre > code .hljs-title.function_, .lm-md-main article pre > code .hljs-title.class_, .lm-md-main article pre > code .hljs-function .hljs-title, .lm-md-main article pre > code .hljs-section { color: var(--lm-hl-title); }
+    .lm-md-main article pre > code .hljs-attr, .lm-md-main article pre > code .hljs-attribute, .lm-md-main article pre > code .hljs-property, .lm-md-main article pre > code .hljs-attribute { color: var(--lm-hl-attribute); }
+    .lm-md-main article pre > code .hljs-built_in, .lm-md-main article pre > code .hljs-builtin-name, .lm-md-main article pre > code .hljs-type, .lm-md-main article pre > code .hljs-params { color: var(--lm-hl-built-in); }
+    .lm-md-main article pre > code .hljs-meta, .lm-md-main article pre > code .hljs-meta .hljs-keyword, .lm-md-main article pre > code .hljs-tag .hljs-name { color: var(--lm-hl-meta); }
+    .lm-md-main article pre > code .hljs-bullet, .lm-md-main article pre > code .hljs-link, .lm-md-main article pre > code .hljs-selector-id, .lm-md-main article pre > code .hljs-selector-class { color: var(--lm-hl-symbol); }
+    .lm-md-main article pre > code .hljs-punctuation, .lm-md-main article pre > code .hljs-operator { color: var(--lm-hl-muted); }
+    .lm-md-main article pre > code .hljs-addition { color: var(--lm-hl-built-in); }
+    .lm-md-main article pre > code .hljs-deletion { color: var(--vscode-gitDecoration-deletedResourceForeground); }
+    .lm-md-mermaid { max-width: 100%; margin: 18px 0; overflow: hidden; border: 1px solid var(--vscode-panel-border); border-radius: 5px; background: color-mix(in srgb, var(--vscode-editor-background) 96%, var(--vscode-editor-foreground)); }
+    .lm-md-mermaid-tools { display: flex; align-items: center; gap: 5px; padding: 5px 8px; border-bottom: 1px solid var(--vscode-panel-border); color: var(--vscode-descriptionForeground); font-size: 11px; }
+    .lm-md-mermaid-tools .lm-md-mermaid-title { flex: 1 1 auto; }
+    .lm-md-mermaid-tools button { min-width: 28px; padding: 2px 6px; font-size: 11px; }
+    .lm-md-mermaid-zoom-label { min-width: 38px; text-align: center; }
+    .lm-md-mermaid-viewport { max-width: 100%; max-height: 72vh; overflow: auto; padding: 12px; overscroll-behavior: contain; }
+    .lm-md-mermaid-canvas { position: relative; }
+    .lm-md-mermaid-viewport svg { display: block; max-width: none !important; height: auto; }
     .lm-md-mermaid-error { color: var(--vscode-errorForeground); font-size: 12px; }
-    article img { max-width: 100%; height: auto; }
+    article img { max-width: 100%; height: auto; border-radius: 3px; }
     article > * { content-visibility: auto; contain-intrinsic-size: auto 56px; }
     code { font-family: var(--vscode-editor-font-family); }
-    blockquote { border-left: 3px solid var(--vscode-textBlockQuote-border); padding-left: 14px; color: var(--vscode-textBlockQuote-foreground); }
-    a { color: var(--vscode-textLink-foreground); }
-    table { border-collapse: collapse; }
-    th, td { border: 1px solid var(--vscode-panel-border); padding: 5px 9px; }
+    article blockquote { margin: 14px 0; padding: 9px 14px; border-left: 3px solid var(--vscode-textBlockQuote-border); color: var(--vscode-textBlockQuote-foreground); background: color-mix(in srgb, var(--vscode-textBlockQuote-border) 7%, transparent); }
+    article a { color: var(--vscode-textLink-foreground); text-underline-offset: 2px; }
+    article table { display: block; width: fit-content; max-width: 100%; overflow: auto; border-collapse: collapse; font-size: .9em; line-height: 1.55; }
+    article th, article td { min-width: 72px; padding: 7px 10px; border: 1px solid var(--vscode-panel-border); text-align: left; vertical-align: top; }
+    article th { position: sticky; top: 0; background: color-mix(in srgb, var(--vscode-editor-background) 88%, var(--vscode-editor-foreground)); font-weight: 700; }
+    article tr:nth-child(even) td { background: color-mix(in srgb, var(--vscode-editor-background) 94%, var(--vscode-editor-foreground)); }
+    article hr { margin: 26px 0; border: 0; border-top: 1px solid var(--vscode-panel-border); }
     .lm-md-context-menu { position: fixed; z-index: 20; min-width: 150px; padding: 4px; border: 1px solid var(--vscode-menu-border, var(--vscode-panel-border)); border-radius: 4px; background: var(--vscode-menu-background, var(--vscode-editor-background)); box-shadow: 0 4px 14px color-mix(in srgb, black 35%, transparent); }
     .lm-md-context-menu button { display: block; width: 100%; text-align: left; color: var(--vscode-menu-foreground, var(--vscode-editor-foreground)); background: transparent; border: 0; }
     .lm-md-context-menu button:hover { background: var(--vscode-menu-selectionBackground, var(--vscode-list-hoverBackground)); color: var(--vscode-menu-selectionForeground, var(--vscode-editor-foreground)); }
-    @media (max-width: 1100px) { .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc theme" "search search"; row-gap: 8px; } .lm-md-content-search-toolbar { justify-self: stretch; } }
+    .lm-md-context-separator { height: 1px; margin: 4px 3px; background: var(--vscode-menu-border, var(--vscode-panel-border)); }
+    .lm-md-image-custom-size { display: flex; align-items: center; gap: 5px; padding: 5px; color: var(--vscode-menu-foreground, var(--vscode-editor-foreground)); font-size: 12px; }
+    .lm-md-image-custom-size input { min-width: 0; width: 74px; padding: 4px 5px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 3px; }
+    .lm-md-image-custom-size button { width: auto; padding: 4px 8px; }
+    @media (max-width: 1100px) { .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc settings" "search search"; row-gap: 8px; } .lm-md-content-search-toolbar { justify-self: stretch; } }
     @media (max-width: 900px) { .lm-md-layout { gap: 12px; padding: 18px 0 40px 20px; } .lm-md-toc { flex-basis: 260px; width: 260px; } }
-    @media (max-width: 700px) { .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "theme" "toc" "search" "sync"; } .lm-md-selection-group { flex-wrap: wrap; } .lm-md-toc-toggle, .lm-md-theme-toggle, #lm-md-sync, .lm-md-content-search-toolbar { justify-self: stretch; } .lm-md-content-search-toolbar input { flex: 1 1 auto; width: auto; } }
+    @media (max-width: 700px) { .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } .lm-md-selection-group { flex-wrap: wrap; } .lm-md-toc-toggle, .lm-md-settings-holder, #lm-md-sync, .lm-md-content-search-toolbar { justify-self: stretch; } .lm-md-settings-toggle { width: 100%; } .lm-md-settings-popover { right: auto; left: 0; } .lm-md-content-search-toolbar input { flex: 1 1 auto; width: auto; } }
+    ${options.externalOutline ? `
+    body.lm-md-external-outline .lm-md-layout { display: block; padding: 20px clamp(16px, 3vw, 48px) 56px; }
+    body.lm-md-external-outline .lm-md-toc, body.lm-md-external-outline .lm-md-toc-toggle { display: none !important; }
+    body.lm-md-external-outline .lm-md-main { width: 100%; min-width: 0; max-width: none; }
+    body.lm-md-external-outline .lm-md-main article { width: min(100%, var(--lm-md-content-width, 88ch)); min-width: 0; }
+    body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "status toc settings search sync"; }
+    body.lm-md-external-outline .lm-md-mermaid { max-width: 100%; overflow: auto; }
+    body.lm-md-external-outline .lm-md-mermaid-viewport svg { max-width: none !important; height: auto; }
+    @media (max-width: 900px) { body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc settings" "search search"; } }
+    @media (max-width: 700px) { body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } }
+    ` : ""}
   </style>
 </head>
-<body>
+<body class="${options.externalOutline ? "lm-md-external-outline" : ""}">
   <div class="lm-md-layout">
     <aside id="lm-md-toc" class="lm-md-toc" aria-label="Markdown 目录">
       <div id="lm-md-toc-panel" class="lm-md-toc-panel">
-        <button id="lm-md-toc-summary" class="lm-md-toc-summary" type="button" aria-expanded="true" aria-controls="lm-md-toc-content">
-          <span id="lm-md-toc-disclosure" aria-hidden="true">▾</span><span>目录</span>
-        </button>
+        <div class="lm-md-toc-header">
+          <button id="lm-md-toc-summary" class="lm-md-toc-summary" type="button" aria-expanded="true" aria-controls="lm-md-toc-content">
+            <span id="lm-md-toc-disclosure" aria-hidden="true">▾</span><span>目录</span>
+          </button>
+          <button id="lm-md-toc-locate" class="lm-md-toc-locate" type="button" aria-label="定位当前阅读章节" title="定位当前阅读章节">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round">
+              <circle cx="12" cy="12" r="5"></circle>
+              <path d="M12 2v3m0 14v3M2 12h3m14 0h3"></path>
+            </svg>
+          </button>
+        </div>
         <div id="lm-md-toc-content" class="lm-md-toc-content">
           <div class="lm-md-toc-tools">
             <div class="lm-md-toc-actions" role="toolbar" aria-label="目录折叠操作">
@@ -671,7 +910,51 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
           <button id="lm-md-clear-selection" type="button" title="清空当前选区" hidden>清空选区</button>
         </div>
         <button id="lm-md-toc-toggle" class="lm-md-toc-toggle" type="button" aria-expanded="true">隐藏目录</button>
-        <button id="lm-md-theme-toggle" class="lm-md-theme-toggle" type="button" aria-pressed="false" title="切换为浅色主题">浅色主题</button>
+        <div class="lm-md-settings-holder">
+          <button id="lm-md-settings-toggle" class="lm-md-settings-toggle" type="button" aria-expanded="false" aria-controls="lm-md-settings-popover" title="预览设置">⚙ 设置</button>
+          <section id="lm-md-settings-popover" class="lm-md-settings-popover" aria-label="预览设置" hidden>
+            <div class="lm-md-settings-heading"><span>预览设置</span><button id="lm-md-settings-close" class="lm-md-settings-close" type="button" aria-label="关闭设置">×</button></div>
+            <div class="lm-md-settings-section">
+              <div class="lm-md-settings-label"><span>主题</span><span class="lm-md-settings-hint">自动保存</span></div>
+              <div class="lm-md-settings-options" role="group" aria-label="预览主题">
+                <button type="button" data-preview-theme="auto" aria-pressed="true">跟随 VS Code</button>
+                <button type="button" data-preview-theme="dark" aria-pressed="false">深色</button>
+                <button type="button" data-preview-theme="light" aria-pressed="false">浅色</button>
+              </div>
+            </div>
+            <div class="lm-md-settings-section">
+              <div class="lm-md-settings-label"><span>正文大小</span><span class="lm-md-settings-hint">标题按比例调整</span></div>
+              <div class="lm-md-font-stepper"><button id="lm-md-font-decrease" type="button" aria-label="减小正文">A−</button><output id="lm-md-font-size">16 px</output><button id="lm-md-font-increase" type="button" aria-label="增大正文">A+</button><button id="lm-md-font-reset" type="button">重置</button></div>
+            </div>
+            <div class="lm-md-settings-section">
+              <div class="lm-md-settings-label">行距</div>
+              <div class="lm-md-settings-options" role="group" aria-label="正文行距">
+                <button type="button" data-preview-line-height="1.5" aria-pressed="false">紧凑</button>
+                <button type="button" data-preview-line-height="1.75" aria-pressed="true">舒适</button>
+                <button type="button" data-preview-line-height="2" aria-pressed="false">宽松</button>
+              </div>
+            </div>
+            <div class="lm-md-settings-section">
+              <div class="lm-md-settings-label">正文宽度</div>
+              <div class="lm-md-settings-options" role="group" aria-label="正文宽度">
+                <button type="button" data-preview-content-width="narrow" aria-pressed="false">窄</button>
+                <button type="button" data-preview-content-width="standard" aria-pressed="true">标准</button>
+                <button type="button" data-preview-content-width="wide" aria-pressed="false">宽</button>
+              </div>
+            </div>
+            <div class="lm-md-settings-section">
+              <div class="lm-md-settings-label"><span>图片上传 · 腾讯 COS</span><span id="lm-md-cos-credential-state" class="lm-md-settings-hint">尚未配置</span></div>
+              <input id="lm-md-cos-secret-id" class="lm-md-settings-input" type="password" autocomplete="new-password" placeholder="SecretId（留空保留已保存值）" aria-label="腾讯 COS SecretId">
+              <input id="lm-md-cos-secret-key" class="lm-md-settings-input" type="password" autocomplete="new-password" placeholder="SecretKey（留空保留已保存值）" aria-label="腾讯 COS SecretKey">
+              <input id="lm-md-cos-bucket" class="lm-md-settings-input" type="text" autocomplete="off" placeholder="Bucket-AppID" aria-label="腾讯 COS Bucket">
+              <input id="lm-md-cos-region" class="lm-md-settings-input" type="text" autocomplete="off" placeholder="Region，例如 ap-shanghai" aria-label="腾讯 COS Region">
+              <input id="lm-md-cos-prefix" class="lm-md-settings-input" type="text" autocomplete="off" placeholder="上传目录前缀，例如 images" aria-label="腾讯 COS 上传目录">
+              <div class="lm-md-settings-hint">密钥使用 VS Code SecretStorage；不会写入普通设置、文档或日志。Bucket 需有公开读取权限，才能在 Markdown 中直接显示链接。</div>
+              <div class="lm-md-settings-actions"><button id="lm-md-cos-save" type="button">保存 COS 设置</button><button id="lm-md-cos-clear" type="button">清除密钥</button></div>
+              <div id="lm-md-settings-status" class="lm-md-settings-status" role="status" aria-live="polite"></div>
+            </div>
+          </section>
+        </div>
         <div class="lm-md-content-search-toolbar" role="search" aria-label="正文搜索">
           <input id="lm-md-content-search" type="search" placeholder="搜索正文" aria-label="搜索正文" autocomplete="off">
           <button id="lm-md-content-search-prev" type="button" title="上一个匹配" aria-label="上一个匹配">↑</button>
@@ -723,7 +1006,7 @@ function renderChangeHistory(changeRecords, fileName, changeEvents = []) {
           const range = hunk.startLine === hunk.endLine
             ? hunk.startLine
             : `${hunk.startLine}-${hunk.endLine}`;
-          return `<li><span>第 ${range} 行 · +${hunk.addedLines} −${hunk.removedLines} · ${time}</span><details><summary>前后内容</summary><div class="lm-md-change-diff"><div class="lm-md-change-before"><strong>之前</strong><pre>${escapeHtml(hunk.before)}</pre></div><div class="lm-md-change-after"><strong>之后</strong><pre>${escapeHtml(hunk.after)}</pre></div></div></details></li>`;
+          return `<li><span>第 ${range} 行 · +${hunk.addedLines} −${hunk.removedLines} · ${time}</span><details><summary>前后内容</summary><div class="lm-md-change-diff"><div class="lm-md-change-before"><strong>之前</strong><pre>${escapeHtml(hunk.before)}</pre></div><div class="lm-md-change-after"><strong>之后</strong><pre>${escapeHtml(hunk.after)}</pre></div></div></details><button class="lm-md-change-source" type="button" data-event-source-review data-start-line="${hunk.startLine}" data-end-line="${hunk.endLine}">在源码中审阅</button></li>`;
         })
         .join("")}</ol></details>`
     : "";

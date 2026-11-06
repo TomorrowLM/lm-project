@@ -12,6 +12,11 @@ let previewScrollRestoreSequence = 0;
 let previewScrollRestoreLocked = false;
 let mermaidRenderPromise = Promise.resolve();
 let changeHelpDocumentHandlersBound = false;
+let previewSettings = { theme: "auto", fontSize: 16, lineHeight: 1.75, contentWidth: "standard" };
+let previewSettingsSaveTimer = null;
+let previewActionSequence = 0;
+const pendingPreviewActions = new Map();
+let nativeThemeIsLight = null;
 
 function elementForNode(node) {
   if (!node) return null;
@@ -164,7 +169,50 @@ async function renderMermaidDiagram(host) {
         style.setAttribute("nonce", styleNonce);
       }
     }
-    host.replaceChildren(svgTemplate.content.cloneNode(true));
+    const svg = svgTemplate.content.querySelector("svg");
+    if (!svg) throw new Error("Mermaid SVG is empty");
+    const toolbar = document.createElement("div");
+    toolbar.className = "lm-md-mermaid-tools";
+    const label = document.createElement("span");
+    label.className = "lm-md-mermaid-title";
+    label.textContent = "Mermaid";
+    const zoomLabel = document.createElement("span");
+    zoomLabel.className = "lm-md-mermaid-zoom-label";
+    const makeTool = (text, title, action) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.textContent = text;
+      button.title = title;
+      button.dataset.mermaidAction = action;
+      return button;
+    };
+    toolbar.append(
+      label,
+      makeTool("−", "缩小图表", "zoom-out"),
+      zoomLabel,
+      makeTool("+", "放大图表", "zoom-in"),
+      makeTool("适应", "适应容器宽度", "fit"),
+      makeTool("重置", "重置缩放", "reset"),
+    );
+    const viewport = document.createElement("div");
+    viewport.className = "lm-md-mermaid-viewport";
+    const canvas = document.createElement("div");
+    canvas.className = "lm-md-mermaid-canvas";
+    canvas.append(svg);
+    viewport.append(canvas);
+    host.replaceChildren(toolbar, viewport);
+    const viewBox = svg.viewBox?.baseVal;
+    const rect = svg.getBoundingClientRect();
+    const baseWidth = Number(viewBox?.width) || Number.parseFloat(svg.getAttribute("width")) || rect.width || 600;
+    const baseHeight = Number(viewBox?.height) || Number.parseFloat(svg.getAttribute("height")) || rect.height || 300;
+    svg.style.width = `${baseWidth}px`;
+    svg.style.height = `${baseHeight}px`;
+    svg.style.transformOrigin = "0 0";
+    canvas.dataset.baseWidth = String(baseWidth);
+    canvas.dataset.baseHeight = String(baseHeight);
+    const fitScale = Math.min(1, Math.max(0.1, (viewport.clientWidth || baseWidth) / baseWidth));
+    host.dataset.zoom = String(fitScale);
+    updateMermaidZoom(host, fitScale);
     result.bindFunctions?.(host);
     host.removeAttribute("data-mermaid-error");
   } catch {
@@ -178,6 +226,47 @@ async function renderMermaidDiagram(host) {
     pre.append(code);
     host.replaceChildren(notice, pre);
     host.dataset.mermaidError = "true";
+  }
+}
+
+function updateMermaidZoom(host, value) {
+  const canvas = host.querySelector(".lm-md-mermaid-canvas");
+  const svg = canvas?.querySelector("svg");
+  const viewport = host.querySelector(".lm-md-mermaid-viewport");
+  if (!canvas || !svg || !viewport) return;
+  const scale = Math.min(3, Math.max(0.25, Number(value) || 1));
+  host.dataset.zoom = String(scale);
+  const width = Number(canvas.dataset.baseWidth) || 600;
+  const height = Number(canvas.dataset.baseHeight) || 300;
+  canvas.style.width = `${width * scale}px`;
+  canvas.style.height = `${height * scale}px`;
+  svg.style.transform = `scale(${scale})`;
+  const label = host.querySelector(".lm-md-mermaid-zoom-label");
+  if (label) label.textContent = `${Math.round(scale * 100)}%`;
+}
+
+function initializeMermaidControls(root = document) {
+  for (const host of root.querySelectorAll(".lm-md-mermaid")) {
+    if (host.dataset.controlsBound === "true") continue;
+    host.dataset.controlsBound = "true";
+    host.addEventListener("click", (event) => {
+      const button = elementForNode(event.target)?.closest?.("[data-mermaid-action]");
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const action = button.dataset.mermaidAction;
+      const current = Number(host.dataset.zoom) || 1;
+      if (action === "zoom-in") updateMermaidZoom(host, current * 1.2);
+      else if (action === "zoom-out") updateMermaidZoom(host, current / 1.2);
+      else {
+        const canvas = host.querySelector(".lm-md-mermaid-canvas");
+        const viewport = host.querySelector(".lm-md-mermaid-viewport");
+        const width = Number(canvas?.dataset.baseWidth) || 600;
+        const fit = Math.min(1, Math.max(0.1, (viewport?.clientWidth || width) / width));
+        updateMermaidZoom(host, action === "fit" ? fit : 1);
+        if (viewport) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+      }
+    });
   }
 }
 
@@ -199,6 +288,7 @@ async function renderMermaidDiagrams(root = document.querySelector("article")) {
   }
   mermaidRenderPromise = Promise.all(hosts.map(renderMermaidDiagram));
   await mermaidRenderPromise;
+  initializeMermaidControls(root);
 }
 
 function publishSelection() {
@@ -963,32 +1053,169 @@ function initializeTocPanelToggle() {
   });
 }
 
-function initializeThemeToggle() {
-  const button = document.getElementById("lm-md-theme-toggle");
-  if (!button) return;
-
-  const detectedLightTheme = () => {
-    const color = getComputedStyle(document.body).backgroundColor;
-    const channels = color.match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
-    return channels.length >= 3 &&
-      (channels[0] * 299 + channels[1] * 587 + channels[2] * 114) / 1000 > 160;
-  };
-
-  const apply = (light) => {
-    document.body.classList.toggle("lm-md-light", light);
-    button.setAttribute("aria-pressed", String(light));
-    button.textContent = light ? "深色主题" : "浅色主题";
-    button.title = light ? "切换为深色主题" : "切换为浅色主题";
-  };
-
-  apply(detectedLightTheme());
+function initializeTocLocate() {
+  const button = document.getElementById("lm-md-toc-locate");
+  if (!button || button.dataset.bound === "true") return;
+  button.dataset.bound = "true";
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    apply(!document.body.classList.contains("lm-md-light"));
+    const line = capturePreviewAnchor().previewAnchorStartLine;
+    if (Number.isInteger(line) && line > 0) activateTocForLine(line);
+  });
+}
+
+function detectedLightTheme() {
+  if (nativeThemeIsLight !== null) return nativeThemeIsLight;
+    const color = getComputedStyle(document.body).backgroundColor;
+    const channels = color.match(/\d+(?:\.\d+)?/g)?.map(Number) || [];
+  nativeThemeIsLight = channels.length >= 3 &&
+      (channels[0] * 299 + channels[1] * 587 + channels[2] * 114) / 1000 > 160;
+  return nativeThemeIsLight;
+}
+
+function applyPreviewSettings(nextSettings, { renderDiagrams = false } = {}) {
+  if (!nextSettings || typeof nextSettings !== "object") return;
+  const previousTheme = previewSettings.theme;
+  previewSettings = {
+    ...previewSettings,
+    ...nextSettings,
+  };
+  const { theme, fontSize, lineHeight, contentWidth } = previewSettings;
+  document.documentElement.style.setProperty("--lm-md-body-font-size", `${fontSize}px`);
+  document.documentElement.style.setProperty("--lm-md-line-height", String(lineHeight));
+  const widths = { narrow: "68ch", standard: "88ch", wide: "112ch" };
+  document.documentElement.style.setProperty("--lm-md-content-width", widths[contentWidth] || widths.standard);
+  document.body.classList.toggle("lm-md-light", theme === "light" || (theme === "auto" && detectedLightTheme()));
+  document.body.classList.toggle("lm-md-dark", theme === "dark");
+
+  for (const button of document.querySelectorAll("[data-preview-theme]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.previewTheme === theme));
+  }
+  for (const button of document.querySelectorAll("[data-preview-line-height]")) {
+    button.setAttribute("aria-pressed", String(Number(button.dataset.previewLineHeight) === Number(lineHeight)));
+  }
+  for (const button of document.querySelectorAll("[data-preview-content-width]")) {
+    button.setAttribute("aria-pressed", String(button.dataset.previewContentWidth === contentWidth));
+  }
+  const size = document.getElementById("lm-md-font-size");
+  if (size) size.textContent = `${fontSize} px`;
+  const bucket = document.getElementById("lm-md-cos-bucket");
+  const region = document.getElementById("lm-md-cos-region");
+  const prefix = document.getElementById("lm-md-cos-prefix");
+  if (bucket && document.activeElement !== bucket) bucket.value = nextSettings.cosBucket ?? bucket.value;
+  if (region && document.activeElement !== region) region.value = nextSettings.cosRegion ?? region.value;
+  if (prefix && document.activeElement !== prefix) prefix.value = nextSettings.cosPathPrefix ?? prefix.value;
+  const credentialState = document.getElementById("lm-md-cos-credential-state");
+  if (credentialState && typeof nextSettings.cosCredentialsConfigured === "boolean") {
+    credentialState.textContent = nextSettings.cosCredentialsConfigured ? "密钥已安全保存" : "尚未配置";
+  }
+
+  if (renderDiagrams && previousTheme !== theme) {
     const scrollState = collectScrollState();
     void renderMermaidDiagrams().then(() => restorePreviewScrollState(scrollState));
+  }
+}
+
+function sendPreviewSettings(settings, action = "visual") {
+  const requestId = `settings-${++previewActionSequence}`;
+  pendingPreviewActions.set(requestId, action);
+  vscode.postMessage({ type: "savePreviewSettings", requestId, settings });
+}
+
+function schedulePreviewSettingsSave() {
+  clearTimeout(previewSettingsSaveTimer);
+  previewSettingsSaveTimer = setTimeout(() => sendPreviewSettings({
+    theme: previewSettings.theme,
+    fontSize: previewSettings.fontSize,
+    lineHeight: previewSettings.lineHeight,
+    contentWidth: previewSettings.contentWidth,
+  }), 250);
+}
+
+function initializePreviewSettings() {
+  const holder = document.querySelector(".lm-md-settings-holder");
+  const toggle = document.getElementById("lm-md-settings-toggle");
+  const popover = document.getElementById("lm-md-settings-popover");
+  const close = document.getElementById("lm-md-settings-close");
+  if (!holder || !toggle || !popover) return;
+
+  const setOpen = (open) => {
+    popover.hidden = !open;
+    toggle.setAttribute("aria-expanded", String(open));
+  };
+  toggle.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setOpen(popover.hidden);
   });
+  close?.addEventListener("click", () => setOpen(false));
+  document.addEventListener("click", (event) => {
+    if (!popover.hidden && !holder.contains(elementForNode(event.target))) setOpen(false);
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !popover.hidden) setOpen(false);
+  });
+
+  for (const button of document.querySelectorAll("[data-preview-theme], [data-preview-line-height], [data-preview-content-width]")) {
+    button.addEventListener("click", () => {
+      if (button.dataset.previewTheme) previewSettings.theme = button.dataset.previewTheme;
+      if (button.dataset.previewLineHeight) previewSettings.lineHeight = Number(button.dataset.previewLineHeight);
+      if (button.dataset.previewContentWidth) previewSettings.contentWidth = button.dataset.previewContentWidth;
+      const scrollState = collectScrollState();
+      applyPreviewSettings(previewSettings, { renderDiagrams: true });
+      schedulePreviewSettingsSave();
+      void restorePreviewScrollState(scrollState);
+    });
+  }
+
+  const changeFontSize = (delta) => {
+    previewSettings.fontSize = Math.max(12, Math.min(24, Math.round((previewSettings.fontSize + delta) * 2) / 2));
+    applyPreviewSettings(previewSettings);
+    schedulePreviewSettingsSave();
+  };
+  document.getElementById("lm-md-font-decrease")?.addEventListener("click", () => changeFontSize(-0.5));
+  document.getElementById("lm-md-font-increase")?.addEventListener("click", () => changeFontSize(0.5));
+  document.getElementById("lm-md-font-reset")?.addEventListener("click", () => {
+    previewSettings.fontSize = 16;
+    applyPreviewSettings(previewSettings);
+    schedulePreviewSettingsSave();
+  });
+
+  const saveCos = document.getElementById("lm-md-cos-save");
+  saveCos?.addEventListener("click", () => {
+    const values = {
+      theme: previewSettings.theme,
+      fontSize: previewSettings.fontSize,
+      lineHeight: previewSettings.lineHeight,
+      contentWidth: previewSettings.contentWidth,
+      cosBucket: document.getElementById("lm-md-cos-bucket")?.value || "",
+      cosRegion: document.getElementById("lm-md-cos-region")?.value || "",
+      cosPathPrefix: document.getElementById("lm-md-cos-prefix")?.value || "",
+      cosSecretId: document.getElementById("lm-md-cos-secret-id")?.value || "",
+      cosSecretKey: document.getElementById("lm-md-cos-secret-key")?.value || "",
+    };
+    sendPreviewSettings(values, "cos-save");
+    setPreviewSettingsStatus("正在安全保存 COS 设置…");
+  });
+  document.getElementById("lm-md-cos-clear")?.addEventListener("click", () => {
+    sendPreviewSettings({
+      cosBucket: document.getElementById("lm-md-cos-bucket")?.value || "",
+      cosRegion: document.getElementById("lm-md-cos-region")?.value || "",
+      cosPathPrefix: document.getElementById("lm-md-cos-prefix")?.value || "",
+      clearCosCredentials: true,
+    }, "cos-clear");
+    setPreviewSettingsStatus("正在清除已保存的密钥…");
+  });
+  applyPreviewSettings(previewSettings);
+  setPreviewSettingsStatus("");
+}
+
+function setPreviewSettingsStatus(message, isError = false) {
+  const status = document.getElementById("lm-md-settings-status");
+  if (!status) return;
+  status.textContent = message;
+  status.style.color = isError ? "var(--vscode-errorForeground)" : "var(--vscode-descriptionForeground)";
 }
 
 function initializeStickyLayout() {
@@ -1204,6 +1431,7 @@ function initializeChangeHistory() {
   const previous = document.getElementById("lm-md-change-prev");
   const next = document.getElementById("lm-md-change-next");
   const sourceReview = document.getElementById("lm-md-change-source-current");
+  const eventList = document.querySelector(".lm-md-change-event-list");
   const toggle = document.getElementById("lm-md-change-toggle");
   initializeChangeHistoryHelp();
   applyChangePanelCollapsed(false);
@@ -1235,6 +1463,19 @@ function initializeChangeHistory() {
           });
         }
       }
+    });
+  }
+  if (eventList && eventList.dataset.bound !== "true") {
+    eventList.dataset.bound = "true";
+    eventList.addEventListener("click", (event) => {
+      const target = elementForNode(event.target);
+      const sourceButton = target?.closest?.("[data-event-source-review]");
+      if (!sourceButton) return;
+      vscode.postMessage({
+        type: "openSourceReview",
+        startLine: Number(sourceButton.dataset.startLine),
+        endLine: Number(sourceButton.dataset.endLine),
+      });
     });
   }
   if (refresh && refresh.dataset.bound !== "true") {
@@ -1409,7 +1650,8 @@ initializeSectionControls();
 initializeTableOfContents();
 initializeTableOfContentsToggle();
 initializeTocPanelToggle();
-initializeThemeToggle();
+initializeTocLocate();
+initializePreviewSettings();
 initializeStickyLayout();
 initializePreviewScrollPersistence();
 restorePreviewState(vscode.getState()?.previewState);
@@ -1529,9 +1771,114 @@ document.addEventListener("click", (event) => {
   if (target?.closest?.("#lm-md-sync")) syncSelected();
 }, true);
 
+function previewImagePayload(image) {
+  return {
+    source: image.dataset.mdImageSource || image.getAttribute("src") || "",
+    alt: image.getAttribute("alt") || "",
+    title: image.getAttribute("title") || "",
+    width: image.getAttribute("width") || "",
+    height: image.getAttribute("height") || "",
+    startLine: Number(image.dataset.mdStartLine),
+    endLine: Number(image.dataset.mdEndLine),
+    imageIndex: Number(image.dataset.mdImageIndex),
+  };
+}
+
+function runImageContextAction(event, image, action, width) {
+  event.preventDefault();
+  event.stopPropagation();
+  const requestId = `image-${++previewActionSequence}`;
+  const operation = action === "upload" ? "uploadImageToCos" : "setImageSize";
+  pendingPreviewActions.set(requestId, operation);
+  vscode.postMessage({
+    type: operation,
+    requestId,
+    image: { ...previewImagePayload(image), ...(width ? { width } : {}) },
+  });
+  hideContextMenu();
+  setStatus(action === "upload" ? "正在上传图片到腾讯 COS…" : "正在调整图片大小…");
+}
+
+function showImageContextMenu(event, image) {
+  hideContextMenu();
+  const contextX = event.clientX;
+  const contextY = event.clientY;
+  const positionMenu = () => {
+    const left = Math.min(contextX, window.innerWidth - contextMenu.offsetWidth - 8);
+    const top = Math.min(contextY, window.innerHeight - contextMenu.offsetHeight - 8);
+    contextMenu.style.left = `${Math.max(8, left)}px`;
+    contextMenu.style.top = `${Math.max(8, top)}px`;
+  };
+  contextMenu = document.createElement("div");
+  contextMenu.className = "lm-md-context-menu";
+  contextMenu.setAttribute("role", "menu");
+  const addItem = (label, action, width) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.setAttribute("role", "menuitem");
+    button.textContent = label;
+    button.addEventListener("pointerdown", (itemEvent) => {
+      itemEvent.preventDefault();
+      if (action === "size") {
+        runImageContextAction(itemEvent, image, "size", width);
+      } else if (action === "custom-size") {
+        itemEvent.stopPropagation();
+        if (contextMenu.querySelector(".lm-md-image-custom-size")) return;
+        const editor = document.createElement("div");
+        editor.className = "lm-md-image-custom-size";
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "10";
+        input.max = "100";
+        input.step = "1";
+        input.value = "75";
+        input.setAttribute("aria-label", "图片宽度百分比");
+        input.addEventListener("input", () => input.setCustomValidity(""));
+        const apply = document.createElement("button");
+        apply.type = "button";
+        apply.textContent = "应用";
+        apply.addEventListener("click", (applyEvent) => {
+          applyEvent.preventDefault();
+          const value = Number(input.value);
+          if (!Number.isFinite(value) || value < 10 || value > 100) {
+            input.setCustomValidity("请输入 10 到 100 之间的数字");
+            input.reportValidity();
+            return;
+          }
+          runImageContextAction(applyEvent, image, "size", `${value}%`);
+        });
+        editor.append(input, document.createTextNode("%"), apply);
+        contextMenu.append(editor);
+        positionMenu();
+        input.focus();
+      } else {
+        runImageContextAction(itemEvent, image, "upload");
+      }
+    });
+    contextMenu.append(button);
+  };
+  addItem("图片宽度：25%", "size", "25%");
+  addItem("图片宽度：50%", "size", "50%");
+  addItem("图片宽度：75%", "size", "75%");
+  addItem("图片宽度：100%", "size", "100%");
+  addItem("自定义图片宽度…", "custom-size");
+  const separator = document.createElement("div");
+  separator.className = "lm-md-context-separator";
+  contextMenu.append(separator);
+  addItem("上传到腾讯 COS…", "upload");
+  document.body.append(contextMenu);
+  positionMenu();
+  contextMenu.querySelector("button")?.focus();
+}
+
 document.addEventListener("contextmenu", (event) => {
   const target = elementForNode(event.target);
   if (!target?.closest?.("article")) return;
+  const image = target.closest("img[data-md-image-source][data-md-start-line]");
+  if (image) {
+    showImageContextMenu(event, image);
+    return;
+  }
   publishSelection();
   if (!selected) return;
 
@@ -1615,6 +1962,34 @@ document.addEventListener("keydown", (event) => {
 });
 
 window.addEventListener("message", (event) => {
+  if (event.data?.type === "previewSettings") {
+    applyPreviewSettings(event.data.settings, { renderDiagrams: true });
+    const action = pendingPreviewActions.get(event.data.requestId);
+    if (event.data.requestId) pendingPreviewActions.delete(event.data.requestId);
+    if (action === "cos-save") {
+      document.getElementById("lm-md-cos-secret-id").value = "";
+      document.getElementById("lm-md-cos-secret-key").value = "";
+      setPreviewSettingsStatus(event.data.settings?.cosCredentialsConfigured ? "COS 设置已保存，密钥已加密存储。" : "COS 设置已保存。");
+    } else if (action === "cos-clear") {
+      document.getElementById("lm-md-cos-secret-id").value = "";
+      document.getElementById("lm-md-cos-secret-key").value = "";
+      setPreviewSettingsStatus("已清除保存的 COS 密钥。");
+    } else if (action === "visual") {
+      setPreviewSettingsStatus("显示设置已保存。");
+    }
+  }
+  if (event.data?.type === "previewActionResult") {
+    const action = pendingPreviewActions.get(event.data.requestId);
+    if (event.data.requestId) pendingPreviewActions.delete(event.data.requestId);
+    if (event.data.error) {
+      if (action === "cos-save" || action === "cos-clear") setPreviewSettingsStatus(event.data.error, true);
+      else setStatus(event.data.error, true);
+    } else if (event.data.action === "setImageSize") {
+      setStatus("图片宽度已更新，可使用 Ctrl+Z 撤销");
+    } else if (event.data.action === "uploadImageToCos") {
+      setStatus("图片已上传到腾讯 COS，Markdown 地址已替换");
+    }
+  }
   if (event.data?.type === "toggleToolbar") {
     toggleToolbarVisibility();
   }

@@ -1,4 +1,5 @@
 const MarkdownIt = require("markdown-it");
+const highlightJs = require("highlight.js/lib/common");
 
 const BLOCK_OPEN_TYPES = new Set([
   "blockquote_open",
@@ -138,6 +139,22 @@ function resolveImageTokens(tokens, resolveImageSource) {
   }
 }
 
+function addImageSourceMetadata(tokens) {
+  for (const token of tokens) {
+    if (token.type === "inline" && Array.isArray(token.children) && token.map) {
+      let imageIndex = 0;
+      for (const child of token.children) {
+        if (child.type !== "image" && child.type !== "safe_html_image") continue;
+        child.attrSet("data-md-image-source", child.attrGet("src") || "");
+        child.attrSet("data-md-image-index", String(imageIndex++));
+        child.attrSet("data-md-start-line", String(token.map[0] + 1));
+        child.attrSet("data-md-end-line", String(token.map[1]));
+      }
+    }
+    if (Array.isArray(token.children)) addImageSourceMetadata(token.children);
+  }
+}
+
 function headingPlainText(inlineToken) {
   if (!inlineToken) return "";
   if (!Array.isArray(inlineToken.children) || inlineToken.children.length === 0) {
@@ -203,10 +220,19 @@ function renderFence(md) {
       ? ` data-md-start-line="${token.map[0] + 1}" data-md-end-line="${token.map[1]}"`
       : "";
     const info = token.info ? token.info.trim().split(/\s+/, 1)[0] : "";
-    const className = info
-      ? ` class="language-${md.utils.escapeHtml(info)}"`
-      : "";
-    const content = md.utils.escapeHtml(token.content);
+    const language = info.toLowerCase();
+    const canHighlight = language && language !== "mermaid" && highlightJs.getLanguage(language);
+    const classes = [
+      info ? `language-${md.utils.escapeHtml(info)}` : "",
+      canHighlight ? "hljs" : "",
+    ].filter(Boolean);
+    const className = classes.length ? ` class="${classes.join(" ")}"` : "";
+    const content = canHighlight
+      ? highlightJs.highlight(token.content, {
+          language,
+          ignoreIllegals: true,
+        }).value
+      : md.utils.escapeHtml(token.content);
     return `<pre${attrs}><code${className}>${content}</code></pre>\n`;
   };
 }
@@ -257,7 +283,7 @@ function renderMarkdownDocument(markdown, options = {}) {
   md.renderer.rules.font_close = () => "</font>";
   md.renderer.rules.safe_html_image = (tokens, index) => {
     const token = tokens[index];
-    const attributes = ["src", "alt", "title", "width", "height", "style"]
+    const attributes = ["src", "alt", "title", "width", "height", "style", "data-md-image-source", "data-md-image-index", "data-md-start-line", "data-md-end-line"]
       .map((name) => {
         const value = token.attrGet(name);
         return value === null ? "" : ` ${name}="${md.utils.escapeHtml(value)}"`;
@@ -267,6 +293,7 @@ function renderMarkdownDocument(markdown, options = {}) {
   };
   const env = {};
   const tokens = md.parse(maskFrontMatter(markdown), env);
+  addImageSourceMetadata(tokens);
   if (typeof options.resolveImageSource === "function") {
     resolveImageTokens(tokens, options.resolveImageSource);
   }

@@ -92,8 +92,9 @@ function createPreviewNavigationController(vscode, revealPreviewLine) {
       if (openedCitationTab) {
         return revealPreviewLine(target.uri, target.line, { openedCitationTab });
       }
-      // TODO(review): Some native jumps omit kind; keep this fallback until VS Code exposes a narrower origin signal.
-      if (commandKind !== undefined && event?.kind !== undefined && event.kind !== commandKind) {
+      // An unknown origin can be an ordinary editor interaction. Do not let it
+      // reveal the preview and steal focus from the text editor.
+      if (commandKind === undefined || event?.kind !== commandKind) {
         return false;
       }
 

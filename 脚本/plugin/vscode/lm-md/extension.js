@@ -9,6 +9,8 @@ const { PreviewStateStore } = require("./src/preview-state");
 const { openSourceReview } = require("./src/source-review");
 const { applyMarkdownBold } = require("./src/markdown-bold");
 const { getDocumentUriKey } = require("./src/document-uri");
+const { MarkdownOutlineViewProvider } = require("./src/markdown-outline-view");
+const { createPreviewActions } = require("./src/preview-actions");
 const {
   createPreviewNavigationController,
   resolveManualPreviewTarget,
@@ -18,13 +20,15 @@ const {
 const CUSTOM_EDITOR_VIEW_TYPE = "lmMd.previewEditor";
 
 class PreviewManager {
-  constructor(context, onSelection, changeHistory, onSourceReview, previewStateStore, onFormatBold) {
+  constructor(context, onSelection, changeHistory, onSourceReview, previewStateStore, onFormatBold, outlineView, previewActions) {
     this.context = context;
     this.onSelection = onSelection;
     this.changeHistory = changeHistory;
     this.onSourceReview = onSourceReview;
     this.previewStateStore = previewStateStore;
     this.onFormatBold = onFormatBold;
+    this.outlineView = outlineView;
+    this.previewActions = previewActions;
     this.panels = new Map();
   }
 
@@ -47,6 +51,8 @@ class PreviewManager {
       this.previewStateStore,
       this.changeHistory,
       this.onFormatBold,
+      this.outlineView,
+      this.previewActions,
     );
     this.panels.set(key, panel);
     return panel;
@@ -80,12 +86,14 @@ function activate(context) {
     syncSelectionToCopilot(vscode, uri, selection);
   const changeHistory = new MarkdownChangeHistory(vscode.workspace.textDocuments);
   const previewStateStore = new PreviewStateStore();
+  const outlineView = new MarkdownOutlineViewProvider(vscode, context.extensionUri);
   let previewNavigation;
   const sourceReview = (uri, range) => {
     previewNavigation?.suppressNextSelectionChange(uri, range.startLine);
     return openSourceReview(vscode, uri, range);
   };
   const formatBold = (uri, segments) => applyMarkdownBold(vscode, uri, segments);
+  const previewActions = createPreviewActions(vscode, context);
   const previewManager = new PreviewManager(
     context,
     syncSelection,
@@ -93,6 +101,8 @@ function activate(context) {
     sourceReview,
     previewStateStore,
     formatBold,
+    outlineView,
+    previewActions,
   );
   const customEditorProvider = new MarkdownCustomEditorProvider(
     vscode,
@@ -102,6 +112,8 @@ function activate(context) {
     sourceReview,
     previewStateStore,
     formatBold,
+    outlineView,
+    previewActions,
   );
   previewNavigation = createPreviewNavigationController(
     vscode,
@@ -122,6 +134,12 @@ function activate(context) {
   );
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider(
+      "lmMd.markdownOutline",
+      outlineView,
+      { webviewOptions: { retainContextWhenHidden: true } },
+    ),
+    outlineView,
     vscode.window.registerCustomEditorProvider(
       CUSTOM_EDITOR_VIEW_TYPE,
       customEditorProvider,
