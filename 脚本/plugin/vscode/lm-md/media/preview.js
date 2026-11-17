@@ -10,6 +10,7 @@ let previewScrollPersistenceTimer = null;
 let previewScrollResizeTimer = null;
 let previewScrollRestoreSequence = 0;
 let previewScrollRestoreLocked = false;
+let previewUserNavigationSequence = 0;
 let mermaidRenderPromise = Promise.resolve();
 let changeHelpDocumentHandlersBound = false;
 let previewSettings = { theme: "auto", fontSize: 16, lineHeight: 1.75, contentWidth: "standard" };
@@ -123,15 +124,17 @@ function updateSelectionControls() {
   const status = document.getElementById("lm-md-status");
   const clear = document.getElementById("lm-md-clear-selection");
   const sync = document.getElementById("lm-md-sync");
+  const syncDsh = document.getElementById("lm-md-sync-dsh");
   selected = combinedSelection();
   if (sync) sync.disabled = !selected || syncing;
+  if (syncDsh) syncDsh.disabled = !selected || syncing;
   if (clear) clear.hidden = !selected;
   if (!status) return;
 
   if (selected) {
-    status.textContent = `当前选中${describeSelectionRanges(selected)}；同步会在 Copilot 新增引用`;
+    status.textContent = `当前选中${describeSelectionRanges(selected)}；可同步到 Copilot 或 DSH 对话`;
   } else {
-    status.textContent = "在预览中选择文字后同步到 Copilot";
+    status.textContent = "在预览中选择文字后，可同步到 Copilot 或 DSH 对话";
   }
 }
 
@@ -640,7 +643,17 @@ function flushPreviewScrollState() {
 function unlockPreviewScrollPersistence(event) {
   const target = elementForNode(event?.target);
   if (target?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+  beginPreviewUserNavigation();
+}
+
+function beginPreviewUserNavigation() {
+  previewUserNavigationSequence += 1;
+  previewScrollRestoreSequence += 1;
   previewScrollRestoreLocked = false;
+  if (previewScrollResizeTimer !== null) {
+    window.clearTimeout(previewScrollResizeTimer);
+    previewScrollResizeTimer = null;
+  }
 }
 
 function schedulePreviewPositionRestore() {
@@ -927,14 +940,130 @@ function initializeContentSearch() {
   let matches = [];
   let currentIndex = -1;
 
-  const updateVisuals = (shouldScroll) => {
-    for (const block of article.querySelectorAll("[data-md-start-line][data-md-end-line]")) {
-      block.classList.remove("lm-md-content-match", "lm-md-content-current");
+  const clearHighlights = () => {
+    for (const mark of article.querySelectorAll("mark[data-lm-md-search-highlight]")) {
+      mark.replaceWith(document.createTextNode(mark.textContent || ""));
     }
-    matches.forEach((block, index) => {
-      block.classList.add("lm-md-content-match");
-      if (index === currentIndex) block.classList.add("lm-md-content-current");
+    article.normalize();
+  };
+
+  const escapeSearchRegex = (value) =>
+    Array.from(value, (character) =>
+      ".^$*+?()[]{}|\\".includes(character) ? "\\" + character : character,
+    ).join("");
+
+  const createSearchableTextWalker = (root) =>
+    document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+      acceptNode(node) {
+        const parent = node.parentElement;
+        if (
+          !parent ||
+          parent.closest("svg, script, style, noscript, button, input, textarea, select, .lm-md-collapse")
+        ) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        return node.nodeValue ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+      },
     });
+
+  const getSearchableText = (block, includeTextNodes = false) => {
+    const walker = createSearchableTextWalker(block);
+    let text = "";
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      const value = node.nodeValue || "";
+      const start = text.length;
+      text += value;
+      if (includeTextNodes) {
+        textNodes.push({ node, start, end: text.length });
+      }
+    }
+    return { text, textNodes };
+  };
+
+  const findMatchingBlocks = (blocks, searchPattern, queryLength) => {
+    const blockSet = new Set(blocks);
+    const stateByBlock = new Map(
+      blocks.map((block) => [block, { matched: false, tail: "" }]),
+    );
+    const walker = createSearchableTextWalker(article);
+    let node;
+    while ((node = walker.nextNode())) {
+      const value = node.nodeValue || "";
+      let ancestor = node.parentElement;
+      while (ancestor && ancestor !== article) {
+        const state = blockSet.has(ancestor) ? stateByBlock.get(ancestor) : null;
+        if (state && !state.matched) {
+          const combined = state.tail + value;
+          if (searchPattern.test(combined)) state.matched = true;
+          state.tail = combined.slice(-queryLength);
+        }
+        ancestor = ancestor.parentElement;
+      }
+    }
+    return blocks.filter((block) => stateByBlock.get(block).matched);
+  };
+
+  const collectHighlightRanges = (searchData, searchPattern, rangesByNode) => {
+    const pattern = new RegExp(searchPattern.source, "giu");
+    let match;
+    while ((match = pattern.exec(searchData.text))) {
+      const start = match.index;
+      const end = start + match[0].length;
+      let low = 0;
+      let high = searchData.textNodes.length;
+      while (low < high) {
+        const middle = (low + high) >>> 1;
+        if (searchData.textNodes[middle].end <= start) low = middle + 1;
+        else high = middle;
+      }
+      for (let index = low; index < searchData.textNodes.length; index += 1) {
+        const segment = searchData.textNodes[index];
+        if (segment.start >= end) break;
+        const ranges = rangesByNode.get(segment.node) || [];
+        ranges.push([
+          Math.max(start, segment.start) - segment.start,
+          Math.min(end, segment.end) - segment.start,
+        ]);
+        rangesByNode.set(segment.node, ranges);
+      }
+    }
+  };
+
+  const applyHighlightRanges = (rangesByNode) => {
+    for (const [textNode, ranges] of rangesByNode) {
+      const merged = [];
+      ranges.sort((left, right) => left[0] - right[0] || right[1] - left[1]);
+      for (const [start, end] of ranges) {
+        const previousRange = merged[merged.length - 1];
+        if (previousRange && start <= previousRange[1]) {
+          previousRange[1] = Math.max(previousRange[1], end);
+        } else {
+          merged.push([start, end]);
+        }
+      }
+
+      for (const [start, end] of merged.reverse()) {
+        if (!textNode.parentNode) continue;
+        textNode.splitText(end);
+        const matchedText = textNode.splitText(start);
+        const mark = document.createElement("mark");
+        mark.className = "lm-md-search-highlight";
+        mark.dataset.lmMdSearchHighlight = "true";
+        matchedText.parentNode.replaceChild(mark, matchedText);
+        mark.appendChild(matchedText);
+      }
+    }
+  };
+
+  const updateVisuals = (shouldScroll) => {
+    for (const mark of article.querySelectorAll(".lm-md-search-current")) {
+      mark.classList.remove("lm-md-search-current");
+    }
+    if (currentIndex >= 0) {
+      matches[currentIndex].marks.forEach((mark) => mark.classList.add("lm-md-search-current"));
+    }
     clear.disabled = !input.value;
     previous.disabled = matches.length === 0;
     next.disabled = matches.length === 0;
@@ -942,20 +1071,42 @@ function initializeContentSearch() {
       ? (matches.length ? `${currentIndex + 1}/${matches.length}` : "0/0")
       : "";
     if (shouldScroll && currentIndex >= 0) {
-      matches[currentIndex].scrollIntoView({ behavior: "smooth", block: "center" });
+      matches[currentIndex].block.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   };
 
   const apply = (shouldScroll = true) => {
-    const query = input.value.trim().toLocaleLowerCase();
+    const query = input.value.trim();
+    clearHighlights();
     const blocks = Array.from(
       article.querySelectorAll("[data-md-start-line][data-md-end-line]"),
     );
-    matches = query
-      ? blocks.filter((block) =>
-          String(block.textContent || "").toLocaleLowerCase().includes(query),
-        )
-      : [];
+    const searchPattern = query ? new RegExp(escapeSearchRegex(query), "iu") : null;
+    matches = [];
+    if (searchPattern) {
+      matches = findMatchingBlocks(blocks, searchPattern, query.length).map((block) => ({
+        block,
+        marks: [],
+      }));
+    }
+    if (query && matches.length) {
+      const rangesByNode = new Map();
+      const matchingBlocks = new Set(matches.map(({ block }) => block));
+      const highlightRoots = matches.filter(({ block }) => {
+        const ancestor = block.parentElement?.closest(
+          "[data-md-start-line][data-md-end-line]",
+        );
+        return !ancestor || !matchingBlocks.has(ancestor);
+      });
+      highlightRoots.forEach(({ block }) => {
+        const searchData = getSearchableText(block, true);
+        collectHighlightRanges(searchData, searchPattern, rangesByNode);
+      });
+      applyHighlightRanges(rangesByNode);
+      matches.forEach((match) => {
+        match.marks = Array.from(match.block.querySelectorAll("mark.lm-md-search-highlight"));
+      });
+    }
     currentIndex = matches.length ? 0 : -1;
     updateVisuals(shouldScroll);
   };
@@ -1004,8 +1155,10 @@ function initializeTableOfContents() {
       event.preventDefault();
       const target = document.getElementById(link.dataset.tocTarget);
       if (!target) return;
+      beginPreviewUserNavigation();
       setActiveTocLink(link);
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
+      target.scrollIntoView({ behavior: "auto", block: "start" });
+      persistPreviewScrollState();
     });
   }
 }
@@ -1113,7 +1266,11 @@ function applyPreviewSettings(nextSettings, { renderDiagrams = false } = {}) {
 
   if (renderDiagrams && previousTheme !== theme) {
     const scrollState = collectScrollState();
-    void renderMermaidDiagrams().then(() => restorePreviewScrollState(scrollState));
+    const userNavigationSequence = previewUserNavigationSequence;
+    void renderMermaidDiagrams().then(() => {
+      if (userNavigationSequence !== previewUserNavigationSequence) return;
+      return restorePreviewScrollState(scrollState);
+    });
   }
 }
 
@@ -1299,7 +1456,7 @@ function activateTocForLine(line) {
       : linkRect.bottom > scrollRect.bottom
         ? linkRect.bottom - scrollRect.bottom
         : 0;
-    if (delta) scroll.scrollTo({ top: scroll.scrollTop + delta, behavior: "smooth" });
+    if (delta) scroll.scrollTo({ top: scroll.scrollTop + delta, behavior: "auto" });
   }
   persistPreviewState();
 }
@@ -1394,9 +1551,11 @@ function revealPreviewLine(line) {
   }
   if (!targets.length) return false;
 
+  beginPreviewUserNavigation();
   activateTocForLine(sourceLine);
   for (const block of targets) block.classList.add("lm-md-reference-current");
-  targets[0].scrollIntoView({ behavior: "smooth", block: "center" });
+  targets[0].scrollIntoView({ behavior: "auto", block: "center" });
+  persistPreviewScrollState();
   previewScrollRestoreLocked = false;
   window.setTimeout(schedulePreviewScrollStatePersistence, 400);
   window.setTimeout(() => {
@@ -1626,8 +1785,10 @@ function updatePreviewContent(message) {
   initializeContentSearch();
   initializeChangeHistory();
   applyNetChangeHighlights();
+  const userNavigationSequence = previewUserNavigationSequence;
   void renderMermaidDiagrams(article).then(() => {
     applyNetChangeHighlights();
+    if (userNavigationSequence !== previewUserNavigationSequence) return;
     restorePreviewScrollState(previewState);
   });
 }
@@ -1687,8 +1848,19 @@ function syncSelected() {
   syncing = true;
   const button = document.getElementById("lm-md-sync");
   if (button) button.disabled = true;
-  setStatus("正在打开 Copilot Chat…");
+  setStatus("正在同步到 Copilot Chat…");
   vscode.postMessage({ ...selected, type: "syncPreviewSelection" });
+}
+
+function syncSelectedToDsh() {
+  selected = combinedSelection();
+  if (!selected || syncing) return;
+  hideContextMenu();
+  syncing = true;
+  const button = document.getElementById("lm-md-sync-dsh");
+  if (button) button.disabled = true;
+  setStatus("正在将引用插入 DSH 对话…");
+  vscode.postMessage({ ...selected, type: "syncPreviewSelectionToDsh" });
 }
 
 async function copySelected() {
@@ -1756,6 +1928,7 @@ function locateSelectionInSource() {
 }
 
 const syncButton = document.getElementById("lm-md-sync");
+const syncDshButton = document.getElementById("lm-md-sync-dsh");
 syncButton?.addEventListener("click", syncSelected);
 syncButton?.addEventListener("pointerdown", syncSelected);
 syncButton?.addEventListener("keydown", (event) => {
@@ -1769,7 +1942,16 @@ syncButton?.addEventListener("keydown", (event) => {
 document.addEventListener("click", (event) => {
   const target = elementForNode(event.target);
   if (target?.closest?.("#lm-md-sync")) syncSelected();
+  if (target?.closest?.("#lm-md-sync-dsh")) syncSelectedToDsh();
 }, true);
+syncDshButton?.addEventListener("click", syncSelectedToDsh);
+syncDshButton?.addEventListener("pointerdown", syncSelectedToDsh);
+syncDshButton?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    syncSelectedToDsh();
+  }
+});
 
 function previewImagePayload(image) {
   return {
@@ -1902,6 +2084,11 @@ document.addEventListener("contextmenu", (event) => {
   syncItem.dataset.action = "sync";
   syncItem.setAttribute("role", "menuitem");
   syncItem.textContent = "同步到 Copilot";
+  const syncDshItem = document.createElement("button");
+  syncDshItem.type = "button";
+  syncDshItem.dataset.action = "sync-dsh";
+  syncDshItem.setAttribute("role", "menuitem");
+  syncDshItem.textContent = "同步到 DSH";
   const sourceItem = document.createElement("button");
   sourceItem.type = "button";
   sourceItem.dataset.action = "source";
@@ -1920,6 +2107,8 @@ document.addEventListener("contextmenu", (event) => {
       boldSelected();
     } else if (item.dataset.action === "source") {
       locateSelectionInSource();
+    } else if (item.dataset.action === "sync-dsh") {
+      syncSelectedToDsh();
     } else {
       syncSelected();
     }
@@ -1930,7 +2119,7 @@ document.addEventListener("contextmenu", (event) => {
       activateMenuItem(itemEvent);
     }
   });
-  contextMenu.append(boldItem, copyItem, syncItem, sourceItem);
+  contextMenu.append(boldItem, copyItem, syncItem, syncDshItem, sourceItem);
   document.body.append(contextMenu);
   const left = Math.min(event.clientX, window.innerWidth - contextMenu.offsetWidth - 8);
   const top = Math.min(event.clientY, window.innerHeight - contextMenu.offsetHeight - 8);
@@ -2031,20 +2220,27 @@ window.addEventListener("message", (event) => {
   }
   if (event.data?.type === "syncStarted") {
     syncing = true;
-    const button = document.getElementById("lm-md-sync");
-    if (button) button.disabled = true;
-    setStatus("已收到同步请求，正在打开 Copilot Chat…");
+    for (const buttonId of ["lm-md-sync", "lm-md-sync-dsh"]) {
+      const button = document.getElementById(buttonId);
+      if (button) button.disabled = true;
+    }
+    setStatus(event.data.selection?.target === "dsh"
+      ? "已收到请求，正在将引用插入 DSH 对话…"
+      : "已收到请求，正在同步到 Copilot Chat…");
   }
   if (event.data?.type === "syncCompleted") {
     syncing = false;
-    const syncedStatus = `已同步${describeSelectionRanges(event.data.selection)}到 Copilot Chat`;
+    const target = event.data.selection?.target === "dsh" ? "DSH 对话" : "Copilot Chat";
+    const syncedStatus = `已同步${describeSelectionRanges(event.data.selection)}到 ${target}`;
     clearCurrentSelection();
     setStatus(syncedStatus);
   }
   if (event.data?.type === "syncFailed") {
     syncing = false;
-    const button = document.getElementById("lm-md-sync");
-    if (button) button.disabled = !selected;
+    for (const buttonId of ["lm-md-sync", "lm-md-sync-dsh"]) {
+      const button = document.getElementById(buttonId);
+      if (button) button.disabled = !selected;
+    }
     setStatus(`同步失败：${event.data.message}`, true);
   }
 });

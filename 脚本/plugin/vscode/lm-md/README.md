@@ -1,8 +1,8 @@
 # LM Markdown Copilot Preview
 
-在 VS Code 中以可选中文本的方式预览 Markdown，并把所选内容作为引用发送到 VS Code 原生 GitHub Copilot Chat。
+在 VS Code 中以可选中文本的方式预览 Markdown，并把所选内容作为引用添加到 GitHub Copilot Chat 或 DeepSeek Harness 当前对话。
 
-Preview Markdown as selectable content in VS Code, then send selected passages as references to the native GitHub Copilot Chat.
+Preview Markdown as selectable content in VS Code, then add selected passages as references to GitHub Copilot Chat or the current DeepSeek Harness conversation.
 
 ## 简体中文
 
@@ -11,8 +11,8 @@ Preview Markdown as selectable content in VS Code, then send selected passages a
 - **Markdown 预览与目录**：标题、段落、列表、代码块、图片和 Mermaid 图表；目录可放在 Activity Bar 侧栏，正文占满编辑区；支持搜索、跳转、折叠，并定位当前阅读章节。
 - **图片与格式兼容**：支持相对路径和工作区图片资源，并兼容常见的 `<font color>` 与 `style="color:..."` 写法。
 - **代码语法高亮**：常见语言围栏代码使用内置离线高亮，颜色随预览深浅主题切换；未识别语言保留纯文本，Mermaid 继续使用图表渲染。
-- **选择并引用**：选中预览文字后，可同步到 Copilot Chat。每次同步都会追加一个引用，可连续添加多个片段。
-- **右键操作**：可对选中文字加粗、复制、同步到 Copilot，或定位到对应源码。
+- **选择并引用**：选中预览文字后，可同步到 Copilot Chat 或 DSH。每次同步都会追加引用；多个选区按源文件行范围依次插入。
+- **右键操作**：可对选中文字加粗、复制、同步到 Copilot 或 DSH，或定位到对应源码。
 - **图片操作**：右键图片可设为 25%、50%、75%、100% 或自定义宽度；也可上传到腾讯 COS 并自动替换 Markdown 图片地址。修改可用 VS Code 撤销。
 - **预览设置**：在工具栏齿轮中持久化设置主题、正文大小、行距和阅读宽度；主题切换也放在这里。
 - **腾讯 COS**：每个用户自行配置 Bucket、Region 和密钥。SecretId/SecretKey 使用 VS Code SecretStorage 加密保存；扩展不会携带发布者的密钥，也不会写入普通设置或 README。
@@ -25,21 +25,22 @@ Preview Markdown as selectable content in VS Code, then send selected passages a
 ### 开始使用
 
 1. 在 VS Code 中打开一个 `.md` 文件。默认编辑器为 LM Markdown Preview；如当前使用文本编辑器，可从编辑器类型菜单切换到预览。
-2. 在预览中选择需要处理的文字，使用工具栏或右键菜单选择操作。
-3. 选择“同步到 Copilot”后，片段会作为引用添加到原生 Copilot Chat。要添加其他片段，重新选择并再次同步即可。
-4. 在 Copilot Chat 中输入你的要求。Copilot 负责生成回复和修改；请在 Copilot 中查看改动并决定保留或撤销。
+2. 在预览中选择需要处理的文字，使用工具栏或右键菜单选择“同步到 Copilot”或“同步到 DSH”。
+3. Copilot 选区会添加到原生 Copilot Chat；DSH 选区会添加到当前可见的 DSH 对话输入框。两者都不会自动发送消息，可继续添加其他引用并补充指令。
+4. 使用 DSH 同步前，请安装并启用配套的 **DeepSeek Harness for VSCode (LM Custom)** 定制扩展，并打开其对话面板。
 5. 点击预览工具栏的齿轮调整阅读设置。图片上传前，先填写自己的腾讯 COS SecretId、SecretKey、Bucket 和 Region；Bucket 需要允许预览端读取对象。
 
 ### 命令
 
 - `LM Markdown: Open Selectable Preview`：打开可选中文本的 Markdown 预览。
 - `LM Markdown: Sync Selection to Copilot`：将源码中的当前选区同步到 Copilot Chat。
+- `LM Markdown: Sync Selection to DeepSeek Harness`：将 Markdown 源码中的当前选区作为引用添加到 DSH 对话。
 - `LM Markdown: Reveal Location in Preview`：在预览中定位源码位置。
 
 ### 要求与说明
 
 - 需要 VS Code 1.95 或更高版本。
-- Markdown 预览无需 Copilot；将内容同步到 Copilot Chat 需要安装并启用 GitHub Copilot Chat。
+- Markdown 预览无需 Copilot 或 DSH；同步到 Copilot Chat 需要启用 GitHub Copilot Chat，同步到 DSH 需要启用配套 LM Custom 扩展并显示 DSH 对话面板。
 - 插件不提供模型或聊天窗口，也不调用自有 AI 服务；对话、生成修改以及原生的保留/撤销操作由 Copilot Chat 处理。
 - 预览中的选区按 Markdown 块映射到源文件行范围，并非字符级精确范围，因此引用可能包含同一块中的其他文字。
 - 改动列表用于展示文件变化，不等同于 Copilot 原生待审列表；它会合并当前文件的净变化，并可能包含手动编辑。当前会话捕获的编辑事件仅保存在内存中。
@@ -52,8 +53,8 @@ Preview Markdown as selectable content in VS Code, then send selected passages a
 - **Markdown preview and outline** — Render headings, paragraphs, lists, code blocks, images, and Mermaid diagrams. Move the outline to the Activity Bar sidebar so the preview fills the editor area; search, navigate, collapse, and locate the chapter currently in view.
 - **Images and formatting** — Supports relative paths, workspace image resources, and common `<font color>` / `style="color:..."` markup.
 - **Code syntax highlighting** — Common fenced languages are highlighted offline with colors that follow the preview theme. Unknown languages remain plain text, and Mermaid fences keep their diagram rendering.
-- **Select and reference content** — Select text in the preview and send it to Copilot Chat. Each sync adds a new reference, so you can add multiple passages.
-- **Context-menu actions** — Bold or copy selected text, sync it to Copilot, or reveal its source location.
+- **Select and reference content** — Select text in the preview and add it to Copilot Chat or DSH. Multiple source ranges are inserted in order as separate references.
+- **Context-menu actions** — Bold or copy selected text, sync it to Copilot or DSH, or reveal its source location.
 - **Image actions** — Right-click an image to set its width to 25%, 50%, 75%, 100%, or a custom percentage. You can also upload it to Tencent COS and replace the Markdown URL. Changes are undoable in VS Code.
 - **Preview settings** — Persist the theme, body font size, line height, and reading width from the toolbar's settings menu.
 - **Tencent COS** — Each user configures their own bucket, region, and credentials. SecretId and SecretKey are stored with VS Code SecretStorage; the extension package does not contain the publisher's credentials.
@@ -67,20 +68,21 @@ Preview Markdown as selectable content in VS Code, then send selected passages a
 
 1. Open a `.md` file in VS Code. LM Markdown Preview is the default editor. If the file is open as text, use the editor-type menu to switch to the preview.
 2. Select the text you want to work with and choose an action from the toolbar or context menu.
-3. Choose **Sync to Copilot** to add the passage as a reference in native Copilot Chat. Select another passage and sync again to add another reference.
-4. Enter your request in Copilot Chat. Copilot generates responses and edits; review the changes in Copilot and choose whether to keep or undo them.
+3. Choose **Sync to Copilot** or **Sync to DSH**. Copilot references are added to native Copilot Chat; DSH references are added to the input box of the currently visible DSH conversation. Neither action submits the message.
+4. To use DSH sync, install and enable the companion **DeepSeek Harness for VSCode (LM Custom)** extension and show its conversation panel. Add any other references, then enter your instruction and send it from DSH.
 5. Open the toolbar's settings menu to change reading preferences. Before uploading images, enter your own Tencent COS SecretId, SecretKey, bucket, and region. The bucket must allow the preview to read uploaded objects.
 
 ### Commands
 
 - `LM Markdown: Open Selectable Preview` — Open the selectable Markdown preview.
 - `LM Markdown: Sync Selection to Copilot` — Send the current source-editor selection to Copilot Chat.
+- `LM Markdown: Sync Selection to DeepSeek Harness` — Add the current Markdown source-editor selection as a reference in DSH.
 - `LM Markdown: Reveal Location in Preview` — Reveal a source location in the preview.
 
 ### Requirements and notes
 
 - Requires VS Code 1.95 or later.
-- Markdown preview works without Copilot. GitHub Copilot Chat must be installed and enabled to sync content to Copilot Chat.
+- Markdown preview works without Copilot or DSH. GitHub Copilot Chat must be enabled for Copilot sync; the companion LM Custom extension and a visible DSH conversation panel are required for DSH sync.
 - The extension does not provide a model or chat window and does not call its own AI service. Copilot Chat handles conversations, generated edits, and its native keep/undo actions.
 - Preview selections map to Markdown block line ranges, not exact character ranges, so a reference may include additional text from the same block.
 - The change panel shows file changes and is not the same as Copilot's native review list. It calculates the current net changes and may include manual edits. Captured edit events are kept in memory for the current session only.

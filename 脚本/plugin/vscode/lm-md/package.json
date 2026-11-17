@@ -2,7 +2,7 @@
   "name": "lm-md",
   "displayName": "LM Markdown Copilot Preview",
   "description": "Selectable Markdown preview that syncs source ranges to native Copilot Chat.",
-  "version": "0.2.47",
+  "version": "0.2.50",
   "publisher": "lmtomorrow",
   "icon": "images/icon-1024.png",
   "engines": {
@@ -13,6 +13,7 @@
     "onLanguage:markdown",
     "onCommand:lmMd.openPreview",
     "onCommand:lmMd.openCopilotForSelection",
+    "onCommand:lmMd.syncToDshForSelection",
     "onCommand:lmMd.togglePreviewToolbar",
     "onCommand:lmMd.revealPreviewLocation",
     "onCustomEditor:lmMd.previewEditor",
@@ -60,6 +61,10 @@
       {
         "command": "lmMd.openCopilotForSelection",
         "title": "LM Markdown: Sync Selection to Copilot"
+      },
+      {
+        "command": "lmMd.syncToDshForSelection",
+        "title": "LM Markdown: Sync Selection to DeepSeek Harness"
       },
       {
         "command": "lmMd.togglePreviewToolbar",
@@ -167,6 +172,11 @@
           "command": "lmMd.openCopilotForSelection",
           "when": "editorLangId == markdown && editorHasSelection",
           "group": "navigation@10"
+        },
+        {
+          "command": "lmMd.syncToDshForSelection",
+          "when": "editorLangId == markdown && editorHasSelection",
+          "group": "navigation@11"
         }
       ]
     }

@@ -27,14 +27,18 @@ function normalizePreviewSelection(message) {
 }
 
 function normalizeSyncSelection(message) {
-  if (!message || message.type !== "syncPreviewSelection") return null;
-  return normalizePreviewSelection({
+  if (!message || !["syncPreviewSelection", "syncPreviewSelectionToDsh"].includes(message.type)) return null;
+  const selection = normalizePreviewSelection({
     type: "previewSelection",
     text: message.text,
     ranges: message.ranges,
     startLine: message.startLine,
     endLine: message.endLine,
   });
+  return selection ? {
+    ...selection,
+    target: message.type === "syncPreviewSelectionToDsh" ? "dsh" : "copilot",
+  } : null;
 }
 
 function normalizeBoldSegments(message) {
@@ -688,7 +692,7 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     }
     body { margin: 0; overflow-x: hidden; color: var(--vscode-editor-foreground); background: var(--vscode-editor-background); font-family: var(--vscode-font-family); line-height: var(--lm-md-line-height, 1.75); }
     .lm-md-main article { width: min(100%, var(--lm-md-content-width, 88ch)); margin: 0 auto; font-size: var(--lm-md-body-font-size, 16px); line-height: var(--lm-md-line-height, 1.75); overflow-wrap: anywhere; }
-    .lm-md-main article h1, .lm-md-main article h2, .lm-md-main article h3, .lm-md-main article h4, .lm-md-main article h5, .lm-md-main article h6 { line-height: 1.35; font-weight: 700; letter-spacing: .01em; }
+    .lm-md-main article h1, .lm-md-main article h2, .lm-md-main article h3, .lm-md-main article h4, .lm-md-main article h5, .lm-md-main article h6 { line-height: 1.35; font-weight: 700; letter-spacing: .01em; scroll-margin-top: calc(var(--lm-md-toolbar-height, 0px) + 18px); }
     .lm-md-main article h1 { margin: 0 0 18px; padding: 0 0 12px; border-bottom: 1px solid var(--vscode-panel-border); font-size: 2.125em; }
     .lm-md-main article h2 { margin: 32px 0 13px; padding-left: 12px; border-left: 3px solid var(--vscode-focusBorder); font-size: 1.8125em; }
     .lm-md-main article h3 { margin: 26px 0 10px; font-size: 1.5625em; }
@@ -735,7 +739,8 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-toc-link.lm-md-toc-active { border-left-color: var(--vscode-focusBorder); background: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 72%, transparent); font-weight: 700; }
     .lm-md-toc-collapse { flex: 0 0 18px; width: 18px; height: 22px; margin: 0 1px 0 0; padding: 0; color: var(--vscode-descriptionForeground); background: transparent; border: 0; font-size: 11px; line-height: 20px; vertical-align: middle; }
     .lm-md-toc-collapse:hover { background: var(--vscode-toolbar-hoverBackground); }
-    .lm-md-content-match { outline: 2px solid color-mix(in srgb, var(--vscode-focusBorder) 70%, transparent); outline-offset: 3px; border-radius: 2px; }
+    mark.lm-md-search-highlight { color: var(--vscode-editor-findMatchHighlightForeground, inherit); background-color: var(--vscode-editor-findMatchHighlightBackground, color-mix(in srgb, var(--vscode-editor-findMatchBackground, var(--vscode-editor-selectionBackground)) 45%, transparent)); border-radius: 2px; }
+    mark.lm-md-search-highlight.lm-md-search-current { color: var(--vscode-editor-findMatchForeground, inherit); background-color: var(--vscode-editor-findMatchBackground, var(--vscode-editor-selectionBackground)); font-weight: 700; }
     .lm-md-toc-link:hover { background: var(--vscode-list-hoverBackground); }
     .lm-md-toc-link:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     .lm-md-empty-toc { color: var(--vscode-descriptionForeground); font-size: 12px; }
@@ -772,11 +777,11 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     button { border: 1px solid var(--vscode-button-border, transparent); border-radius: 4px; padding: 5px 10px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; }
     .lm-md-toc-collapse { width: 18px; height: 22px; margin: 0 1px 0 0; padding: 0; color: var(--vscode-descriptionForeground); background: transparent; border: 0; line-height: 20px; }
     .lm-md-content-search-toolbar button { padding: 4px 7px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
-    #lm-md-sync { grid-area: sync; min-width: max-content; white-space: nowrap; }
+    .lm-md-sync-actions { grid-area: sync; display: flex; justify-self: end; gap: 6px; min-width: max-content; }
+    .lm-md-sync-actions button { white-space: nowrap; }
     button:disabled { opacity: .55; cursor: default; }
     .lm-md-collapse { margin-right: 6px; padding: 0 4px; color: var(--vscode-descriptionForeground); background: transparent; border: 0; font-size: .75em; vertical-align: middle; }
     .lm-md-collapse:hover { background: var(--vscode-toolbar-hoverBackground); }
-    .lm-md-content-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 35%, transparent); }
     .lm-md-change-history { position: sticky; top: calc(var(--lm-md-toolbar-height, 0px) + 8px); z-index: 1; margin: 0 0 14px; padding: 8px 10px; border: 1px solid var(--vscode-panel-border); border-radius: 6px; background: color-mix(in srgb, var(--vscode-editor-background) 97%, var(--vscode-editor-foreground)); box-shadow: 0 4px 16px color-mix(in srgb, black 22%, transparent); }
     .lm-md-change-history[hidden] { display: none; }
     .lm-md-change-header { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
@@ -858,7 +863,7 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-image-custom-size button { width: auto; padding: 4px 8px; }
     @media (max-width: 1100px) { .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc settings" "search search"; row-gap: 8px; } .lm-md-content-search-toolbar { justify-self: stretch; } }
     @media (max-width: 900px) { .lm-md-layout { gap: 12px; padding: 18px 0 40px 20px; } .lm-md-toc { flex-basis: 260px; width: 260px; } }
-    @media (max-width: 700px) { .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } .lm-md-selection-group { flex-wrap: wrap; } .lm-md-toc-toggle, .lm-md-settings-holder, #lm-md-sync, .lm-md-content-search-toolbar { justify-self: stretch; } .lm-md-settings-toggle { width: 100%; } .lm-md-settings-popover { right: auto; left: 0; } .lm-md-content-search-toolbar input { flex: 1 1 auto; width: auto; } }
+    @media (max-width: 700px) { .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } .lm-md-selection-group { flex-wrap: wrap; } .lm-md-toc-toggle, .lm-md-settings-holder, .lm-md-sync-actions, .lm-md-content-search-toolbar { justify-self: stretch; } .lm-md-sync-actions button { flex: 1 1 0; } .lm-md-settings-toggle { width: 100%; } .lm-md-settings-popover { right: auto; left: 0; } .lm-md-content-search-toolbar input { flex: 1 1 auto; width: auto; } }
     ${options.externalOutline ? `
     body.lm-md-external-outline .lm-md-layout { display: block; padding: 20px clamp(16px, 3vw, 48px) 56px; }
     body.lm-md-external-outline .lm-md-toc, body.lm-md-external-outline .lm-md-toc-toggle { display: none !important; }
@@ -962,7 +967,10 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
           <button id="lm-md-content-search-clear" type="button" title="清除正文搜索">清除</button>
           <span id="lm-md-content-result" class="lm-md-search-result" aria-live="polite"></span>
         </div>
-        <button id="lm-md-sync" type="button" disabled>同步到 Copilot</button>
+        <div class="lm-md-sync-actions" role="group" aria-label="同步选区">
+          <button id="lm-md-sync" type="button" disabled>同步到 Copilot</button>
+          <button id="lm-md-sync-dsh" type="button" disabled>同步到 DSH</button>
+        </div>
       </div>
       <section id="lm-md-change-history" class="lm-md-change-history" aria-label="当前文件净变化和会话编辑事件">
         ${changeHistory}

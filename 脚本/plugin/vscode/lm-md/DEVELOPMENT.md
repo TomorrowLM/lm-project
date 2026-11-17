@@ -35,6 +35,7 @@ lm-md/
 ├── src/preview-state.js         # Per-document preview, outline, and scroll state
 ├── src/source-review.js         # Reveal changes in the native text editor
 ├── src/copilot-selection.js     # Source ranges and native Copilot Chat handoff
+├── src/dsh-selection.js         # Source ranges and DSH custom-extension handoff
 ├── media/preview.js             # Webview selection and UI interactions
 └── test/                        # Node.js unit tests
 ```
@@ -45,9 +46,11 @@ lm-md/
 - 当前文件改动按保存内容计算净差异；会话事件列表只捕获扩展开始监听后的变化，不区分 Copilot 与手动编辑，不写入历史文件。
 - 净差异用于合并重复或整文件替换造成的噪声，不代表 Copilot 原生待审列表。
 - “在源码中审阅”负责打开/定位源码，不模拟 Copilot 的保留/撤销；原生审阅控件是否出现由 VS Code/Copilot 当前会话状态决定。
+- DSH 同步通过 `dsh.insertReferences` 把文件路径和行范围发送给可见的定制版 DSH webview；不激活源码编辑器，也不替用户发送消息。
 
 - Preview selections map to complete source line ranges using the minimum source line of the starting block and maximum source line of the ending block. This preserves Markdown structure but is not character-precise.
 - Net file changes are calculated against saved content. The in-session event list captures changes only after the extension starts listening, does not distinguish Copilot edits from manual edits, and is not written to a history file.
 - Net changes reduce noise from duplicate or whole-file replacement events; they are not Copilot's native pending-review list.
 - **Review in Source** opens/reveals the source location but does not simulate Copilot's keep/undo actions. Whether native review controls appear depends on the current VS Code/Copilot session state.
+- DSH sync sends the file path and source line ranges to the visible custom DSH webview through `dsh.insertReferences`; it does not activate the source editor or submit the user's message.
 

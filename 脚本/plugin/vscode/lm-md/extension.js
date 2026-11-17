@@ -3,6 +3,7 @@ const {
   createMarkdownPreviewPanel,
 } = require("./src/preview-panel");
 const { syncSelectionToCopilot } = require("./src/copilot-selection");
+const { syncSelectionToDsh } = require("./src/dsh-selection");
 const { MarkdownCustomEditorProvider } = require("./src/custom-editor");
 const { MarkdownChangeHistory } = require("./src/change-history");
 const { PreviewStateStore } = require("./src/preview-state");
@@ -83,7 +84,9 @@ class PreviewManager {
 
 function activate(context) {
   const syncSelection = (uri, selection) =>
-    syncSelectionToCopilot(vscode, uri, selection);
+    selection?.target === "dsh"
+      ? syncSelectionToDsh(vscode, uri, selection)
+      : syncSelectionToCopilot(vscode, uri, selection);
   const changeHistory = new MarkdownChangeHistory(vscode.workspace.textDocuments);
   const previewStateStore = new PreviewStateStore();
   const outlineView = new MarkdownOutlineViewProvider(vscode, context.extensionUri);
@@ -193,6 +196,36 @@ function activate(context) {
       } catch (error) {
         vscode.window.showErrorMessage(
           `无法打开 Copilot Chat：${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }),
+
+    vscode.commands.registerCommand("lmMd.syncToDshForSelection", async () => {
+      const editor = vscode.window.activeTextEditor;
+      if (!editor || editor.document.languageId !== "markdown") {
+        vscode.window.showWarningMessage("请先在 Markdown 源码编辑器中选择内容。");
+        return;
+      }
+
+      const selections = (editor.selections || [editor.selection])
+        .filter((selection) => selection && !selection.isEmpty);
+      if (selections.length === 0) {
+        vscode.window.showWarningMessage("请先选择要同步到 DSH 的 Markdown 内容。");
+        return;
+      }
+
+      const ranges = selections.map((selection) => ({
+        startLine: selection.start.line + 1,
+        endLine: selection.end.line + 1,
+      }));
+      try {
+        await syncSelectionToDsh(vscode, editor.document.uri, { ranges });
+        vscode.window.showInformationMessage(
+          `已向 DSH 对话添加 ${ranges.length} 处引用。请在 DSH 中补充指令并发送。`,
+        );
+      } catch (error) {
+        vscode.window.showErrorMessage(
+          `无法同步到 DSH：${error instanceof Error ? error.message : String(error)}`,
         );
       }
     }),
