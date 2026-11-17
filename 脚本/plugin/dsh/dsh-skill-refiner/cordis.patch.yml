@@ -1,0 +1,8 @@
+- insert:
+    - id: dsh-skill-refiner
+      name: dsh-skill-refiner
+      config:
+        provider: deepseek-official
+        model: deepseek-v4-flash
+        maxSkillBytes: 65536
+        maxEvidenceChars: 5000

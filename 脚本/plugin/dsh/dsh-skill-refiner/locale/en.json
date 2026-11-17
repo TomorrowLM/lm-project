@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Skill refiner",
+    "description": "Review workspace SKILL.md files, generate improvements from supplied task feedback, and apply approved revisions with snapshots and rollback.",
+    "detail": "docs/DETAIL.md"
+  }
+}

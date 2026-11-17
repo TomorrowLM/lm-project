@@ -1,0 +1,36 @@
+{
+  "name": "dsh-skill-refiner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Review and improve workspace SKILL.md files with explicit apply and rollback tools for DSH.",
+  "type": "module",
+  "main": "./host/index.js",
+  "exports": {
+    ".": "./host/index.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "README.md",
+    "host/index.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "docs/DETAIL.md",
+    "icon.svg"
+  ],
+  "engines": {
+    "dsh": ">=0.2.2-rc.3"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "~4.1.0",
+    "@deepseek-ai/dsh-llm": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-tools": "0.2.2-rc.3",
+    "@deepseek-ai/dsh-working-directory": "0.2.2-rc.3"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  },
+  "license": "MIT"
+}
