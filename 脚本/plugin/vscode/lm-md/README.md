@@ -27,7 +27,7 @@ Preview Markdown as selectable content in VS Code, then add selected passages as
 1. 在 VS Code 中打开一个 `.md` 文件。默认编辑器为 LM Markdown Preview；如当前使用文本编辑器，可从编辑器类型菜单切换到预览。
 2. 在预览中选择需要处理的文字，使用工具栏或右键菜单选择“同步到 Copilot”或“同步到 DSH”。
 3. Copilot 选区会添加到原生 Copilot Chat；DSH 选区会添加到当前可见的 DSH 对话输入框。两者都不会自动发送消息，可继续添加其他引用并补充指令。
-4. 使用 DSH 同步前，请安装并启用配套的 **DeepSeek Harness for VSCode (LM Custom)** 定制扩展，并打开其对话面板。
+4. 使用 DSH 同步前，请安装并启用支持 `dshPanel.sendPluginRequest` 的 **DeepSeek Harness for VSCode (LM Custom) 0.1.3+**，并打开其对话面板。该扩展会部署 DSH Cordis 插件 `dsh-vscode-bridge`。
 5. 点击预览工具栏的齿轮调整阅读设置。图片上传前，先填写自己的腾讯 COS SecretId、SecretKey、Bucket 和 Region；Bucket 需要允许预览端读取对象。
 
 ### 命令
@@ -40,7 +40,7 @@ Preview Markdown as selectable content in VS Code, then add selected passages as
 ### 要求与说明
 
 - 需要 VS Code 1.95 或更高版本。
-- Markdown 预览无需 Copilot 或 DSH；同步到 Copilot Chat 需要启用 GitHub Copilot Chat，同步到 DSH 需要启用配套 LM Custom 扩展并显示 DSH 对话面板。
+- Markdown 预览无需 Copilot 或 DSH；同步到 Copilot Chat 需要启用 GitHub Copilot Chat，同步到 DSH 需要启用提供通用插件桥接的 LM Custom 扩展并显示 DSH 对话面板。
 - 插件不提供模型或聊天窗口，也不调用自有 AI 服务；对话、生成修改以及原生的保留/撤销操作由 Copilot Chat 处理。
 - 预览中的选区按 Markdown 块映射到源文件行范围，并非字符级精确范围，因此引用可能包含同一块中的其他文字。
 - 改动列表用于展示文件变化，不等同于 Copilot 原生待审列表；它会合并当前文件的净变化，并可能包含手动编辑。当前会话捕获的编辑事件仅保存在内存中。
@@ -69,7 +69,7 @@ Preview Markdown as selectable content in VS Code, then add selected passages as
 1. Open a `.md` file in VS Code. LM Markdown Preview is the default editor. If the file is open as text, use the editor-type menu to switch to the preview.
 2. Select the text you want to work with and choose an action from the toolbar or context menu.
 3. Choose **Sync to Copilot** or **Sync to DSH**. Copilot references are added to native Copilot Chat; DSH references are added to the input box of the currently visible DSH conversation. Neither action submits the message.
-4. To use DSH sync, install and enable the companion **DeepSeek Harness for VSCode (LM Custom)** extension and show its conversation panel. Add any other references, then enter your instruction and send it from DSH.
+4. To use DSH sync, install **DeepSeek Harness for VSCode (LM Custom) 0.1.3+**, which provides `dshPanel.sendPluginRequest` and deploys the DSH Cordis plugin `dsh-vscode-bridge`; then show its conversation panel. Add any other references, then enter your instruction and send it from DSH.
 5. Open the toolbar's settings menu to change reading preferences. Before uploading images, enter your own Tencent COS SecretId, SecretKey, bucket, and region. The bucket must allow the preview to read uploaded objects.
 
 ### Commands
@@ -82,7 +82,7 @@ Preview Markdown as selectable content in VS Code, then add selected passages as
 ### Requirements and notes
 
 - Requires VS Code 1.95 or later.
-- Markdown preview works without Copilot or DSH. GitHub Copilot Chat must be enabled for Copilot sync; the companion LM Custom extension and a visible DSH conversation panel are required for DSH sync.
+- Markdown preview works without Copilot or DSH. GitHub Copilot Chat must be enabled for Copilot sync; the LM Custom extension with its generic DSH plugin bridge and a visible DSH conversation panel are required for DSH sync.
 - The extension does not provide a model or chat window and does not call its own AI service. Copilot Chat handles conversations, generated edits, and its native keep/undo actions.
 - Preview selections map to Markdown block line ranges, not exact character ranges, so a reference may include additional text from the same block.
 - The change panel shows file changes and is not the same as Copilot's native review list. It calculates the current net changes and may include manual edits. Captured edit events are kept in memory for the current session only.

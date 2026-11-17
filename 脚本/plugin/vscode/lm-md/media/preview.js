@@ -2,6 +2,10 @@ const vscode = acquireVsCodeApi();
 
 let selected = null;
 let syncing = false;
+let activeSyncRequestId = null;
+let syncRequestSequence = 0;
+let syncRequestTimeout = null;
+const SYNC_REQUEST_TIMEOUT_MS = 25000;
 let formattingBold = false;
 let contextMenu = null;
 let selectedChangeIndex = -1;
@@ -1773,6 +1777,7 @@ function updatePreviewContent(message) {
 
   article.innerHTML = message.bodyHtml;
   selected = null;
+  clearPendingSyncRequest();
   syncing = false;
   updateSelectionControls();
   toc.innerHTML = message.tocHtml;
@@ -1841,26 +1846,50 @@ document.getElementById("lm-md-clear-selection")?.addEventListener("click", (eve
   clearCurrentSelection();
 });
 
-function syncSelected() {
+function clearPendingSyncRequest(requestId) {
+  if (!activeSyncRequestId) return false;
+  if (requestId && requestId !== activeSyncRequestId) return false;
+  if (syncRequestTimeout) window.clearTimeout(syncRequestTimeout);
+  syncRequestTimeout = null;
+  activeSyncRequestId = null;
+  syncing = false;
+  return true;
+}
+
+function isCurrentSyncResponse(message) {
+  if (!activeSyncRequestId) return false;
+  return !message?.requestId || message.requestId === activeSyncRequestId;
+}
+
+function syncSelectedToTarget(type, targetName) {
   selected = combinedSelection();
   if (!selected || syncing) return;
   hideContextMenu();
+  const requestId = `lm-md-sync-${Date.now().toString(36)}-${(++syncRequestSequence).toString(36)}`;
+  activeSyncRequestId = requestId;
   syncing = true;
-  const button = document.getElementById("lm-md-sync");
-  if (button) button.disabled = true;
-  setStatus("正在同步到 Copilot Chat…");
-  vscode.postMessage({ ...selected, type: "syncPreviewSelection" });
+  updateSelectionControls();
+  setStatus(targetName === "DSH 对话" ? "正在将引用插入 DSH 对话…" : "正在同步到 Copilot Chat…");
+  syncRequestTimeout = window.setTimeout(() => {
+    if (!clearPendingSyncRequest(requestId)) return;
+    updateSelectionControls();
+    setStatus(`同步失败：等待 ${targetName} 回执超时，可以重试。`, true);
+  }, SYNC_REQUEST_TIMEOUT_MS);
+  try {
+    vscode.postMessage({ ...selected, type, requestId });
+  } catch (error) {
+    if (!clearPendingSyncRequest(requestId)) return;
+    updateSelectionControls();
+    setStatus(`同步失败：${error instanceof Error ? error.message : String(error)}`, true);
+  }
+}
+
+function syncSelected() {
+  syncSelectedToTarget("syncPreviewSelection", "Copilot Chat");
 }
 
 function syncSelectedToDsh() {
-  selected = combinedSelection();
-  if (!selected || syncing) return;
-  hideContextMenu();
-  syncing = true;
-  const button = document.getElementById("lm-md-sync-dsh");
-  if (button) button.disabled = true;
-  setStatus("正在将引用插入 DSH 对话…");
-  vscode.postMessage({ ...selected, type: "syncPreviewSelectionToDsh" });
+  syncSelectedToTarget("syncPreviewSelectionToDsh", "DSH 对话");
 }
 
 async function copySelected() {
@@ -2216,31 +2245,29 @@ window.addEventListener("message", (event) => {
   }
   if (event.data?.type === "selectionAvailable") {
     renderSelectionAvailable(event.data.selection);
-    syncing = false;
+    if (!activeSyncRequestId) {
+      syncing = false;
+      updateSelectionControls();
+    }
   }
   if (event.data?.type === "syncStarted") {
+    if (!isCurrentSyncResponse(event.data)) return;
     syncing = true;
-    for (const buttonId of ["lm-md-sync", "lm-md-sync-dsh"]) {
-      const button = document.getElementById(buttonId);
-      if (button) button.disabled = true;
-    }
+    updateSelectionControls();
     setStatus(event.data.selection?.target === "dsh"
       ? "已收到请求，正在将引用插入 DSH 对话…"
       : "已收到请求，正在同步到 Copilot Chat…");
   }
   if (event.data?.type === "syncCompleted") {
-    syncing = false;
+    if (!isCurrentSyncResponse(event.data) || !clearPendingSyncRequest(event.data.requestId)) return;
     const target = event.data.selection?.target === "dsh" ? "DSH 对话" : "Copilot Chat";
     const syncedStatus = `已同步${describeSelectionRanges(event.data.selection)}到 ${target}`;
     clearCurrentSelection();
     setStatus(syncedStatus);
   }
   if (event.data?.type === "syncFailed") {
-    syncing = false;
-    for (const buttonId of ["lm-md-sync", "lm-md-sync-dsh"]) {
-      const button = document.getElementById(buttonId);
-      if (button) button.disabled = !selected;
-    }
+    if (!isCurrentSyncResponse(event.data) || !clearPendingSyncRequest(event.data.requestId)) return;
+    updateSelectionControls();
     setStatus(`同步失败：${event.data.message}`, true);
   }
 });

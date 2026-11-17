@@ -1,8 +1,8 @@
 {
   "name": "lm-md",
   "displayName": "LM Markdown Copilot Preview",
-  "description": "Selectable Markdown preview that syncs source ranges to native Copilot Chat.",
-  "version": "0.2.50",
+  "description": "Selectable Markdown preview that syncs source ranges to Copilot Chat or DeepSeek Harness.",
+  "version": "0.2.52",
   "publisher": "lmtomorrow",
   "icon": "images/icon-1024.png",
   "engines": {

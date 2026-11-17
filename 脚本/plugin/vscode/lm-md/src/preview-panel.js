@@ -38,6 +38,7 @@ function normalizeSyncSelection(message) {
   return selection ? {
     ...selection,
     target: message.type === "syncPreviewSelectionToDsh" ? "dsh" : "copilot",
+    ...(typeof message.requestId === "string" ? { requestId: message.requestId } : {}),
   } : null;
 }
 
@@ -189,16 +190,20 @@ function createPreviewMessageHandler(
     try {
       await webview.postMessage({
         type: "syncStarted",
+        requestId: selection.requestId,
         selection,
       });
       await onSelection(documentUri, selection);
       await webview.postMessage({
         type: "syncCompleted",
+        requestId: selection.requestId,
         selection,
       });
     } catch (error) {
       await webview.postMessage({
         type: "syncFailed",
+        requestId: selection.requestId,
+        selection,
         message: error instanceof Error ? error.message : String(error),
       });
     }
