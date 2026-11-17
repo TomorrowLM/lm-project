@@ -4,7 +4,7 @@
 [submodule "front/qiankun/ai/skills"]
 	path = front/qiankun/ai/skills
 	url = git@github.com:TomorrowLM/lm-skill.git
-[submodule "脚本/plugin/vscode/deepseek-harness-vscode-custom"]
-	path = 脚本/plugin/vscode/deepseek-harness-vscode-custom
+[submodule "工具/plugin/vscode/deepseek-harness-vscode-custom"]
+	path = 工具/plugin/vscode/deepseek-harness-vscode-custom
 	url = git@github.com:TomorrowLM/LM-Deepseek-Harness-VS.git
 	branch = main

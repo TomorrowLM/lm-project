@@ -1,0 +1,50 @@
+{
+  "version": 2,
+  "sessionId": "session-6a46699b-e998-4c31-9093-2587a23b3820",
+  "cwd": "/Users/zm/lm/lm-project",
+  "updatedAt": 1794920368112,
+  "checkpoints": [
+    {
+      "turn": 2,
+      "commit": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "parent": "8feac670127d87bf92dc9cfc43ee14dae8eb67e9",
+      "time": 1794918848029,
+      "untracked": [
+        "工具/plugin/vscode/deepseek-harness-vscode-custom/"
+      ],
+      "truncated": false
+    },
+    {
+      "turn": 3,
+      "commit": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "parent": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "time": 1794918928855,
+      "untracked": [
+        "工具/plugin/vscode/deepseek-harness-vscode-custom/"
+      ],
+      "truncated": false
+    },
+    {
+      "turn": 4,
+      "commit": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "parent": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "time": 1794919375279,
+      "untracked": [
+        "工具/plugin/vscode/deepseek-harness-vscode-custom/"
+      ],
+      "truncated": false
+    },
+    {
+      "turn": 5,
+      "commit": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "parent": "32a16bb45ff86a6a6445178fa72ebe35f3897d6f",
+      "time": 1794920366896,
+      "untracked": [
+        "工具/plugin/vscode/deepseek-harness-vscode-custom/"
+      ],
+      "truncated": false
+    }
+  ],
+  "rolls": [],
+  "undos": []
+}
