@@ -39,9 +39,27 @@ namespace ToolHub.App
         private IList<ToolHubTool> visibleTools;
         private readonly TextBox searchBox;
         private readonly System.Windows.Forms.Timer collapseTimer;
+        private readonly System.Threading.Timer networkSpeedTimer;
+        private readonly System.Windows.Forms.Timer dshStatusTimer;
         private int hoveredIndex = -1;
+        private int hoveredDshAction = -1;
+        private int networkSampleInProgress;
+        private int resetNetworkBaseline;
+        private long networkSampleGeneration;
+        private int dshRefreshInProgress;
+        private ulong previousReceivedBytes;
+        private ulong previousSentBytes;
+        private long previousNetworkSampleTimestamp;
+        private bool hasPreviousNetworkSample;
+        private bool networkSpeedVisible;
+        private string networkDownloadRate = "--";
+        private string networkUploadRate = "--";
         private Rectangle actionBounds;
         private bool isExpanded;
+        private bool dshActionsExpanded;
+        private bool dshBusy;
+        private DshWebStatus dshStatus = new DshWebStatus(DshWebState.Unknown, 0, 3080, false, "尚未检测");
+        private string dshOperationText = string.Empty;
         private bool isDragging;
         private bool dragFromActionButton;
         private bool dragMoved;
@@ -85,6 +103,12 @@ namespace ToolHub.App
                 }
             };
 
+            networkSpeedTimer = new System.Threading.Timer(SampleNetworkTraffic, null,
+                Timeout.Infinite, Timeout.Infinite);
+
+            dshStatusTimer = new System.Windows.Forms.Timer { Interval = 2000 };
+            dshStatusTimer.Tick += delegate { RefreshDshStatus(); };
+
             searchBox = new TextBox
             {
                 BorderStyle = BorderStyle.None,
@@ -99,8 +123,15 @@ namespace ToolHub.App
             {
                 visibleTools = ToolHubCatalog.Filter(allTools, searchBox.Text);
                 hoveredIndex = -1;
+                if (dshActionsExpanded && FindDshVisibleIndex() < 0)
+                {
+                    SetDshActionsExpanded(false);
+                }
+                UpdateNetworkSpeedVisibility();
                 Invalidate();
             };
+            searchBox.GotFocus += delegate { UpdateNetworkSpeedVisibility(); };
+            searchBox.LostFocus += delegate { UpdateNetworkSpeedVisibility(); };
             searchBox.KeyDown += delegate(object sender, KeyEventArgs e)
             {
                 if (e.KeyCode == Keys.Enter)
@@ -125,6 +156,10 @@ namespace ToolHub.App
                 ToolHubHotKeyId,
                 ModControl | ModAlt,
                 (uint)Keys.F12);
+            if (networkSpeedVisible)
+            {
+                StartNetworkSampling();
+            }
         }
 
         protected override void OnHandleDestroyed(EventArgs e)
@@ -134,6 +169,9 @@ namespace ToolHub.App
                 NativeMethods.UnregisterHotKey(Handle, ToolHubHotKeyId);
                 hotKeyRegistered = false;
             }
+
+            StopNetworkSampling();
+            dshStatusTimer.Stop();
 
             base.OnHandleDestroyed(e);
         }
@@ -181,6 +219,7 @@ namespace ToolHub.App
 
             DrawRows(graphics);
             DrawSearchSurface(graphics);
+            DrawNetworkSpeed(graphics);
             DrawActionButton(graphics);
         }
 
@@ -233,14 +272,16 @@ namespace ToolHub.App
             }
 
             int nextHovered = GetRowIndex(e.Location);
+            int nextDshAction = GetDshActionIndex(e.Location);
             if (actionBounds.Contains(e.Location))
             {
                 nextHovered = -1;
             }
 
-            if (nextHovered != hoveredIndex)
+            if (nextHovered != hoveredIndex || nextDshAction != hoveredDshAction)
             {
                 hoveredIndex = nextHovered;
+                hoveredDshAction = nextDshAction;
                 Invalidate();
             }
         }
@@ -251,6 +292,11 @@ namespace ToolHub.App
             if (hoveredIndex != -1)
             {
                 hoveredIndex = -1;
+                Invalidate();
+            }
+            if (hoveredDshAction != -1)
+            {
+                hoveredDshAction = -1;
                 Invalidate();
             }
 
@@ -285,6 +331,23 @@ namespace ToolHub.App
             if (actionBounds.Contains(e.Location))
             {
                 LaunchFirstVisibleTool();
+                return;
+            }
+
+            int dshActionIndex = GetDshActionIndex(e.Location);
+            if (dshActionIndex >= 0)
+            {
+                HandleDshAction(dshActionIndex);
+                return;
+            }
+
+            int dshRowIndex = FindDshVisibleIndex();
+            if (dshActionsExpanded && dshStatus != null && dshStatus.State == DshWebState.Unknown &&
+                dshRowIndex >= 0 &&
+                GetDshStatusBounds(RowTop + dshRowIndex * RowHeight).Contains(e.Location))
+            {
+                MessageBox.Show(this, dshStatus.Message, "DSH 检测详情",
+                    MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
 
@@ -324,12 +387,142 @@ namespace ToolHub.App
             if (!expanded)
             {
                 collapseTimer.Stop();
+                SetDshActionsExpanded(false);
             }
 
             isExpanded = expanded;
             searchBox.Visible = expanded;
+            UpdateNetworkSpeedVisibility();
             Region = new Region(expanded ? BuildWindowPath() : BuildCollapsedPath());
             Invalidate();
+        }
+
+        private void UpdateNetworkSpeedVisibility()
+        {
+            bool shouldShow = NetworkSpeedDisplayPolicy.ShouldShow(
+                isExpanded,
+                searchBox != null && searchBox.Focused,
+                searchBox != null && !string.IsNullOrEmpty(searchBox.Text));
+            if (networkSpeedVisible == shouldShow)
+            {
+                return;
+            }
+
+            networkSpeedVisible = shouldShow;
+            searchBox.Size = new Size(shouldShow ? 127 : SearchWidth - 48, 33);
+            if (shouldShow)
+            {
+                networkDownloadRate = "--";
+                networkUploadRate = "--";
+                StartNetworkSampling();
+            }
+            else
+            {
+                StopNetworkSampling();
+                networkDownloadRate = "--";
+                networkUploadRate = "--";
+            }
+
+            Invalidate();
+        }
+
+        private void StopNetworkSampling()
+        {
+            if (networkSpeedTimer == null)
+            {
+                return;
+            }
+
+            networkSpeedTimer.Change(Timeout.Infinite, Timeout.Infinite);
+            Interlocked.Increment(ref networkSampleGeneration);
+        }
+
+        private void StartNetworkSampling()
+        {
+            Interlocked.Exchange(ref resetNetworkBaseline, 1);
+            Interlocked.Increment(ref networkSampleGeneration);
+            networkSpeedTimer.Change(0, 1000);
+        }
+
+        private void SampleNetworkTraffic(object state)
+        {
+            if (Interlocked.CompareExchange(ref networkSampleInProgress, 1, 0) != 0)
+            {
+                return;
+            }
+
+            try
+            {
+                long generation = Interlocked.Read(ref networkSampleGeneration);
+                ulong receivedBytes;
+                ulong sentBytes;
+                string downloadText = "--";
+                string uploadText = "--";
+                if (NetworkTrafficSampler.TryGetPhysicalInterfaceCounters(out receivedBytes, out sentBytes))
+                {
+                    long timestamp = Stopwatch.GetTimestamp();
+                    bool resetBaseline = Interlocked.Exchange(ref resetNetworkBaseline, 0) != 0;
+                    if (!resetBaseline && hasPreviousNetworkSample)
+                    {
+                        double elapsedSeconds = (double)(timestamp - previousNetworkSampleTimestamp) /
+                                                Stopwatch.Frequency;
+                        double downloadBytesPerSecond;
+                        double uploadBytesPerSecond;
+                        if (NetworkTrafficRateCalculator.TryCalculate(
+                            previousReceivedBytes,
+                            previousSentBytes,
+                            receivedBytes,
+                            sentBytes,
+                            TimeSpan.FromSeconds(elapsedSeconds),
+                            out downloadBytesPerSecond,
+                            out uploadBytesPerSecond))
+                        {
+                            downloadText = NetworkTrafficRateCalculator.FormatBytesPerSecond(downloadBytesPerSecond);
+                            uploadText = NetworkTrafficRateCalculator.FormatBytesPerSecond(uploadBytesPerSecond);
+                        }
+                    }
+
+                    previousReceivedBytes = receivedBytes;
+                    previousSentBytes = sentBytes;
+                    previousNetworkSampleTimestamp = timestamp;
+                    hasPreviousNetworkSample = true;
+                }
+                else
+                {
+                    hasPreviousNetworkSample = false;
+                    Interlocked.Exchange(ref resetNetworkBaseline, 1);
+                }
+
+                if (!IsHandleCreated || IsDisposed)
+                {
+                    return;
+                }
+
+                BeginInvoke((MethodInvoker)delegate
+                {
+                    if (IsDisposed || !networkSpeedVisible ||
+                        generation != Interlocked.Read(ref networkSampleGeneration))
+                    {
+                        return;
+                    }
+
+                    networkDownloadRate = downloadText;
+                    networkUploadRate = uploadText;
+                    Invalidate();
+                });
+            }
+            catch (InvalidOperationException)
+            {
+                // The window can lose its handle while a background sample is being posted.
+            }
+            catch (Exception)
+            {
+                // A failed optional network sample must never interrupt the tool hub.
+            }
+            finally
+            {
+                Interlocked.Exchange(ref networkSampleInProgress, 0);
+            }
         }
 
         private bool IsCursorWithinExpandedBounds()
@@ -340,13 +533,28 @@ namespace ToolHub.App
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing && collapseTimer != null)
+            if (disposing)
             {
-                collapseTimer.Stop();
-                collapseTimer.Dispose();
+                if (collapseTimer != null)
+                {
+                    collapseTimer.Stop();
+                    collapseTimer.Dispose();
+                }
+                if (dshStatusTimer != null)
+                {
+                    dshStatusTimer.Stop();
+                    dshStatusTimer.Dispose();
+                }
+
             }
 
             base.Dispose(disposing);
+
+            if (disposing && networkSpeedTimer != null)
+            {
+                Interlocked.Increment(ref networkSampleGeneration);
+                networkSpeedTimer.Dispose();
+            }
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)
@@ -378,8 +586,15 @@ namespace ToolHub.App
                     }
 
                     DrawToolIcon(graphics, tool.Id, new Point(34, top + 19), tool.IsAvailable ? Ink : Muted);
-                    graphics.DrawString(tool.Label, tool.IsAvailable ? labelFont : unavailableFont,
-                        tool.IsAvailable ? textBrush : disabledBrush, 84F, top + 21F);
+                    if (tool.Id == "dsh" && dshActionsExpanded)
+                    {
+                        DrawDshActions(graphics, tool, top, textBrush, disabledBrush);
+                    }
+                    else
+                    {
+                        graphics.DrawString(tool.Label, tool.IsAvailable ? labelFont : unavailableFont,
+                            tool.IsAvailable ? textBrush : disabledBrush, 84F, top + 21F);
+                    }
                 }
 
                 if (visibleTools.Count == 0)
@@ -419,6 +634,27 @@ namespace ToolHub.App
             using (SolidBrush brush = new SolidBrush(Surface))
             {
                 graphics.FillPath(brush, path);
+            }
+        }
+
+        private void DrawNetworkSpeed(Graphics graphics)
+        {
+            if (!networkSpeedVisible)
+            {
+                return;
+            }
+
+            float top = layout.SearchTop;
+            using (Font rateFont = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (SolidBrush uploadBrush = new SolidBrush(Color.FromArgb(31, 153, 101)))
+            using (SolidBrush downloadBrush = new SolidBrush(Accent))
+            using (StringFormat format = new StringFormat(StringFormatFlags.NoWrap))
+            {
+                format.Trimming = StringTrimming.EllipsisCharacter;
+                graphics.DrawString("↑ " + networkUploadRate, rateFont, uploadBrush,
+                    new RectangleF(164F, top + 15F, 84F, 17F), format);
+                graphics.DrawString("↓ " + networkDownloadRate, rateFont, downloadBrush,
+                    new RectangleF(164F, top + 38F, 84F, 17F), format);
             }
         }
 
@@ -478,6 +714,20 @@ namespace ToolHub.App
                     };
                     graphics.DrawLines(pen, pulse);
                 }
+                else if (id == "dsh")
+                {
+                    using (GraphicsPath browser = CreateRoundedPath(new Rectangle(origin.X, origin.Y + 3, 27, 21), 4))
+                    {
+                        graphics.DrawPath(pen, browser);
+                    }
+                    graphics.DrawLine(pen, origin.X + 1, origin.Y + 9, origin.X + 26, origin.Y + 9);
+                    graphics.DrawEllipse(pen, origin.X + 4, origin.Y + 5, 1, 1);
+                    graphics.DrawEllipse(pen, origin.X + 8, origin.Y + 5, 1, 1);
+                    graphics.DrawLine(pen, origin.X + 7, origin.Y + 16, origin.X + 12, origin.Y + 16);
+                    graphics.DrawLine(pen, origin.X + 12, origin.Y + 16, origin.X + 15, origin.Y + 13);
+                    graphics.DrawLine(pen, origin.X + 15, origin.Y + 13, origin.X + 19, origin.Y + 18);
+                    graphics.DrawLine(pen, origin.X + 19, origin.Y + 18, origin.X + 23, origin.Y + 14);
+                }
                 else
                 {
                     graphics.DrawEllipse(pen, origin.X + 2, origin.Y + 4, 17, 17);
@@ -515,6 +765,332 @@ namespace ToolHub.App
             }
 
             return (point.Y - RowTop) / RowHeight;
+        }
+
+        private void DrawDshActions(Graphics graphics, ToolHubTool tool, int top, Brush textBrush, Brush disabledBrush)
+        {
+            using (Font titleFont = new Font("Microsoft YaHei UI", 17F, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (Font statusFont = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (Font actionFont = new Font("Microsoft YaHei UI", 12F, FontStyle.Regular, GraphicsUnit.Pixel))
+            using (StringFormat centered = new StringFormat())
+            using (StringFormat statusFormat = new StringFormat())
+            using (SolidBrush statusBrush = new SolidBrush(GetDshStatusColor()))
+            {
+                centered.Alignment = StringAlignment.Center;
+                centered.LineAlignment = StringAlignment.Center;
+                statusFormat.FormatFlags = StringFormatFlags.NoWrap;
+                statusFormat.Trimming = StringTrimming.EllipsisCharacter;
+                graphics.DrawString(tool.Label, titleFont, (Brush)textBrush, 84F, top + 4F);
+
+                string statusText = dshBusy
+                    ? dshOperationText
+                    : GetDshStatusText();
+                graphics.DrawString(statusText, statusFont,
+                    string.IsNullOrEmpty(statusText) ? disabledBrush : statusBrush,
+                    GetDshStatusBounds(top), statusFormat);
+
+                string[] labels = { "启动", "暂停", "重启", "打开" };
+                for (int i = 0; i < labels.Length; i++)
+                {
+                    Rectangle bounds = GetDshActionBounds(i, top);
+                    bool enabled = IsDshActionEnabled(i);
+                    Color borderColor = enabled ? Color.FromArgb(210, 221, 238) : Color.FromArgb(231, 234, 240);
+                    Color fillColor = i == hoveredDshAction && enabled ? Hover : Color.FromArgb(246, 249, 253);
+                    Color labelColor = enabled ? (i == 0 ? Accent : Ink) : Muted;
+                    using (GraphicsPath buttonPath = CreateRoundedPath(bounds, 9))
+                    using (SolidBrush fillBrush = new SolidBrush(fillColor))
+                    using (Pen borderPen = new Pen(borderColor, 1F))
+                    using (SolidBrush labelBrush = new SolidBrush(labelColor))
+                    {
+                        graphics.FillPath(fillBrush, buttonPath);
+                        graphics.DrawPath(borderPen, buttonPath);
+                        graphics.DrawString(labels[i], actionFont, labelBrush, bounds, centered);
+                    }
+                }
+            }
+        }
+
+        private void SetDshActionsExpanded(bool expanded)
+        {
+            if (dshActionsExpanded == expanded)
+            {
+                return;
+            }
+
+            dshActionsExpanded = expanded;
+            hoveredDshAction = -1;
+            if (expanded)
+            {
+                dshOperationText = string.Empty;
+                dshStatus = new DshWebStatus(DshWebState.Unknown, 0, 3080, false, "正在检测…");
+                dshStatusTimer.Start();
+                RefreshDshStatus();
+            }
+            else if (dshStatusTimer != null)
+            {
+                dshStatusTimer.Stop();
+            }
+            Invalidate();
+        }
+
+        private void RefreshDshStatus()
+        {
+            if (!isExpanded || !dshActionsExpanded || dshBusy || IsDisposed ||
+                Interlocked.CompareExchange(ref dshRefreshInProgress, 1, 0) != 0)
+            {
+                return;
+            }
+
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                DshWebHostResponse response = null;
+                Exception failure = null;
+                try
+                {
+                    response = DshWebHostClient.Request("STATUS");
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+                finally
+                {
+                    Interlocked.Exchange(ref dshRefreshInProgress, 0);
+                }
+
+                if (IsDisposed || !IsHandleCreated)
+                {
+                    return;
+                }
+
+                try
+                {
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        if (failure != null)
+                        {
+                            dshStatus = new DshWebStatus(DshWebState.Unknown, 0, 3080, false,
+                                "检测失败：" + failure.Message);
+                        }
+                        else if (response != null)
+                        {
+                            dshStatus = response.Status;
+                        }
+                        Invalidate();
+                    });
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            });
+        }
+
+        private int FindDshVisibleIndex()
+        {
+            for (int i = 0; i < visibleTools.Count; i++)
+            {
+                if (visibleTools[i].Id == "dsh")
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private Rectangle GetDshActionBounds(int actionIndex, int rowTop)
+        {
+            return new Rectangle(84 + actionIndex * 64, rowTop + 48, 59, 23);
+        }
+
+        private Rectangle GetDshStatusBounds(int rowTop)
+        {
+            return new Rectangle(84, rowTop + 25, HubWidth - 104, 17);
+        }
+
+        private int GetDshActionIndex(Point point)
+        {
+            if (!isExpanded || !dshActionsExpanded)
+            {
+                return -1;
+            }
+
+            int rowIndex = FindDshVisibleIndex();
+            if (rowIndex < 0)
+            {
+                return -1;
+            }
+
+            int top = RowTop + rowIndex * RowHeight;
+            for (int i = 0; i < 4; i++)
+            {
+                if (GetDshActionBounds(i, top).Contains(point))
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private bool IsDshActionEnabled(int actionIndex)
+        {
+            if (dshBusy || dshStatus == null)
+            {
+                return false;
+            }
+
+            if (actionIndex == 0)
+            {
+                return dshStatus.State == DshWebState.Stopped;
+            }
+            return dshStatus.State == DshWebState.Running;
+        }
+
+        private string GetDshStatusText()
+        {
+            if (dshStatus == null)
+            {
+                return "正在检测…";
+            }
+
+            if (dshStatus.State == DshWebState.Running)
+            {
+                string host = string.IsNullOrWhiteSpace(dshStatus.Host) ? "127.0.0.1" : dshStatus.Host;
+                return "运行中 · " + host + ":" + dshStatus.Port.ToString();
+            }
+            if (dshStatus.State == DshWebState.Stopped)
+            {
+                return "已停止";
+            }
+            if (dshStatus.State == DshWebState.Multiple)
+            {
+                return "发现多个实例，已禁用控制";
+            }
+            return dshStatus.Message == "尚未检测" || dshStatus.Message == "正在检测…"
+                ? "正在检测…"
+                : dshStatus.Message;
+        }
+
+        private Color GetDshStatusColor()
+        {
+            if (dshStatus != null && dshStatus.State == DshWebState.Running)
+            {
+                return Color.FromArgb(31, 145, 96);
+            }
+            if (dshStatus != null && dshStatus.State == DshWebState.Multiple)
+            {
+                return ExitInk;
+            }
+            return Muted;
+        }
+
+        private void HandleDshAction(int actionIndex)
+        {
+            if (!IsDshActionEnabled(actionIndex))
+            {
+                return;
+            }
+
+            if (actionIndex == 0)
+            {
+                RunDshAction("START", "正在启动…");
+            }
+            else if (actionIndex == 1)
+            {
+                RunDshAction("PAUSE", "正在暂停…");
+            }
+            else if (actionIndex == 2)
+            {
+                ConfirmDshRestart("RESTART", "正在重启…");
+            }
+            else if (actionIndex == 3)
+            {
+                RunDshAction("OPEN", "正在打开…");
+            }
+        }
+
+        private void ConfirmDshRestart(string command, string progressText)
+        {
+            DialogResult answer = MessageBox.Show(this,
+                "重启 DSH Web 会中断当前浏览器连接和正在运行的 Agent 任务。要继续吗？",
+                "重启 DSH Web",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Warning);
+            if (answer == DialogResult.Yes)
+            {
+                RunDshAction(command, progressText);
+            }
+        }
+
+        private void RunDshAction(string command, string progressText)
+        {
+            if (dshBusy)
+            {
+                return;
+            }
+
+            dshBusy = true;
+            dshOperationText = progressText;
+            Invalidate();
+            ThreadPool.QueueUserWorkItem(delegate
+            {
+                DshWebHostResponse response = null;
+                Exception failure = null;
+                try
+                {
+                    response = DshWebHostClient.Request(command);
+                }
+                catch (Exception exception)
+                {
+                    failure = exception;
+                }
+
+                if (IsDisposed || !IsHandleCreated)
+                {
+                    return;
+                }
+
+                try
+                {
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        dshBusy = false;
+                        dshOperationText = string.Empty;
+                        if (failure != null)
+                        {
+                            dshStatus = new DshWebStatus(DshWebState.Unknown, 0, 3080, false, failure.Message);
+                            MessageBox.Show(this, failure.Message, "DSH Web", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        }
+                        else if (response != null)
+                        {
+                            dshStatus = response.Status;
+                            if (response.Result.NeedsRestart)
+                            {
+                                DialogResult answer = MessageBox.Show(this,
+                                    "当前 DSH 由其他方式启动，ToolHub 无法读取它的启动认证链接。\n\n" +
+                                    "重启一次以取得新链接吗？当前连接和正在运行的 Agent 任务可能中断。",
+                                    "需要重启 DSH Web",
+                                    MessageBoxButtons.YesNo,
+                                    MessageBoxIcon.Warning);
+                                if (answer == DialogResult.Yes)
+                                {
+                                    RunDshAction("RESTART_OPEN", "正在重启并打开…");
+                                    return;
+                                }
+                            }
+                            else if (!response.Result.Succeeded)
+                            {
+                                MessageBox.Show(this, response.Result.Message, "DSH Web",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            }
+                        }
+                        Invalidate();
+                        RefreshDshStatus();
+                    });
+                }
+                catch (InvalidOperationException)
+                {
+                }
+            });
         }
 
         private void ExitApplication()
@@ -580,6 +1156,12 @@ namespace ToolHub.App
 
         private void LaunchTool(ToolHubTool tool)
         {
+            if (tool.Id == "dsh")
+            {
+                SetDshActionsExpanded(!dshActionsExpanded);
+                return;
+            }
+
             if (!tool.IsAvailable)
             {
                 MessageBox.Show(this,
@@ -719,10 +1301,149 @@ namespace ToolHub.App
         }
     }
 
+    internal static class NetworkTrafficSampler
+    {
+        private const byte HardwareInterfaceFlag = 0x01;
+        private const int IfOperStatusUp = 1;
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential,
+            CharSet = System.Runtime.InteropServices.CharSet.Unicode,
+            Pack = 8)]
+        private struct MibIfRow2
+        {
+            public ulong InterfaceLuid;
+            public uint InterfaceIndex;
+            public Guid InterfaceGuid;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst = 257)]
+            public string Alias;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValTStr, SizeConst = 257)]
+            public string Description;
+            public uint PhysicalAddressLength;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = System.Runtime.InteropServices.UnmanagedType.U1)]
+            public byte[] PhysicalAddress;
+            [System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.ByValArray, SizeConst = 32, ArraySubType = System.Runtime.InteropServices.UnmanagedType.U1)]
+            public byte[] PermanentPhysicalAddress;
+            public uint Mtu;
+            public uint Type;
+            public uint TunnelType;
+            public uint MediaType;
+            public uint PhysicalMediumType;
+            public uint AccessType;
+            public uint DirectionType;
+            public byte InterfaceAndOperStatusFlags;
+            public uint OperStatus;
+            public uint AdminStatus;
+            public uint MediaConnectState;
+            public Guid NetworkGuid;
+            public uint ConnectionType;
+            public ulong TransmitLinkSpeed;
+            public ulong ReceiveLinkSpeed;
+            public ulong InOctets;
+            public ulong InUcastPkts;
+            public ulong InNUcastPkts;
+            public ulong InDiscards;
+            public ulong InErrors;
+            public ulong InUnknownProtos;
+            public ulong InUcastOctets;
+            public ulong InMulticastOctets;
+            public ulong InBroadcastOctets;
+            public ulong OutOctets;
+            public ulong OutUcastPkts;
+            public ulong OutNUcastPkts;
+            public ulong OutDiscards;
+            public ulong OutErrors;
+            public ulong OutUcastOctets;
+            public ulong OutMulticastOctets;
+            public ulong OutBroadcastOctets;
+            public ulong OutQLen;
+        }
+
+        [System.Runtime.InteropServices.StructLayout(
+            System.Runtime.InteropServices.LayoutKind.Sequential,
+            Pack = 8)]
+        private struct MibIfTable2Header
+        {
+            public uint NumEntries;
+            public MibIfRow2 FirstRow;
+        }
+
+        [System.Runtime.InteropServices.DllImport("iphlpapi.dll", ExactSpelling = true)]
+        private static extern uint GetIfTable2(out IntPtr table);
+
+        [System.Runtime.InteropServices.DllImport("iphlpapi.dll", ExactSpelling = true)]
+        private static extern void FreeMibTable(IntPtr memory);
+
+        public static bool TryGetPhysicalInterfaceCounters(out ulong receivedBytes, out ulong sentBytes)
+        {
+            receivedBytes = 0;
+            sentBytes = 0;
+            IntPtr table = IntPtr.Zero;
+            try
+            {
+                if (GetIfTable2(out table) != 0 || table == IntPtr.Zero)
+                {
+                    return false;
+                }
+
+                int rowOffset = System.Runtime.InteropServices.Marshal.OffsetOf(
+                    typeof(MibIfTable2Header), "FirstRow").ToInt32();
+                int rowSize = System.Runtime.InteropServices.Marshal.SizeOf(typeof(MibIfRow2));
+                int rowStride = (rowSize + 7) & ~7;
+                int hardwareFlagsOffset = System.Runtime.InteropServices.Marshal.OffsetOf(
+                    typeof(MibIfRow2), "InterfaceAndOperStatusFlags").ToInt32();
+                int operStatusOffset = System.Runtime.InteropServices.Marshal.OffsetOf(
+                    typeof(MibIfRow2), "OperStatus").ToInt32();
+                int inOctetsOffset = System.Runtime.InteropServices.Marshal.OffsetOf(
+                    typeof(MibIfRow2), "InOctets").ToInt32();
+                int outOctetsOffset = System.Runtime.InteropServices.Marshal.OffsetOf(
+                    typeof(MibIfRow2), "OutOctets").ToInt32();
+                uint entryCount = unchecked((uint)System.Runtime.InteropServices.Marshal.ReadInt32(table));
+
+                for (uint i = 0; i < entryCount; i++)
+                {
+                    int currentOffset = checked(rowOffset + (int)i * rowStride);
+                    IntPtr row = IntPtr.Add(table, currentOffset);
+                    byte flags = System.Runtime.InteropServices.Marshal.ReadByte(row, hardwareFlagsOffset);
+                    int operStatus = System.Runtime.InteropServices.Marshal.ReadInt32(row, operStatusOffset);
+                    if ((flags & HardwareInterfaceFlag) == 0 || operStatus != IfOperStatusUp)
+                    {
+                        continue;
+                    }
+
+                    ulong currentReceived = unchecked((ulong)System.Runtime.InteropServices.Marshal.ReadInt64(row, inOctetsOffset));
+                    ulong currentSent = unchecked((ulong)System.Runtime.InteropServices.Marshal.ReadInt64(row, outOctetsOffset));
+                    receivedBytes = SaturatingAdd(receivedBytes, currentReceived);
+                    sentBytes = SaturatingAdd(sentBytes, currentSent);
+                }
+
+                return true;
+            }
+            catch (Exception)
+            {
+                receivedBytes = 0;
+                sentBytes = 0;
+                return false;
+            }
+            finally
+            {
+                if (table != IntPtr.Zero)
+                {
+                    FreeMibTable(table);
+                }
+            }
+        }
+
+        private static ulong SaturatingAdd(ulong current, ulong value)
+        {
+            return ulong.MaxValue - current < value ? ulong.MaxValue : current + value;
+        }
+    }
+
     internal static class Program
     {
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
             bool createdNew;
             using (Mutex mutex = new Mutex(true, "Local\\WindowsToolHub.SingleInstance", out createdNew))

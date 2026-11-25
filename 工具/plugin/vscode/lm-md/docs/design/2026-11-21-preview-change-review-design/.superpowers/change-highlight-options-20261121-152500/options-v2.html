@@ -1,0 +1,54 @@
+<h2>改动标注方案</h2>
+<p class="subtitle">设置与刷新已改为并排的小图标按钮：⚙ 设置　⟳ 刷新改动。请选择更适合长文阅读的正文标记。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>A · 细色条</h3>
+      <p>所有改动保留概览；移除整块底色，仅留细色条。当前选中的改动使用轻微底色。</p>
+      <div class="mockup"><div class="mockup-header">LM Markdown Preview</div><div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:12px;font:13px/1.55 system-ui,sans-serif">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 7px;border-bottom:1px solid #34383d"><span style="flex:1;color:#aaa">agent/AI.md</span><button aria-label="预览设置" title="预览设置" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:16px">⚙</button><button aria-label="刷新改动" title="刷新改动" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:17px">⟳</button></div>
+        <div style="margin:8px 0;padding:6px 8px;border:1px solid #363b40;border-radius:4px;color:#aaa">当前文件净变化 · 4 处　+8 −2</div>
+        <h3 style="margin:13px 0 6px;padding-left:8px;border-left:2px solid #73c991;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:7px 0;padding-left:8px;border-left:2px solid #73c991">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+        <p style="margin:7px 0;padding:5px 8px;border-left:2px solid #e2c08d;background:#252729">当前定位的改动仅轻微强调。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">关键 API　　输入与作用　　返回及约束</div>
+      </div></div>
+      <p><strong>特点：</strong>改动位置一眼可见，阅读底色干净；最接近现有体验。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>B · 阅读/审阅切换</h3>
+      <p>阅读时不显示正文标记；通过改动面板进入审阅状态，再逐处定位和查看差异。</p>
+      <div class="mockup"><div class="mockup-header">LM Markdown Preview</div><div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:12px;font:13px/1.55 system-ui,sans-serif">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 7px;border-bottom:1px solid #34383d"><span style="flex:1;color:#aaa">agent/AI.md</span><button aria-label="预览设置" title="预览设置" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:16px">⚙</button><button aria-label="刷新改动" title="刷新改动" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:17px">⟳</button></div>
+        <div style="margin:8px 0;padding:6px 8px;border:1px solid #363b40;border-radius:4px;color:#aaa">当前文件净变化 · 4 处　+8 −2</div>
+        <h3 style="margin:13px 0 6px;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:7px 0">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+        <p style="margin:7px 0;padding:5px 8px;border-left:2px solid #e2c08d;background:#252729;outline:1px solid #66583e">只突出当前查看的改动，其他内容不着色。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">改动面板提供全部位置、前后内容和源码审阅。</div>
+      </div></div>
+      <p><strong>特点：</strong>最适合连续阅读；需要切换到审阅时才看正文标记。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>C · 只标文字差异</h3>
+      <p>只给新增或改写的词句上色，整段、标题和表格不铺底；删除内容留在前后对照里。</p>
+      <div class="mockup"><div class="mockup-header">LM Markdown Preview</div><div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:12px;font:13px/1.55 system-ui,sans-serif">
+        <div style="display:flex;align-items:center;gap:5px;padding:5px 7px;border-bottom:1px solid #34383d"><span style="flex:1;color:#aaa">agent/AI.md</span><button aria-label="预览设置" title="预览设置" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:16px">⚙</button><button aria-label="刷新改动" title="刷新改动" style="width:30px;height:30px;padding:0;background:#22262a;color:#d7d7d7;border:1px solid #3d7598;border-radius:4px;font-size:17px">⟳</button></div>
+        <div style="margin:8px 0;padding:6px 8px;border:1px solid #363b40;border-radius:4px;color:#aaa">当前文件净变化 · 4 处　+8 −2</div>
+        <h3 style="margin:13px 0 6px;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:7px 0">Session 管理会话历史，日志以追加方式保存 <span style="background:#31583d;color:#e2ffe9;border-radius:3px;padding:1px 3px">已提交事实</span>。</p>
+        <p style="margin:7px 0">同一份运行过程有不同的消费方式。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">差异精确到词句；表格、链接和代码内容需要额外边界处理。</div>
+      </div></div>
+      <p><strong>特点：</strong>改写内容最容易辨认；算法和 Markdown 特殊结构处理较复杂。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">点击卡片选择方案，也可以回复组合建议。设置与刷新均为并排图标按钮，不占工具栏标签宽度。</p>

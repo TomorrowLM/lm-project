@@ -1,0 +1,1 @@
+namespace ToolHub.App { internal static class ToolHubBuildInfo { public const string DshHostFileName = "ToolHubDshHost-debug.exe"; } }

@@ -79,6 +79,31 @@ test("builds a directory and Copilot sync controls into the preview", () => {
   assert.match(html, /article img \{ max-width: 100%; height: auto; \}/);
 });
 
+test("places compact settings and refresh icons left of search in a two-row toolbar", () => {
+  const html = buildPreviewHtml("<p>正文</p>", "vscode-resource:", "preview.js");
+  const settingsIndex = html.indexOf('id="lm-md-settings-toggle"');
+  const refreshIndex = html.indexOf('id="lm-md-toolbar-refresh"');
+  const searchIndex = html.indexOf('id="lm-md-content-search"');
+
+  assert.match(html, /class="lm-md-toolbar-row lm-md-toolbar-search-row"/);
+  assert.match(html, /class="lm-md-toolbar-row lm-md-toolbar-sync-row"/);
+  assert.match(html, /id="lm-md-settings-toggle"[^>]*aria-label="预览设置"/);
+  assert.match(html, /id="lm-md-toolbar-refresh"[^>]*data-refresh-change-history[^>]*aria-label="刷新改动"/);
+  assert.ok(settingsIndex >= 0 && settingsIndex < refreshIndex && refreshIndex < searchIndex);
+  assert.match(html, /article \.lm-md-net-change-added \{ box-shadow: inset 2px 0 0/);
+  assert.doesNotMatch(html, /article \.lm-md-net-change-(?:added|modified|removed) \{[^}]*background(?:-color)?:/);
+});
+
+test("both refresh controls use the existing net-change refresh action", () => {
+  const html = buildPreviewHtml("<p>正文</p>", "vscode-resource:", "preview.js");
+  const script = fs.readFileSync(path.join(__dirname, "..", "media", "preview.js"), "utf8");
+
+  assert.match(html, /id="lm-md-toolbar-refresh"[^>]*data-refresh-change-history/);
+  assert.match(html, /id="lm-md-change-refresh"[^>]*data-refresh-change-history/);
+  assert.match(script, /document\.querySelectorAll\("\[data-refresh-change-history\]"\)/);
+  assert.match(script, /vscode\.postMessage\(\{ type: "refreshChangeHistory" \}\)/);
+});
+
 test("reads the disk baseline for unsaved-change refreshes and strips a UTF-8 BOM", async () => {
   const result = await readSavedDocumentText({
     workspace: {

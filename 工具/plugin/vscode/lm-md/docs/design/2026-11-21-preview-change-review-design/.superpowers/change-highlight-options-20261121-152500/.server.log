@@ -1,0 +1,3 @@
+{"type":"server-started","port":59255,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:59255","screen_dir":"D:\\LM\\lm-project\\工具\\plugin\\vscode\\lm-md\\docs\\design\\2026-11-21-preview-change-review-design\\.superpowers\\change-highlight-options-20261121-152500"}
+{"type":"screen-added","file":"D:\\LM\\lm-project\\工具\\plugin\\vscode\\lm-md\\docs\\design\\2026-11-21-preview-change-review-design\\.superpowers\\change-highlight-options-20261121-152500\\options-v2.html"}
+{"type":"server-stopped","reason":"idle timeout"}

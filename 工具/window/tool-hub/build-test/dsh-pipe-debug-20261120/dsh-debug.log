@@ -1,0 +1,57 @@
+ANY: System.ObjectDisposedException: 已关闭 Safe handle
+   在 System.Threading.WaitHandle.WaitOneNative(SafeHandle waitableSafeHandle, UInt32 millisecondsTimeout, Boolean hasThreadAffinity, Boolean exitContext)
+   在 System.Threading.WaitHandle.InternalWaitOne(SafeHandle waitableSafeHandle, Int64 millisecondsTimeout, Boolean hasThreadAffinity, Boolean exitContext)
+   在 System.Threading.WaitHandle.WaitOne(Int32 millisecondsTimeout, Boolean exitContext)
+   在 System.IO.Pipes.PipeStream.EndRead(IAsyncResult asyncResult)
+   在 ToolHub.App.DshPipeProtocol.ReadLine(Stream stream, Int32 maximumBytes, TimeSpan timeout)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()
+ANY: System.OperationCanceledException: 已取消该操作。
+   在 System.IO.__Error.WinIOError(Int32 errorCode, String maybeFullPath)
+   在 System.IO.Pipes.NamedPipeServerStream.EndWaitForConnection(IAsyncResult asyncResult)
+   在 ToolHub.App.DshWebHost.CancelPendingConnection(NamedPipeServerStream pipe, IAsyncResult pending, WaitHandle waitHandle)
+   在 ToolHub.App.DshWebHost.Run()

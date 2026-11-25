@@ -1,0 +1,69 @@
+<h2>正文改动标注怎么呈现更清楚？</h2>
+<p class="subtitle">三种方案共用顶部“刷新改动”按钮；点击卡片可选择偏好的阅读方式。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>A · 弱化色条（推荐）</h3>
+      <p>所有改动仍可扫读；去掉整块底色，只在内容左侧留细色条。当前选中改动再短暂加深。</p>
+      <div class="mockup">
+        <div class="mockup-header">LM Markdown Preview · 方案 A</div>
+        <div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:14px;font:14px/1.6 system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #34383d;color:#c7c7c7">
+            <span style="flex:1">agent/AI.md</span><button style="background:#253849;color:#d8efff;border:1px solid #3d7598;border-radius:4px;padding:4px 9px">↻ 刷新改动</button><button style="background:#25282c;color:#ccc;border:1px solid #4b4f55;border-radius:4px;padding:4px 8px">设置</button>
+          </div>
+          <div style="margin:10px 0;padding:7px 9px;border:1px solid #363b40;border-radius:5px;color:#aaa">当前文件净变化　4 处 · +8 −2　<span style="color:#77b7e5">上一处　下一处</span></div>
+          <h3 style="margin:16px 0 8px;padding-left:10px;border-left:2px solid #73c991;color:#e6e6e6">1.4 会话与事件机制</h3>
+          <p style="margin:8px 0;padding-left:10px;border-left:2px solid #73c991">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+          <p style="margin:8px 0;padding:5px 9px;border-left:3px solid #e2c08d;background:#262728;outline:1px solid #71624a">当前定位的改动只轻微强调，正文仍保持原有对比度。</p>
+          <div style="margin-top:12px;padding:8px;border:1px solid #333">关键 API　　输入与作用　　返回及约束</div>
+        </div>
+      </div>
+      <p><strong>适合：</strong>想保留整篇改动概览，同时减少绿色铺底对阅读的干扰。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>B · 阅读/审阅切换</h3>
+      <p>平时隐藏正文标记，保留改动列表；按需进入审阅模式显示全部改动，点击某条时突出当前块。</p>
+      <div class="mockup">
+        <div class="mockup-header">LM Markdown Preview · 方案 B</div>
+        <div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:14px;font:14px/1.6 system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #34383d;color:#c7c7c7">
+            <span style="flex:1">agent/AI.md</span><button style="background:#253849;color:#d8efff;border:1px solid #3d7598;border-radius:4px;padding:4px 9px">↻ 刷新改动</button><button style="background:#25282c;color:#ccc;border:1px solid #4b4f55;border-radius:4px;padding:4px 8px">显示改动</button>
+          </div>
+          <div style="margin:10px 0;padding:7px 9px;border:1px solid #363b40;border-radius:5px;color:#aaa">当前文件净变化　4 处 · +8 −2　<span style="color:#77b7e5">上一处　下一处</span></div>
+          <h3 style="margin:16px 0 8px;color:#e6e6e6">1.4 会话与事件机制</h3>
+          <p style="margin:8px 0">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+          <p style="margin:8px 0;padding:5px 8px;border-left:3px solid #e2c08d;background:#262728;outline:1px solid #71624a">当前定位的改动被突出，其他内容不着色。</p>
+          <div style="margin-top:12px;padding:8px;border:1px solid #333">改动列表保留前后内容、行号和“在源码中审阅”。</div>
+        </div>
+      </div>
+      <p><strong>适合：</strong>大部分时间专注阅读，只在处理改动时打开标注。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>C · 精确到文字差异</h3>
+      <p>尝试只标出新增/修改的文字，不给整段或整张表铺色；删除内容仍在改动详情中对照。</p>
+      <div class="mockup">
+        <div class="mockup-header">LM Markdown Preview · 方案 C</div>
+        <div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:14px;font:14px/1.6 system-ui,sans-serif">
+          <div style="display:flex;align-items:center;gap:8px;padding:8px;border-bottom:1px solid #34383d;color:#c7c7c7">
+            <span style="flex:1">agent/AI.md</span><button style="background:#253849;color:#d8efff;border:1px solid #3d7598;border-radius:4px;padding:4px 9px">↻ 刷新改动</button><button style="background:#25282c;color:#ccc;border:1px solid #4b4f55;border-radius:4px;padding:4px 8px">设置</button>
+          </div>
+          <div style="margin:10px 0;padding:7px 9px;border:1px solid #363b40;border-radius:5px;color:#aaa">当前文件净变化　4 处 · +8 −2　<span style="color:#77b7e5">上一处　下一处</span></div>
+          <h3 style="margin:16px 0 8px;color:#e6e6e6">1.4 会话与事件机制</h3>
+          <p style="margin:8px 0">Session 管理会话历史，日志以追加方式保存 <span style="background:#31583d;color:#e2ffe9;border-radius:3px;padding:1px 3px">已提交事实</span>。</p>
+          <p style="margin:8px 0">同一份运行过程有不同的消费方式。</p>
+          <div style="margin-top:12px;padding:8px;border:1px solid #333">前后差异定位到词句；表格、链接和代码中的边界需特别处理。</div>
+        </div>
+      </div>
+      <p><strong>适合：</strong>改动句子较长、需要快速看出具体改词；实现和边界处理成本最高。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">请回复 A、B、C，或说明希望组合的部分。顶部刷新按钮都按“刷新净变化列表与正文标注”设计。</p>

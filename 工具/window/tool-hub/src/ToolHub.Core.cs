@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 
 namespace ToolHub.Core
@@ -20,15 +21,28 @@ namespace ToolHub.Core
             string arguments,
             string workingDirectory,
             ToolHubLaunchKind launchKind)
+            : this(id, label, description, entryPath, arguments, workingDirectory, launchKind, false)
+        {
+        }
+
+        public ToolHubTool(
+            string id,
+            string label,
+            string description,
+            string entryPath,
+            string arguments,
+            string workingDirectory,
+            ToolHubLaunchKind launchKind,
+            bool alwaysAvailable)
         {
             Id = id;
             Label = label;
             Description = description;
-            EntryPath = entryPath;
+            EntryPath = entryPath ?? string.Empty;
             Arguments = arguments ?? string.Empty;
             WorkingDirectory = workingDirectory;
             LaunchKind = launchKind;
-            IsAvailable = File.Exists(entryPath);
+            IsAvailable = alwaysAvailable || File.Exists(entryPath);
         }
 
         public string Id { get; private set; }
@@ -75,6 +89,65 @@ namespace ToolHub.Core
         public int MainPanelHeight { get; private set; }
         public int SearchTop { get; private set; }
         public int HubHeight { get; private set; }
+    }
+
+    public static class NetworkTrafficRateCalculator
+    {
+        private const double BytesPerKilobyte = 1024d;
+        private const double BytesPerMegabyte = BytesPerKilobyte * 1024d;
+
+        public static bool TryCalculate(
+            ulong previousReceivedBytes,
+            ulong previousSentBytes,
+            ulong currentReceivedBytes,
+            ulong currentSentBytes,
+            TimeSpan elapsed,
+            out double downloadBytesPerSecond,
+            out double uploadBytesPerSecond)
+        {
+            downloadBytesPerSecond = 0d;
+            uploadBytesPerSecond = 0d;
+
+            double elapsedSeconds = elapsed.TotalSeconds;
+            if (elapsedSeconds <= 0d ||
+                currentReceivedBytes < previousReceivedBytes ||
+                currentSentBytes < previousSentBytes)
+            {
+                return false;
+            }
+
+            downloadBytesPerSecond = (currentReceivedBytes - previousReceivedBytes) / elapsedSeconds;
+            uploadBytesPerSecond = (currentSentBytes - previousSentBytes) / elapsedSeconds;
+            return true;
+        }
+
+        public static string FormatBytesPerSecond(double bytesPerSecond)
+        {
+            if (double.IsNaN(bytesPerSecond) || double.IsInfinity(bytesPerSecond) || bytesPerSecond < 0d)
+            {
+                return "--";
+            }
+
+            if (bytesPerSecond >= BytesPerMegabyte)
+            {
+                return (bytesPerSecond / BytesPerMegabyte).ToString("0.0", CultureInfo.InvariantCulture) + " MB/s";
+            }
+
+            if (bytesPerSecond >= BytesPerKilobyte)
+            {
+                return (bytesPerSecond / BytesPerKilobyte).ToString("0.0", CultureInfo.InvariantCulture) + " KB/s";
+            }
+
+            return bytesPerSecond.ToString("0", CultureInfo.InvariantCulture) + " B/s";
+        }
+    }
+
+    public static class NetworkSpeedDisplayPolicy
+    {
+        public static bool ShouldShow(bool isExpanded, bool searchHasFocus, bool hasSearchText)
+        {
+            return isExpanded && !searchHasFocus && !hasSearchText;
+        }
     }
 
     public static class ToolHubCatalog
@@ -134,7 +207,16 @@ namespace ToolHub.Core
                     audioSceneEntry,
                     string.Empty,
                     Path.GetDirectoryName(audioSceneEntry),
-                    ToolHubLaunchKind.Executable)
+                    ToolHubLaunchKind.Executable),
+                new ToolHubTool(
+                    "dsh",
+                    "DSH",
+                    "启动、暂停 DSH Web 服务并在默认浏览器打开界面",
+                    Path.Combine(root, "dsh-web-service"),
+                    string.Empty,
+                    root,
+                    ToolHubLaunchKind.Executable,
+                    true)
             };
         }
 

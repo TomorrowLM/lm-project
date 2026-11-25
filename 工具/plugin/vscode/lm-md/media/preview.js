@@ -1590,7 +1590,7 @@ function locateChange(index, shouldScroll = true, syncToc = true) {
 
 function initializeChangeHistory() {
   const list = document.getElementById("lm-md-change-list");
-  const refresh = document.getElementById("lm-md-change-refresh");
+  const refreshButtons = document.querySelectorAll("[data-refresh-change-history]");
   const previous = document.getElementById("lm-md-change-prev");
   const next = document.getElementById("lm-md-change-next");
   const sourceReview = document.getElementById("lm-md-change-source-current");
@@ -1641,12 +1641,13 @@ function initializeChangeHistory() {
       });
     });
   }
-  if (refresh && refresh.dataset.bound !== "true") {
+  refreshButtons.forEach((refresh) => {
+    if (refresh.dataset.bound === "true") return;
     refresh.dataset.bound = "true";
     refresh.addEventListener("click", () => {
       vscode.postMessage({ type: "refreshChangeHistory" });
     });
-  }
+  });
   if (previous && previous.dataset.bound !== "true") {
     previous.dataset.bound = "true";
     previous.addEventListener("click", () => locateChange(selectedChangeIndex - 1));

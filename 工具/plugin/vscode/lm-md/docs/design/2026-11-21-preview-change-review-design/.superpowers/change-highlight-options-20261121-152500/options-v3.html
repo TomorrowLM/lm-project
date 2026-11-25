@@ -1,0 +1,70 @@
+<h2>顶部工具栏 · 双行紧凑布局</h2>
+<p class="subtitle">设置与刷新放在搜索框左侧；搜索控制与输入框同一行，同步按钮单独占第二行。</p>
+
+<div class="mockup">
+  <div class="mockup-header">LM Markdown Preview · 工具栏位置</div>
+  <div class="mockup-body" style="background:#111315;color:#d4d4d4;padding:14px;font:14px/1.5 system-ui,sans-serif">
+    <div style="display:flex;align-items:center;gap:7px;padding:8px 0">
+      <button aria-label="预览设置" title="预览设置" style="flex:0 0 34px;width:34px;height:34px;padding:0;background:#22262a;color:#ddd;border:1px solid #3d7598;border-radius:4px;font-size:17px">⚙</button>
+      <button aria-label="刷新改动" title="刷新改动" style="flex:0 0 34px;width:34px;height:34px;padding:0;background:#22262a;color:#ddd;border:1px solid #3d7598;border-radius:4px;font-size:19px">⟳</button>
+      <input aria-label="搜索正文" placeholder="搜索正文" style="flex:1;min-width:0;height:34px;box-sizing:border-box;padding:0 10px;color:#ddd;background:#1e1e1e;border:1px solid #444;border-radius:4px;font-size:14px">
+      <button title="上一个匹配" style="width:34px;height:34px;background:#22262a;color:#ddd;border:1px solid #3d7598;border-radius:4px">↑</button>
+      <button title="下一个匹配" style="width:34px;height:34px;background:#22262a;color:#ddd;border:1px solid #3d7598;border-radius:4px">↓</button>
+      <button title="清除搜索" style="height:34px;padding:0 9px;background:#22262a;color:#ddd;border:1px solid #3d7598;border-radius:4px">清除</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:5px">
+      <button style="flex:1;height:38px;background:#286080;color:#e8f5fc;border:1px solid #3679a0;border-radius:4px">同步到 Copilot</button>
+      <button style="flex:1;height:38px;background:#286080;color:#e8f5fc;border:1px solid #3679a0;border-radius:4px">同步到 DSH</button>
+    </div>
+    <div style="margin-top:12px;padding:7px 9px;border:1px solid #363b40;border-radius:4px;color:#aaa">当前文件净变化 · 4 处　+8 −2　　上一处　下一处</div>
+  </div>
+</div>
+
+<h2 style="margin-top:24px">正文改动标注选项</h2>
+<p class="subtitle">工具栏布局在三种方案中相同；点击卡片选择改动标记方式。</p>
+
+<div class="cards">
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>A · 细色条（推荐）</h3>
+      <p>所有改动保留概览；去掉整块底色，只在左侧留细色条，当前定位项稍微强调。</p>
+      <div style="padding:12px;background:#111315;color:#d4d4d4;font:14px/1.6 system-ui,sans-serif">
+        <h3 style="margin:4px 0 8px;padding-left:9px;border-left:2px solid #73c991;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:6px 0;padding-left:9px;border-left:2px solid #73c991">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+        <p style="margin:6px 0;padding:5px 8px;border-left:2px solid #e2c08d;background:#252729">当前定位的改动轻微突出，其他内容保持干净。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">关键 API　　输入与作用　　返回及约束</div>
+      </div>
+      <p><strong>效果：</strong>读正文时干扰较少，又能快速扫到改动分布。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>B · 阅读/审阅切换</h3>
+      <p>默认隐藏正文标记；需要看改动时再打开审阅状态，逐处定位。</p>
+      <div style="padding:12px;background:#111315;color:#d4d4d4;font:14px/1.6 system-ui,sans-serif">
+        <h3 style="margin:4px 0 8px;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:6px 0">Session 管理会话历史，日志以追加方式保存已提交事实。</p>
+        <p style="margin:6px 0;padding:5px 8px;border-left:2px solid #e2c08d;background:#252729;outline:1px solid #66583e">只突出当前查看的改动。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">改动列表提供全部位置和前后内容。</div>
+      </div>
+      <p><strong>效果：</strong>阅读最清爽；需要主动进入审阅才能看到所有标记。</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-body">
+      <h3>C · 只标文字差异</h3>
+      <p>标记新增或改写的词句，不给整段或表格铺色；删除内容显示在前后对照中。</p>
+      <div style="padding:12px;background:#111315;color:#d4d4d4;font:14px/1.6 system-ui,sans-serif">
+        <h3 style="margin:4px 0 8px;color:#e6e6e6">1.4 会话与事件机制</h3>
+        <p style="margin:6px 0">Session 管理会话历史，日志以追加方式保存 <span style="background:#31583d;color:#e2ffe9;border-radius:3px;padding:1px 3px">已提交事实</span>。</p>
+        <p style="margin:6px 0">同一份运行过程有不同的消费方式。</p>
+        <div style="margin-top:8px;padding:7px;border:1px solid #333">差异精确到词句，需处理表格、链接和代码结构。</div>
+      </div>
+      <p><strong>效果：</strong>最容易看出具体改词；实现成本和边界处理最多。</p>
+    </div>
+  </div>
+</div>
+
+<p class="subtitle">请回复 A、B、C 或组合方案。工具栏按“设置、刷新、搜索与控制 / 同步按钮”两行设计。</p>

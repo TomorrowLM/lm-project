@@ -1,0 +1,89 @@
+<h2>ToolHub · DSH 控制</h2>
+<p class="subtitle">状态全局检测，不区分 DSH 从哪里启动。点击“重启”会重启检测到的唯一实例。</p>
+
+<style>
+  .dsh-board { display:grid; grid-template-columns:minmax(340px,1fr) minmax(300px,.85fr); gap:1.2rem; align-items:start; }
+  .hub-glass { max-width:370px; margin:auto; padding:14px 11px; border-radius:28px; background:rgba(250,252,255,.82); border:1px solid rgba(255,255,255,.95); box-shadow:0 18px 42px rgba(38,52,77,.16); backdrop-filter:blur(22px); }
+  .hub-row { min-height:46px; display:flex; align-items:center; gap:13px; padding:0 13px; border-radius:15px; color:#17233a; font-size:15px; }
+  .hub-row + .hub-row { margin-top:3px; }
+  .hub-glyph { width:25px; height:25px; display:grid; place-items:center; color:#17233a; font-size:20px; }
+  .hub-label { flex:1; }
+  .dsh-active { color:#285fdd; background:#eaf1ff; }
+  .dsh-status { padding:4px 8px; color:#16815b; background:#e9f8f1; border:1px solid #d1efe1; border-radius:999px; font-size:10px; white-space:nowrap; }
+  .dsh-box { margin:2px 8px 8px 49px; padding:12px; border:1px solid #dce6f5; border-radius:16px; background:rgba(247,250,255,.94); }
+  .dsh-info { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:10px; font-size:11px; color:#697991; }
+  .dsh-live { color:#178157; font-weight:700; }
+  .actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .action-btn { min-height:35px; border:1px solid #d8e2f0; border-radius:10px; color:#3f4d66; background:#fff; font-size:12px; font-weight:650; text-align:center; padding:8px 7px; }
+  .action-btn.primary { border-color:#356cf6; color:#fff; background:#356cf6; }
+  .action-btn.pause { color:#a84353; border-color:#efccd2; background:#fff8f9; }
+  .action-btn.browser { grid-column:1/-1; }
+  .dsh-tip { margin:9px 1px 0; color:#8793a6; font-size:10px; line-height:1.55; }
+  .exit { color:#bd4d60; }
+  .glass-search { max-width:370px; margin:12px auto 0; padding:13px 18px; display:flex; justify-content:space-between; gap:10px; border-radius:999px; background:rgba(250,252,255,.84); color:#8490a4; font-size:12px; }
+  .rate { display:grid; text-align:right; line-height:1.35; color:#25835f; white-space:nowrap; }
+  .rate span+span { color:#356cf6; }
+  .takeover { padding:20px; border:1px solid #e0e7f1; border-radius:18px; background:rgba(255,255,255,.86); box-shadow:0 12px 30px rgba(35,48,70,.1); }
+  .takeover h3 { margin:0 0 8px; font-size:17px; }
+  .takeover p { margin:0 0 14px; color:#6d7a90; font-size:12px; line-height:1.7; }
+  .takeover-actions { display:flex; justify-content:end; gap:8px; }
+  .small-btn { padding:8px 15px; border:1px solid #d8e2f0; border-radius:10px; background:#fff; color:#4d5b72; font-size:12px; }
+  .small-btn.restart { border-color:#356cf6; background:#356cf6; color:#fff; font-weight:700; }
+  .rules { margin-top:16px; padding:16px 18px; border-radius:16px; background:rgba(238,243,250,.75); }
+  .rules h3 { margin:0 0 9px; font-size:14px; }
+  .rules ul { margin:0; padding-left:18px; color:#64738b; font-size:11px; line-height:1.8; }
+  @media(max-width:760px) { .dsh-board { grid-template-columns:1fr; } }
+</style>
+
+<div class="dsh-board">
+  <section class="mockup">
+    <div class="mockup-header">ToolHub 主菜单 · 已检测到 DSH</div>
+    <div class="mockup-body" style="background:linear-gradient(145deg,#d8dfe1,#f1e8e0 56%,#c2cdd1);padding:22px 14px">
+      <div class="hub-glass">
+        <div class="hub-row"><span class="hub-glyph">⬡</span><span class="hub-label">工作区切换</span></div>
+        <div class="hub-row"><span class="hub-glyph">▱</span><span class="hub-label">壁纸中心</span></div>
+        <div class="hub-row"><span class="hub-glyph">◉</span><span class="hub-label">桌面修复</span></div>
+        <div class="hub-row"><span class="hub-glyph">⌁</span><span class="hub-label">系统稳定性诊断</span></div>
+        <div class="hub-row"><span class="hub-glyph">♬</span><span class="hub-label">声音场景</span></div>
+        <div class="hub-row dsh-active"><span class="hub-glyph">◈</span><span class="hub-label">DSH</span><span class="dsh-status">● 运行中</span></div>
+        <div class="dsh-box">
+          <div class="dsh-info"><span class="dsh-live">● 正在运行 · 外部启动</span><span>3080</span></div>
+          <div class="actions">
+            <button class="action-btn primary" data-choice="restart">重启</button>
+            <button class="action-btn pause" data-choice="pause">暂停</button>
+            <button class="action-btn browser" data-choice="open-browser">在默认浏览器打开</button>
+          </div>
+          <p class="dsh-tip">状态来自全局检测；不论 DSH 是由 VS Code、终端还是 ToolHub 启动，都会显示并可控制。</p>
+        </div>
+        <div class="hub-row exit"><span class="hub-glyph">⏻</span><span class="hub-label">退出工具中心</span></div>
+      </div>
+      <div class="glass-search"><span>向工具中心提问</span><span class="rate"><span>↑ 680 KB/s</span><span>↓ 4.2 MB/s</span></span></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="mockup">
+      <div class="mockup-header">重启 DSH · 首次获取浏览器认证链接</div>
+      <div class="mockup-body">
+        <div class="takeover">
+          <h3>重启 DSH？</h3>
+          <p>ToolHub 检测到 DSH 已在运行。重启后由 ToolHub 获取新的浏览器认证链接；当前 DSH 网页会断开，正在执行的 Agent 任务可能中断。</p>
+          <div class="takeover-actions">
+            <button class="small-btn" data-choice="cancel-restart">取消</button>
+            <button class="small-btn restart" data-choice="confirm-restart">重启</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="rules">
+      <h3>状态与操作</h3>
+      <ul>
+        <li><b>运行状态</b>：按 DSH Web 进程与端口检测，不要求 ToolHub 曾经启动它。</li>
+        <li><b>启动</b>：没运行时启动单实例；已经运行时不重复启动。</li>
+        <li><b>暂停</b>：停止全局检测到的 DSH Web 实例。</li>
+        <li><b>重启</b>：重启当前唯一实例，刷新认证链接。</li>
+        <li><b>打开</b>：通过 Windows 默认浏览器打开 DSH。</li>
+      </ul>
+    </div>
+  </section>
+</div>

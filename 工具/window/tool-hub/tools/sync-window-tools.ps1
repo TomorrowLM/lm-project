@@ -268,6 +268,14 @@ Invoke-LoggedScript -ScriptPath (Join-Path $ProjectRoot 'tools\build-toolhub.ps1
 
 $sourceRootConfig = Join-Path $toolHubArtifact 'config\source-root.txt'
 Write-Utf8NoBom -Path $sourceRootConfig -Value $ProjectRoot
+$toolHubDeploymentLog = Join-Path $logDirectory 'last-deploy.json'
+$toolHubRuntimeApp = Join-Path $toolHubArtifact 'app\ToolHub.exe'
+if (Test-Path -LiteralPath $toolHubDeploymentLog) {
+    $toolHubDeployment = Get-Content -LiteralPath $toolHubDeploymentLog -Raw | ConvertFrom-Json
+    if (-not [string]::IsNullOrWhiteSpace($toolHubDeployment.App)) {
+        $toolHubRuntimeApp = $toolHubDeployment.App
+    }
+}
 
 if (-not $SkipShortcut) {
     $desktop = Get-DesktopDirectory
@@ -302,7 +310,7 @@ if ($Start) {
     Timestamp = (Get-Date).ToString('o')
     Source = $ProjectRoot
     ArtifactRoot = $ArtifactRoot
-    ToolHub = Join-Path $toolHubArtifact 'app\ToolHub.exe'
+    ToolHub = $toolHubRuntimeApp
     ToolHubLauncher = Join-Path $toolHubArtifact 'app\ToolHubLauncher.exe'
     WorkspaceSwitcher = Join-Path $workspaceArtifact 'app\WorkspaceSwitcher.exe'
     Wallpaper = Join-Path $wallpaperArtifact 'app\Wallpaper-GUI.cmd'

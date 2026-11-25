@@ -19,6 +19,20 @@ if ([IO.Path]::IsPathRooted($OutputDirectory)) {
 }
 
 New-Item -ItemType Directory -Force -Path $buildDirectory | Out-Null
+$buildId = [Guid]::NewGuid().ToString('N').Substring(0, 12)
+$buildInfoSource = Join-Path $buildDirectory 'ToolHubBuildInfo.cs'
+$buildInfoText = @"
+namespace ToolHub.App
+{
+    internal static class ToolHubBuildInfo
+    {
+        public const string ToolHubFileName = "ToolHub-$buildId.exe";
+        public const string CoreFileName = "ToolHub.Core-$buildId.dll";
+        public const string DshHostFileName = "ToolHubDshHost-$buildId.exe";
+    }
+}
+"@
+[IO.File]::WriteAllText($buildInfoSource, $buildInfoText, [Text.Encoding]::ASCII)
 
 function Invoke-Csc {
     param([string[]]$Arguments)
@@ -29,7 +43,10 @@ function Invoke-Csc {
 }
 
 $coreAssembly = Join-Path $buildDirectory 'ToolHub.Core.dll'
+$versionedCoreAssembly = Join-Path $buildDirectory "ToolHub.Core-$buildId.dll"
 $appAssembly = Join-Path $buildDirectory 'ToolHub.exe'
+$versionedAppAssembly = Join-Path $buildDirectory "ToolHub-$buildId.exe"
+$dshHostAssembly = Join-Path $buildDirectory "ToolHubDshHost-$buildId.exe"
 $iconAssembly = Join-Path $buildDirectory 'CreateToolHubIcon.exe'
 $iconPath = Join-Path $buildDirectory 'ToolHub.ico'
 
@@ -39,7 +56,24 @@ Invoke-Csc @(
     "/out:$coreAssembly",
     (Join-Path $projectRoot 'src\ToolHub.Core.cs')
 )
+Invoke-Csc @(
+    '/nologo',
+    '/target:library',
+    "/out:$versionedCoreAssembly",
+    (Join-Path $projectRoot 'src\ToolHub.Core.cs')
+)
 
+Invoke-Csc @(
+    '/nologo',
+    '/target:winexe',
+    "/out:$dshHostAssembly",
+    '/reference:System.dll',
+    '/reference:System.Core.dll',
+    '/reference:System.Management.dll',
+    $buildInfoSource,
+    (Join-Path $projectRoot 'src\ToolHub.Dsh.cs'),
+    (Join-Path $projectRoot 'src\ToolHubDshHost.cs')
+)
 Invoke-Csc @(
     '/nologo',
     '/target:exe',
@@ -61,8 +95,26 @@ Invoke-Csc @(
     '/reference:System.dll',
     '/reference:System.Drawing.dll',
     '/reference:System.Windows.Forms.dll',
+    '/reference:System.Management.dll',
     "/reference:$coreAssembly",
+    $buildInfoSource,
     (Join-Path $projectRoot 'src\ToolHub.App.cs'),
+    (Join-Path $projectRoot 'src\ToolHub.Dsh.cs'),
+    (Join-Path $projectRoot 'src\ToolHubIcon.cs')
+)
+Invoke-Csc @(
+    '/nologo',
+    '/target:winexe',
+    "/out:$versionedAppAssembly",
+    "/win32icon:$iconPath",
+    '/reference:System.dll',
+    '/reference:System.Drawing.dll',
+    '/reference:System.Windows.Forms.dll',
+    '/reference:System.Management.dll',
+    "/reference:$versionedCoreAssembly",
+    $buildInfoSource,
+    (Join-Path $projectRoot 'src\ToolHub.App.cs'),
+    (Join-Path $projectRoot 'src\ToolHub.Dsh.cs'),
     (Join-Path $projectRoot 'src\ToolHubIcon.cs')
 )
 
@@ -86,6 +138,7 @@ Invoke-Csc @(
     "/win32icon:$iconPath",
     '/reference:System.dll',
     '/reference:System.Windows.Forms.dll',
+    $buildInfoSource,
     (Join-Path $projectRoot 'src\ToolHubLauncher.cs')
 )
 
@@ -120,3 +173,6 @@ if ($RunTests) {
 }
 
 Write-Output "ToolHub built: $appAssembly"
+Write-Output "Versioned ToolHub built: $versionedAppAssembly"
+Write-Output "Versioned ToolHub core built: $versionedCoreAssembly"
+Write-Output "DSH host built: $dshHostAssembly"

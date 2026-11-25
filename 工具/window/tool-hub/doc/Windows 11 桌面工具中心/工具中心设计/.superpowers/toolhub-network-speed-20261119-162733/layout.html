@@ -1,0 +1,48 @@
+<h2>悬浮图标旁的实时网速</h2>
+<p class="subtitle">两种常驻布局预览。圆形 ToolHub 图标仍是点击和拖动入口；速率区域只展示数据。</p>
+
+<div class="options">
+  <div class="option" data-choice="single-line" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>单行紧凑</h3>
+      <p>上下行并排，一眼扫完；占用横向空间更少。</p>
+      <div class="mockup">
+        <div class="mockup-header">折叠状态 · 常驻显示</div>
+        <div class="mockup-body">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:86px;padding:6px;">
+            <div style="display:flex;align-items:center;gap:10px;background:#f7f9fc;border:1px solid #e3e9f2;border-radius:24px;padding:13px 16px;color:#17233b;font:600 14px 'Microsoft YaHei UI',sans-serif;white-space:nowrap;">
+              <span style="color:#25a36f;">↑ 680 KB/s</span>
+              <span style="color:#3d6df5;">↓ 4.2 MB/s</span>
+            </div>
+            <div style="width:78px;height:78px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 4px 14px #17233b22;flex:none;">
+              <div style="width:62px;height:62px;border-radius:50%;background:#2b6cff;color:#fff;display:grid;place-items:center;font:bold italic 43px Arial,sans-serif;line-height:1;">C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="two-line" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>上下两行</h3>
+      <p>上传、下载分行并标注方向；更清晰，但状态胶囊稍宽。</p>
+      <div class="mockup">
+        <div class="mockup-header">折叠状态 · 常驻显示</div>
+        <div class="mockup-body">
+          <div style="display:flex;align-items:center;justify-content:flex-end;gap:10px;min-height:86px;padding:6px;">
+            <div style="display:flex;flex-direction:column;justify-content:center;gap:7px;background:#f7f9fc;border:1px solid #e3e9f2;border-radius:22px;padding:12px 16px;color:#17233b;font:600 14px 'Microsoft YaHei UI',sans-serif;white-space:nowrap;min-width:154px;">
+              <span><span style="color:#25a36f;">↑</span> 上传　680 KB/s</span>
+              <span><span style="color:#3d6df5;">↓</span> 下载　4.2 MB/s</span>
+            </div>
+            <div style="width:78px;height:78px;border-radius:50%;background:#fff;display:grid;place-items:center;box-shadow:0 4px 14px #17233b22;flex:none;">
+              <div style="width:62px;height:62px;border-radius:50%;background:#2b6cff;color:#fff;display:grid;place-items:center;font:bold italic 43px Arial,sans-serif;line-height:1;">C</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

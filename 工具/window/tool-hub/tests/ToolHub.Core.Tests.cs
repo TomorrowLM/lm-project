@@ -34,12 +34,94 @@ internal static class ToolHubCoreTests
         Type resolverType = assembly.GetType("ToolHub.Core.ToolHubPathResolver");
         Type launcherType = assembly.GetType("ToolHub.Core.ToolHubLauncher");
         Type layoutType = assembly.GetType("ToolHub.Core.ToolHubLayout");
+        Type rateCalculatorType = assembly.GetType("ToolHub.Core.NetworkTrafficRateCalculator");
 
         Assert(catalogType != null, "catalog type exists");
         Assert(toolType != null, "tool type exists");
         Assert(resolverType != null, "path resolver exists");
         Assert(launcherType != null, "launcher exists");
         Assert(layoutType != null, "tool hub layout adapts to the number of tools");
+        Assert(rateCalculatorType != null, "network traffic rate calculator exists");
+
+        Type speedDisplayPolicyType = assembly.GetType("ToolHub.Core.NetworkSpeedDisplayPolicy");
+        Assert(speedDisplayPolicyType != null, "network speed display policy exists");
+        if (speedDisplayPolicyType != null)
+        {
+            MethodInfo shouldShowNetworkSpeed = speedDisplayPolicyType.GetMethod("ShouldShow", BindingFlags.Public | BindingFlags.Static);
+            Assert(shouldShowNetworkSpeed != null, "network speed visibility can be decided from search state");
+            if (shouldShowNetworkSpeed != null)
+            {
+                Assert((bool)shouldShowNetworkSpeed.Invoke(null, new object[] { true, false, false }),
+                    "network speed is visible when the expanded search is idle");
+                Assert(!(bool)shouldShowNetworkSpeed.Invoke(null, new object[] { false, false, false }),
+                    "network speed is hidden while the hub is collapsed");
+                Assert(!(bool)shouldShowNetworkSpeed.Invoke(null, new object[] { true, true, false }),
+                    "network speed is hidden while the search field is focused");
+                Assert(!(bool)shouldShowNetworkSpeed.Invoke(null, new object[] { true, false, true }),
+                    "network speed is hidden while the search query has text");
+            }
+        }
+
+        if (rateCalculatorType != null)
+        {
+            MethodInfo calculateRates = rateCalculatorType.GetMethod("TryCalculate", BindingFlags.Public | BindingFlags.Static);
+            Assert(calculateRates != null, "network traffic rates can be calculated from byte counter deltas");
+            if (calculateRates != null)
+            {
+                object[] validSample =
+                {
+                    (ulong)1000,
+                    (ulong)3000,
+                    (ulong)3500,
+                    (ulong)4000,
+                    TimeSpan.FromSeconds(2),
+                    0d,
+                    0d
+                };
+                bool hasRate = (bool)calculateRates.Invoke(null, validSample);
+                Assert(hasRate, "network rate is available for increasing counters and a positive interval");
+                Assert(Math.Abs((double)validSample[5] - 1250d) < 0.001d,
+                    "download rate is calculated from received-byte deltas");
+                Assert(Math.Abs((double)validSample[6] - 500d) < 0.001d,
+                    "upload rate is calculated from sent-byte deltas");
+
+                object[] resetSample =
+                {
+                    (ulong)3500,
+                    (ulong)4000,
+                    (ulong)100,
+                    (ulong)5000,
+                    TimeSpan.FromSeconds(1),
+                    0d,
+                    0d
+                };
+                Assert(!(bool)calculateRates.Invoke(null, resetSample),
+                    "counter reset is reported as an unavailable rate instead of a negative speed");
+
+                object[] zeroInterval =
+                {
+                    (ulong)10,
+                    (ulong)20,
+                    (ulong)30,
+                    (ulong)40,
+                    TimeSpan.Zero,
+                    0d,
+                    0d
+                };
+                Assert(!(bool)calculateRates.Invoke(null, zeroInterval),
+                    "zero-length sample intervals are reported as unavailable");
+            }
+
+            MethodInfo formatRate = rateCalculatorType.GetMethod("FormatBytesPerSecond", BindingFlags.Public | BindingFlags.Static);
+            Assert(formatRate != null, "network rate values have a compact display formatter");
+            if (formatRate != null)
+            {
+                Assert((string)formatRate.Invoke(null, new object[] { 1024d }) == "1.0 KB/s",
+                    "network rate formatter uses kilobytes per second");
+                Assert((string)formatRate.Invoke(null, new object[] { 1024d * 1024d }) == "1.0 MB/s",
+                    "network rate formatter uses megabytes per second");
+            }
+        }
 
         if (resolverType != null)
         {
@@ -82,9 +164,9 @@ internal static class ToolHubCoreTests
             string fakeWindowRoot = Path.Combine(Path.GetTempPath(), "tool-hub-window");
             object tools = catalogType.GetMethod("GetTools").Invoke(null, new object[] { fakeWindowRoot });
             IList toolList = (IList)tools;
-            Assert(toolList.Count == 5, "catalog contains the five window tools");
+            Assert(toolList.Count == 6, "catalog contains five window tools and the DSH service entry");
 
-            string[] expectedIds = { "workspace", "wallpaper", "desktop-repair", "system-diagnostics", "audio-scene" };
+            string[] expectedIds = { "workspace", "wallpaper", "desktop-repair", "system-diagnostics", "audio-scene", "dsh" };
             for (int i = 0; i < expectedIds.Length && i < toolList.Count; i++)
             {
                 object tool = toolList[i];

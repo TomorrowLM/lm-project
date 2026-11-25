@@ -16,10 +16,16 @@ namespace ToolHub.Launcher
             string toolHubArtifact = Directory.GetParent(toolHubAppDirectory).FullName;
             string artifactRoot = Directory.GetParent(toolHubArtifact).FullName;
             string workspaceAppDirectory = Path.Combine(artifactRoot, "workspace-switcher", "app");
-            string toolHubPath = Path.Combine(toolHubAppDirectory, "ToolHub.exe");
+            string legacyToolHubPath = Path.Combine(toolHubAppDirectory, "ToolHub.exe");
+            string legacyCorePath = Path.Combine(toolHubAppDirectory, "ToolHub.Core.dll");
+            string toolHubPath = Path.Combine(toolHubAppDirectory, ToolHub.App.ToolHubBuildInfo.ToolHubFileName);
+            string toolHubCorePath = Path.Combine(toolHubAppDirectory, ToolHub.App.ToolHubBuildInfo.CoreFileName);
 
+            ApplyPendingFile(legacyToolHubPath);
+            ApplyPendingFile(legacyCorePath);
             ApplyPendingFile(toolHubPath);
-            ApplyPendingFile(Path.Combine(toolHubAppDirectory, "ToolHub.Core.dll"));
+            ApplyPendingFile(toolHubCorePath);
+            ApplyPendingFile(Path.Combine(toolHubAppDirectory, ToolHub.App.ToolHubBuildInfo.DshHostFileName));
             ApplyPendingFile(Path.Combine(workspaceAppDirectory, "WorkspaceSwitcher.exe"));
             ApplyPendingFile(Path.Combine(workspaceAppDirectory, "WorkspaceSwitcher.Core.dll"));
 

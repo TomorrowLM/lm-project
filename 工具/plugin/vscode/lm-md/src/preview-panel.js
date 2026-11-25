@@ -749,15 +749,20 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-toc-link:hover { background: var(--vscode-list-hoverBackground); }
     .lm-md-toc-link:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     .lm-md-empty-toc { color: var(--vscode-descriptionForeground); font-size: 12px; }
-    .lm-md-toolbar { position: sticky; top: 0; z-index: 4; display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "status toc settings search sync"; align-items: center; gap: 12px; min-height: 32px; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent); border-bottom: 1px solid var(--vscode-panel-border); }
+    .lm-md-toolbar { position: sticky; top: 0; z-index: 4; display: flex; flex-direction: column; align-items: stretch; gap: 6px; min-height: 32px; padding: 8px 0; margin-bottom: 18px; background: color-mix(in srgb, var(--vscode-editor-background) 92%, transparent); border-bottom: 1px solid var(--vscode-panel-border); }
     .lm-md-toolbar.lm-md-toolbar-hidden { display: none !important; }
-    .lm-md-selection-group { grid-area: status; display: flex; min-width: 0; align-items: center; gap: 6px; }
+    .lm-md-toolbar-row { display: flex; min-width: 0; align-items: center; gap: 8px; }
+    .lm-md-toolbar-search-row { gap: 6px; }
+    .lm-md-toolbar-sync-row { gap: 8px; }
+    .lm-md-selection-group { display: flex; flex: 1 1 0; min-width: 0; align-items: center; gap: 6px; }
     .lm-md-status { min-width: 0; flex: 1 1 auto; overflow: hidden; color: var(--vscode-descriptionForeground); font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
     .lm-md-selection-group button { flex: 0 0 auto; padding: 4px 8px; font-size: 11px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
-    .lm-md-toc-toggle { grid-area: toc; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
-    .lm-md-settings-holder { position: relative; grid-area: settings; }
-    .lm-md-settings-toggle { min-width: 34px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
-    .lm-md-settings-popover { position: absolute; top: calc(100% + 8px); right: 0; z-index: 15; width: min(390px, calc(100vw - 36px)); max-height: min(76vh, 720px); overflow: auto; padding: 13px; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: 6px; background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground)); box-shadow: 0 8px 28px color-mix(in srgb, black 38%, transparent); }
+    .lm-md-toc-toggle { flex: 0 0 auto; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); white-space: nowrap; }
+    .lm-md-settings-holder { position: relative; flex: 0 0 auto; }
+    .lm-md-settings-toggle, .lm-md-toolbar-refresh { display: inline-grid; width: 34px; height: 34px; min-width: 34px; place-items: center; padding: 0; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); font-size: 17px; line-height: 1; }
+    .lm-md-settings-toggle svg, .lm-md-toolbar-refresh svg { width: 18px; height: 18px; }
+    .lm-md-toolbar-refresh { font-size: 20px; }
+    .lm-md-settings-popover { position: absolute; top: calc(100% + 8px); left: 0; right: auto; z-index: 15; width: min(390px, calc(100vw - 36px)); max-height: min(76vh, 720px); overflow: auto; padding: 13px; border: 1px solid var(--vscode-editorWidget-border, var(--vscode-panel-border)); border-radius: 6px; background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); color: var(--vscode-editorWidget-foreground, var(--vscode-editor-foreground)); box-shadow: 0 8px 28px color-mix(in srgb, black 38%, transparent); }
     .lm-md-settings-popover[hidden] { display: none; }
     .lm-md-settings-heading { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; font-size: 14px; font-weight: 700; }
     .lm-md-settings-close { min-width: 28px; padding: 2px 7px; }
@@ -775,14 +780,14 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-settings-status { min-height: 16px; margin-top: 6px; color: var(--vscode-descriptionForeground); font-size: 11px; }
     .lm-md-settings-actions { display: flex; gap: 6px; margin-top: 8px; }
     .lm-md-settings-actions button { flex: 1 1 auto; }
-    .lm-md-content-search-toolbar { display: flex; grid-area: search; align-items: center; justify-content: flex-end; gap: 4px; min-width: 0; }
-    .lm-md-content-search-toolbar input { width: clamp(120px, 14vw, 220px); min-width: 80px; box-sizing: border-box; padding: 5px 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; }
+    .lm-md-content-search-toolbar { display: flex; flex: 1 1 auto; align-items: center; justify-content: flex-start; gap: 4px; min-width: 0; }
+    .lm-md-content-search-toolbar input { width: 0; min-width: 80px; flex: 1 1 auto; box-sizing: border-box; padding: 5px 7px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 4px; }
     .lm-md-content-search-toolbar button { min-width: 26px; padding: 4px 7px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
     .lm-md-search-result { min-width: 42px; color: var(--vscode-descriptionForeground); font-size: 11px; white-space: nowrap; }
     button { border: 1px solid var(--vscode-button-border, transparent); border-radius: 4px; padding: 5px 10px; color: var(--vscode-button-foreground); background: var(--vscode-button-background); cursor: pointer; }
     .lm-md-toc-collapse { width: 18px; height: 22px; margin: 0 1px 0 0; padding: 0; color: var(--vscode-descriptionForeground); background: transparent; border: 0; line-height: 20px; }
     .lm-md-content-search-toolbar button { padding: 4px 7px; color: var(--vscode-button-secondaryForeground, var(--vscode-button-foreground)); background: var(--vscode-button-secondaryBackground, var(--vscode-button-background)); }
-    .lm-md-sync-actions { grid-area: sync; display: flex; justify-self: end; gap: 6px; min-width: max-content; }
+    .lm-md-sync-actions { display: flex; flex: 0 1 auto; gap: 6px; min-width: 0; margin-left: auto; }
     .lm-md-sync-actions button { white-space: nowrap; }
     button:disabled { opacity: .55; cursor: default; }
     .lm-md-collapse { margin-right: 6px; padding: 0 4px; color: var(--vscode-descriptionForeground); background: transparent; border: 0; font-size: .75em; vertical-align: middle; }
@@ -818,11 +823,11 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-change-diff strong { color: var(--vscode-descriptionForeground); font-size: 11px; }
     .lm-md-change-source { margin-top: 5px; }
     article .lm-md-net-change { border-radius: 2px; }
-    article .lm-md-net-change-added { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-addedResourceForeground, #73c991); background-color: color-mix(in srgb, var(--vscode-gitDecoration-addedResourceForeground, #73c991) 8%, transparent); }
-    article .lm-md-net-change-modified { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); background-color: color-mix(in srgb, var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d) 9%, transparent); }
-    article .lm-md-net-change-removed { box-shadow: inset 3px 0 0 var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c); background-color: color-mix(in srgb, var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c) 9%, transparent); }
-    .lm-md-change-mark { box-shadow: inset 3px 0 0 color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); }
-    .lm-md-change-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 3px; border-radius: 2px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 35%, transparent); }
+    article .lm-md-net-change-added { box-shadow: inset 2px 0 0 var(--vscode-gitDecoration-addedResourceForeground, #73c991); }
+    article .lm-md-net-change-modified { box-shadow: inset 2px 0 0 var(--vscode-gitDecoration-modifiedResourceForeground, #e2c08d); }
+    article .lm-md-net-change-removed { box-shadow: inset 2px 0 0 var(--vscode-gitDecoration-deletedResourceForeground, #f14c4c); }
+    .lm-md-change-mark { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); }
+    .lm-md-change-current { outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); outline-offset: 2px; border-radius: 2px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 8%, transparent); }
     .lm-md-reference-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 28%, transparent); transition: background-color 180ms ease; }
     .lm-md-main article pre { max-width: 100%; margin: 14px 0; overflow: auto; padding: 13px 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; background: var(--vscode-textCodeBlock-background); font-size: .86em; line-height: 1.6; }
     .lm-md-main article code { padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 78%, var(--vscode-editor-foreground)); font-size: .9em; }
@@ -866,19 +871,15 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-image-custom-size { display: flex; align-items: center; gap: 5px; padding: 5px; color: var(--vscode-menu-foreground, var(--vscode-editor-foreground)); font-size: 12px; }
     .lm-md-image-custom-size input { min-width: 0; width: 74px; padding: 4px 5px; color: var(--vscode-input-foreground); background: var(--vscode-input-background); border: 1px solid var(--vscode-input-border, var(--vscode-panel-border)); border-radius: 3px; }
     .lm-md-image-custom-size button { width: auto; padding: 4px 8px; }
-    @media (max-width: 1100px) { .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc settings" "search search"; row-gap: 8px; } .lm-md-content-search-toolbar { justify-self: stretch; } }
+    @media (max-width: 520px) { .lm-md-search-result { display: none; } .lm-md-toolbar-row { gap: 5px; } .lm-md-toolbar-search-row { gap: 5px; } .lm-md-selection-group { gap: 4px; } .lm-md-sync-actions { gap: 4px; } .lm-md-sync-actions button { padding: 5px 6px; font-size: 11px; } }
     @media (max-width: 900px) { .lm-md-layout { gap: 12px; padding: 18px 0 40px 20px; } .lm-md-toc { flex-basis: 260px; width: 260px; } }
-    @media (max-width: 700px) { .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } .lm-md-selection-group { flex-wrap: wrap; } .lm-md-toc-toggle, .lm-md-settings-holder, .lm-md-sync-actions, .lm-md-content-search-toolbar { justify-self: stretch; } .lm-md-sync-actions button { flex: 1 1 0; } .lm-md-settings-toggle { width: 100%; } .lm-md-settings-popover { right: auto; left: 0; } .lm-md-content-search-toolbar input { flex: 1 1 auto; width: auto; } }
     ${options.externalOutline ? `
     body.lm-md-external-outline .lm-md-layout { display: block; padding: 20px clamp(16px, 3vw, 48px) 56px; }
     body.lm-md-external-outline .lm-md-toc, body.lm-md-external-outline .lm-md-toc-toggle { display: none !important; }
     body.lm-md-external-outline .lm-md-main { width: 100%; min-width: 0; max-width: none; }
     body.lm-md-external-outline .lm-md-main article { width: min(100%, var(--lm-md-content-width, 88ch)); min-width: 0; }
-    body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto auto auto auto; grid-template-areas: "status toc settings search sync"; }
     body.lm-md-external-outline .lm-md-mermaid { max-width: 100%; overflow: auto; }
     body.lm-md-external-outline .lm-md-mermaid-viewport svg { max-width: none !important; height: auto; }
-    @media (max-width: 900px) { body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "status sync" "toc settings" "search search"; } }
-    @media (max-width: 700px) { body.lm-md-external-outline .lm-md-toolbar { grid-template-columns: 1fr; grid-template-areas: "status" "toc" "settings" "search" "sync"; } }
     ` : ""}
   </style>
 </head>
@@ -915,13 +916,11 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     </aside>
     <main class="lm-md-main">
       <div class="lm-md-toolbar">
-        <div class="lm-md-selection-group">
-          <span class="lm-md-status" id="lm-md-status">在预览中选择文字后同步到 Copilot</span>
-          <button id="lm-md-clear-selection" type="button" title="清空当前选区" hidden>清空选区</button>
-        </div>
-        <button id="lm-md-toc-toggle" class="lm-md-toc-toggle" type="button" aria-expanded="true">隐藏目录</button>
+        <div class="lm-md-toolbar-row lm-md-toolbar-search-row">
         <div class="lm-md-settings-holder">
-          <button id="lm-md-settings-toggle" class="lm-md-settings-toggle" type="button" aria-expanded="false" aria-controls="lm-md-settings-popover" title="预览设置">⚙ 设置</button>
+          <button id="lm-md-settings-toggle" class="lm-md-settings-toggle" type="button" aria-label="预览设置" aria-expanded="false" aria-controls="lm-md-settings-popover" title="预览设置">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="m19.4 15 .1.1 1.4 1.1-1.4 2.4-1.7-.7a8 8 0 0 1-1.7 1l-.3 1.8h-2.8l-.3-1.8a8 8 0 0 1-1.7-1l-1.7.7-1.4-2.4L7.3 15a8 8 0 0 1 0-2l-1.4-1.1 1.4-2.4 1.7.7a8 8 0 0 1 1.7-1l.3-1.8h2.8l.3 1.8a8 8 0 0 1 1.7 1l1.7-.7 1.4 2.4-1.4 1.1a8 8 0 0 1-.1 2Z"></path></svg>
+          </button>
           <section id="lm-md-settings-popover" class="lm-md-settings-popover" aria-label="预览设置" hidden>
             <div class="lm-md-settings-heading"><span>预览设置</span><button id="lm-md-settings-close" class="lm-md-settings-close" type="button" aria-label="关闭设置">×</button></div>
             <div class="lm-md-settings-section">
@@ -965,6 +964,9 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
             </div>
           </section>
         </div>
+        <button id="lm-md-toolbar-refresh" class="lm-md-toolbar-refresh" type="button" data-refresh-change-history aria-label="刷新改动" title="刷新改动">
+          <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7v5h-5"></path><path d="M19.1 12a7.1 7.1 0 1 1-1.8-4.8L20 12"></path></svg>
+        </button>
         <div class="lm-md-content-search-toolbar" role="search" aria-label="正文搜索">
           <input id="lm-md-content-search" type="search" placeholder="搜索正文" aria-label="搜索正文" autocomplete="off">
           <button id="lm-md-content-search-prev" type="button" title="上一个匹配" aria-label="上一个匹配">↑</button>
@@ -972,9 +974,17 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
           <button id="lm-md-content-search-clear" type="button" title="清除正文搜索">清除</button>
           <span id="lm-md-content-result" class="lm-md-search-result" aria-live="polite"></span>
         </div>
+        </div>
+        <div class="lm-md-toolbar-row lm-md-toolbar-sync-row">
+        <div class="lm-md-selection-group">
+          <span class="lm-md-status" id="lm-md-status">在预览中选择文字后同步到 Copilot</span>
+          <button id="lm-md-clear-selection" type="button" title="清空当前选区" hidden>清空选区</button>
+        </div>
+        <button id="lm-md-toc-toggle" class="lm-md-toc-toggle" type="button" aria-expanded="true">隐藏目录</button>
         <div class="lm-md-sync-actions" role="group" aria-label="同步选区">
           <button id="lm-md-sync" type="button" disabled>同步到 Copilot</button>
           <button id="lm-md-sync-dsh" type="button" disabled>同步到 DSH</button>
+        </div>
         </div>
       </div>
       <section id="lm-md-change-history" class="lm-md-change-history" aria-label="当前文件净变化和会话编辑事件">
@@ -1054,7 +1064,7 @@ function renderChangeHistory(changeRecords, fileName, changeEvents = []) {
     <div class="lm-md-change-title-group"><strong>当前文件净变化</strong><span id="lm-md-change-help" class="lm-md-change-help"><button id="lm-md-change-help-button" class="lm-md-change-help-button" type="button" aria-label="改动计算说明" aria-controls="lm-md-change-help-popover" aria-expanded="false" title="改动计算说明">?</button><span id="lm-md-change-help-popover" class="lm-md-change-help-popover" role="tooltip">点击“刷新”后，按磁盘保存内容与当前文档重新计算净变化，并同步高亮预览正文。VS Code 不提供可靠的 Copilot 来源标记，因此结果也可能包含手动编辑；本会话已捕获的编辑事件可在下方展开查看。</span></span></div>
     <span class="lm-md-change-file" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span>
     <span id="lm-md-change-summary" class="lm-md-change-summary">${netEntries.length} 处 · +${addedLines} −${removedLines}</span>
-    <button id="lm-md-change-refresh" type="button" title="刷新改动列表">刷新</button>
+    <button id="lm-md-change-refresh" type="button" data-refresh-change-history title="刷新改动列表">刷新</button>
     <button id="lm-md-change-prev" type="button" title="上一处改动" ${entries.length ? "" : "disabled"}>上一处</button>
     <button id="lm-md-change-next" type="button" title="下一处改动" ${entries.length ? "" : "disabled"}>下一处</button>
     <button id="lm-md-change-toggle" type="button" aria-expanded="true" title="收起改动详情">收起改动</button>

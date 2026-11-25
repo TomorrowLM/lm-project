@@ -84,21 +84,42 @@ if ($exitCode -ne 0) {
     throw "ToolHub build failed with exit code $exitCode. See $buildLog"
 }
 
-$buildApp = Join-Path $buildDirectory 'ToolHub.exe'
-$buildCore = Join-Path $buildDirectory 'ToolHub.Core.dll'
+$buildLegacyApp = Join-Path $buildDirectory 'ToolHub.exe'
+$buildLegacyCore = Join-Path $buildDirectory 'ToolHub.Core.dll'
 $buildInstaller = Join-Path $buildDirectory 'ToolHubInstaller.exe'
 $buildLauncher = Join-Path $buildDirectory 'ToolHubLauncher.exe'
-$targetApp = Join-Path $appDirectory 'ToolHub.exe'
-$targetCore = Join-Path $appDirectory 'ToolHub.Core.dll'
+$buildInfoSource = Join-Path $buildDirectory 'ToolHubBuildInfo.cs'
+if (-not (Test-Path -LiteralPath $buildInfoSource)) {
+    throw "Build metadata is missing: $buildInfoSource"
+}
+$buildInfoText = Get-Content -LiteralPath $buildInfoSource -Raw
+$appNameMatch = [regex]::Match($buildInfoText, 'ToolHubFileName\s*=\s*"([^"]+)"')
+$coreNameMatch = [regex]::Match($buildInfoText, 'CoreFileName\s*=\s*"([^"]+)"')
+$hostNameMatch = [regex]::Match($buildInfoText, 'DshHostFileName\s*=\s*"([^"]+)"')
+if (-not $appNameMatch.Success -or -not $coreNameMatch.Success -or -not $hostNameMatch.Success) {
+    throw "Unable to read versioned artifact filenames from $buildInfoSource"
+}
+$buildApp = Join-Path $buildDirectory $appNameMatch.Groups[1].Value
+$buildCore = Join-Path $buildDirectory $coreNameMatch.Groups[1].Value
+$buildDshHost = Join-Path $buildDirectory $hostNameMatch.Groups[1].Value
+$targetLegacyApp = Join-Path $appDirectory 'ToolHub.exe'
+$targetLegacyCore = Join-Path $appDirectory 'ToolHub.Core.dll'
+$targetApp = Join-Path $appDirectory $appNameMatch.Groups[1].Value
+$targetCore = Join-Path $appDirectory $coreNameMatch.Groups[1].Value
 $targetInstaller = Join-Path $appDirectory 'ToolHubInstaller.exe'
- $targetLauncher = Join-Path $appDirectory 'ToolHubLauncher.exe'
+$targetLauncher = Join-Path $appDirectory 'ToolHubLauncher.exe'
+$targetDshHost = Join-Path $appDirectory $hostNameMatch.Groups[1].Value
 if (-not (Test-Path -LiteralPath $buildApp) -or -not (Test-Path -LiteralPath $buildCore) -or
-    -not (Test-Path -LiteralPath $buildLauncher) -or
+    -not (Test-Path -LiteralPath $buildLegacyApp) -or -not (Test-Path -LiteralPath $buildLegacyCore) -or
+    -not (Test-Path -LiteralPath $buildLauncher) -or -not (Test-Path -LiteralPath $buildDshHost) -or
     (-not $SkipInstaller -and -not (Test-Path -LiteralPath $buildInstaller))) {
     throw "Build output is incomplete: $buildApp"
 }
 
-$existingTargetCandidates = @($targetApp, $targetCore, $targetLauncher)
+$existingTargetCandidates = @(
+    $targetApp, $targetCore, $targetLegacyApp, $targetLegacyCore,
+    $targetLauncher, $targetDshHost
+)
 if (-not $SkipInstaller) {
     $existingTargetCandidates += $targetInstaller
 }
@@ -144,12 +165,11 @@ function Copy-DeployedArtifact {
     }
 }
 
-$appCopied = Copy-DeployedArtifact -Source $buildApp -Destination $targetApp
-if ($appCopied) {
-    Copy-DeployedArtifact -Source $buildCore -Destination $targetCore | Out-Null
-} else {
-    Stage-DeferredArtifact -Source $buildCore -Destination $targetCore
-}
+Copy-DeployedArtifact -Source $buildCore -Destination $targetCore | Out-Null
+Copy-DeployedArtifact -Source $buildApp -Destination $targetApp | Out-Null
+Copy-DeployedArtifact -Source $buildDshHost -Destination $targetDshHost | Out-Null
+Copy-DeployedArtifact -Source $buildLegacyApp -Destination $targetLegacyApp | Out-Null
+Copy-DeployedArtifact -Source $buildLegacyCore -Destination $targetLegacyCore | Out-Null
 if (-not $SkipInstaller) {
     Copy-DeployedArtifact -Source $buildInstaller -Destination $targetInstaller | Out-Null
 }
@@ -183,7 +203,9 @@ $deployLog = Join-Path $logDirectory 'last-deploy.json'
     Timestamp = (Get-Date).ToString('o')
     Source = $projectRoot
     Build = $buildDirectory
-    App = $appDirectory
+    App = $targetApp
+    Core = $targetCore
+    DshHost = $targetDshHost
     Launcher = $targetLauncher
     Config = $configDirectory
     WindowRoot = $windowRoot
