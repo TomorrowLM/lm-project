@@ -1,9 +1,0 @@
-{
-  "id": "selection-context-bridge",
-  "name": "Selection Context Bridge",
-  "version": "0.2.0",
-  "minAppVersion": "1.7.2",
-  "description": "Send the current note selection or Markdown section range to Codex Panel or DSH without caching selections.",
-  "author": "Local",
-  "isDesktopOnly": true
-}

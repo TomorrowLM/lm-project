@@ -1,7 +1,0 @@
-{
-  "meta": {
-    "title": "技能改进器",
-    "description": "分析工作区内的 SKILL.md，结合你提供的任务反馈生成改进稿；确认后应用，并支持查看快照和回滚。",
-    "detail": "docs/DETAIL.md"
-  }
-}

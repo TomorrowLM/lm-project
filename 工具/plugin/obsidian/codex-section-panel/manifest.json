@@ -1,9 +1,0 @@
-{
-  "id": "codex-section-panel",
-  "name": "Codex Section Panel",
-  "version": "0.4.7",
-  "minAppVersion": "1.7.2",
-  "description": "Send temporary Obsidian context to Codex with persistent local chat history and streaming replies.",
-  "author": "Local",
-  "isDesktopOnly": true
-}
