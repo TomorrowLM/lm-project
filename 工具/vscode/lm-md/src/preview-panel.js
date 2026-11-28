@@ -744,8 +744,8 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-toc-link.lm-md-toc-active { border-left-color: var(--vscode-focusBorder); background: color-mix(in srgb, var(--vscode-list-activeSelectionBackground) 72%, transparent); font-weight: 700; }
     .lm-md-toc-collapse { flex: 0 0 18px; width: 18px; height: 22px; margin: 0 1px 0 0; padding: 0; color: var(--vscode-descriptionForeground); background: transparent; border: 0; font-size: 11px; line-height: 20px; vertical-align: middle; }
     .lm-md-toc-collapse:hover { background: var(--vscode-toolbar-hoverBackground); }
-    mark.lm-md-search-highlight { color: var(--vscode-editor-findMatchHighlightForeground, inherit); background-color: var(--vscode-editor-findMatchHighlightBackground, color-mix(in srgb, var(--vscode-editor-findMatchBackground, var(--vscode-editor-selectionBackground)) 45%, transparent)); border-radius: 2px; }
-    mark.lm-md-search-highlight.lm-md-search-current { color: var(--vscode-editor-findMatchForeground, inherit); background-color: var(--vscode-editor-findMatchBackground, var(--vscode-editor-selectionBackground)); font-weight: 700; }
+    mark.lm-md-search-highlight { color: #1b1b1b; background-color: #ffe36e; border-radius: 2px; padding: 0 1px; font-weight: 700; box-shadow: inset 0 -2px 0 #d99a00; }
+    mark.lm-md-search-highlight.lm-md-search-current { color: #111; background-color: #ffad42; box-shadow: inset 0 -2px 0 #c45b00; }
     .lm-md-toc-link:hover { background: var(--vscode-list-hoverBackground); }
     .lm-md-toc-link:focus-visible { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
     .lm-md-empty-toc { color: var(--vscode-descriptionForeground); font-size: 12px; }
@@ -829,7 +829,7 @@ function buildPreviewHtml(body, cspSource, scriptUri, headings = [], options = {
     .lm-md-change-mark { box-shadow: inset 2px 0 0 color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); }
     .lm-md-change-current { outline: 1px solid color-mix(in srgb, var(--vscode-focusBorder) 55%, transparent); outline-offset: 2px; border-radius: 2px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 8%, transparent); }
     .lm-md-reference-current { outline: 2px solid var(--vscode-focusBorder); outline-offset: 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-editor-selectionBackground) 28%, transparent); transition: background-color 180ms ease; }
-    .lm-md-main article pre { max-width: 100%; margin: 14px 0; overflow: auto; padding: 13px 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; background: var(--vscode-textCodeBlock-background); font-size: .86em; line-height: 1.6; }
+    .lm-md-main article pre { max-width: 100%; max-height: min(70vh, 720px); margin: 14px 0; overflow: auto; padding: 13px 15px; border: 1px solid var(--vscode-panel-border); border-radius: 5px; background: var(--vscode-textCodeBlock-background); font-size: .86em; line-height: 1.6; white-space: pre; }
     .lm-md-main article code { padding: 1px 4px; border-radius: 3px; background: color-mix(in srgb, var(--vscode-textCodeBlock-background) 78%, var(--vscode-editor-foreground)); font-size: .9em; }
     .lm-md-main article pre > code { display: block; padding: 0; border-radius: 0; background: transparent; font-size: inherit; }
     .lm-md-main article pre > code.hljs { color: var(--lm-hl-foreground); }
